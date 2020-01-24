@@ -61,6 +61,10 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 12. Click on the last `issue_jwt` call.
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
 
+## Run Homebridge using Docker
+
+If you are having issues with this plugin, you may want to try running Homebridge inside a docker container. This ensures that you are using the most up-to-date resources and that no external programs are interfering with the plugin. Just follow the instructions [here](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Docker) to install homebridge using docker and add **PACKAGES=ffmpeg** to the environment section.
+
 ## Credits
 
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
