@@ -9,7 +9,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 ## FAQ
 Q: Why is there no audio?
 
-A: Audio is not supported at this time.
+A: Audio is not supported at this time. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/1).
 
 Q: The video thumbnail is not updating.
 
