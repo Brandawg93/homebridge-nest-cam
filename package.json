@@ -1,17 +1,17 @@
 {
-  "name": "homebridge-nest-cam",
+  "name": "homebridge-nest-cam2",
   "version": "0.0.20",
-  "description": "Nest cam plugin for homebridge: https://github.com/Brandawg93/homebridge",
+  "description": "Nest cam plugin for homebridge: https://github.com/chrisjshull/homebridge-nest",
   "license": "ISC",
   "keywords": [
     "homebridge-plugin"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Brandawg93/homebridge-nest-cam.git"
+    "url": "git://github.com/Brandawg93/homebridge-nest-cam2"
   },
   "bugs": {
-    "url": "http://github.com/Brandawg93/homebridge-nest-cam/issues"
+    "url": "https://github.com/Brandawg93/homebridge-nest-cam2/issues"
   },
   "engines": {
     "node": ">=8.0.0",
