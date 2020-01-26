@@ -37,7 +37,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 ```
 {
     "platform": "Nest-cam",
-    "ffmpegCodec": "libx264"
+    "ffmpegCodec": "libx264",
     "googleAuth": {
         "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
         "cookies": "SMSV=ADHTe...",
