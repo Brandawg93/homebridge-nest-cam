@@ -85,6 +85,12 @@ class NestCamPlatform {
         accessoryInformation.setCharacteristic(Characteristic.SerialNumber, camera.serialNumber);
         accessoryInformation.setCharacteristic(Characteristic.FirmwareRevision, camera.softwareVersion);
         self.log.info('Create camera - ' + name);
+        // WIP
+        // if (camera.detectors.includes('motion')) {
+        //   var motion = new Service.MotionSensor(name);
+        //   accessory.addService(motion);
+        //   setInterval(camera.checkMotion, 10000, accessory, self.log);
+        // }
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);
       });
