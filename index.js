@@ -1,12 +1,18 @@
 'use strict';
 
-let Accessory, hap, UUIDGen;
+let Accessory, Service, Characteristic, hap, UUIDGen;
 const Nest = require('./lib/nest.js').NestAPI;
 const NestConnection = require('./lib/nest-connection.js');
 const Promise = require('bluebird');
+const modelTypes = {
+  10: 'Nest Cam IQ Indoor',
+  12: 'Nest Hello'
+}
 
 module.exports = (homebridge) => {
   Accessory = homebridge.platformAccessory;
+  Service = homebridge.hap.Service;
+  Characteristic = homebridge.hap.Characteristic;
   hap = homebridge.hap;
   UUIDGen = homebridge.hap.uuid;
 
@@ -67,8 +73,14 @@ class NestCamPlatform {
       cameras.forEach((camera) => {
         camera.configureWithHAP(hap, self.config);
         let name = camera.name;
+        let model = (modelTypes.hasOwnProperty(camera.type)) ? modelTypes[camera.type] : 'Unknown';
         let uuid = UUIDGen.generate(camera.uuid);
         let accessory = new Accessory(name, uuid, hap.Accessory.Categories.CAMERA);
+        let accessoryInformation = accessory.getService(Service.AccessoryInformation);
+        accessoryInformation.setCharacteristic(Characteristic.Manufacturer, 'Nest');
+        accessoryInformation.setCharacteristic(Characteristic.Model, model);
+        accessoryInformation.setCharacteristic(Characteristic.SerialNumber, camera.serialNumber);
+        accessoryInformation.setCharacteristic(Characteristic.FirmwareRevision, camera.softwareVersion);
         self.log.info('Create camera - ' + name);
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);

@@ -68,3 +68,5 @@ If you are having issues with this plugin, you may want to try running Homebridg
 ## Credits
 
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
+
+Nest Hello doorbell resolution by [schmittx](https://github.com/schmittx/homebridge-nest-cam/commit/0878058dc5293c297a99c3a0c60d6c1b43e661b5).
