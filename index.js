@@ -5,7 +5,10 @@ const Nest = require('./lib/nest.js').NestAPI;
 const NestConnection = require('./lib/nest-connection.js');
 const Promise = require('bluebird');
 const modelTypes = {
+  8: 'Nest Cam Indoor',
+  9: 'Nest Cam Outdoor',
   10: 'Nest Cam IQ Indoor',
+  11: 'Nest Cam IQ Outdoor',
   12: 'Nest Hello'
 }
 
