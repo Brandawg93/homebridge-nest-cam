@@ -1,0 +1,39 @@
+{
+  "pluginAlias": "Nest-cam",
+  "pluginType": "platform",
+  "headerDisplay": "The ffmpeg binary must be installed for this plugin to work.",
+  "footerDisplay": "For help please see the [Github](https://github.com/Brandawg93/homebridge-nest-cam2).",
+  "schema": {
+    "googleAuth": {
+      "title": "Google Authentication",
+      "type": "object",
+      "properties": {
+        "issueToken": {
+          "title": "Issue Token",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        "cookies": {
+          "title": "Cookies",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        "apiKey": {
+          "title": "API Key",
+          "type": "string",
+          "default": "",
+          "required": true
+        }
+      }
+    },
+    "ffmpegCodec": {
+      "title": "ffmpeg Codec",
+      "type": "string",
+      "default": "libx264",
+      "required": true,
+      "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
+    }
+  }
+}
