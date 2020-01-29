@@ -91,6 +91,15 @@ class NestCamPlatform {
         //   accessory.addService(motion);
         //   setInterval(camera.checkMotion, 10000, accessory, self.log);
         // }
+        //Add enabled/disabled service
+        accessory.addService(Service.Switch, 'Streaming')
+        .setCharacteristic(Characteristic.On, camera.enabled)
+        .getCharacteristic(Characteristic.On)
+        .on('set', function(value, callback) {
+          camera.toggleActive(value);
+          self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
+          callback();
+        });
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);
       });
