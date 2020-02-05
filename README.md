@@ -14,6 +14,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 | 1/25/20 | 0.23.0  | Fix Google Reauthentication   |
 | 1/26/20 | 0.24.0  | Nest Hello Resolution Support |
 | 1/28/20 | 0.25.0  | Toggle Streaming              |
+| 2/05/20 | 0.26.0  | Performance Improvements      |
 
 ## FAQ
 Q: Why is there no audio?
