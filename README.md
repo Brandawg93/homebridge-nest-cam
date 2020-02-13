@@ -3,6 +3,7 @@
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
 
 [![NPM](https://nodei.co/npm/homebridge-nest-cam2.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam2/)
+[![Beerpay](https://beerpay.io/Brandawg93/homebridge-nest-cam2/badge.svg)](https://beerpay.io/Brandawg93/homebridge-nest-cam2)
 ![npm](https://img.shields.io/npm/dt/homebridge-nest-cam2)
 
 ## Notes
