@@ -10,16 +10,6 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 - This is a continuation of the previous [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) plugin.
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
 
-## Changelog
-| Date    | Version | Description                   |
-|---------|---------|-------------------------------|
-| 1/24/20 | 0.20.0  | Initial Commit                |
-| 1/24/20 | 0.22.0  | Zero Latency Tune             |
-| 1/25/20 | 0.23.0  | Fix Google Reauthentication   |
-| 1/26/20 | 0.24.0  | Nest Hello Resolution Support |
-| 1/28/20 | 0.25.0  | Toggle Streaming              |
-| 2/05/20 | 0.26.0  | Performance Improvements      |
-
 ## FAQ
 Q: Why is there no audio?
 
