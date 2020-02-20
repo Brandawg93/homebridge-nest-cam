@@ -3,7 +3,11 @@
 let Accessory, Service, Characteristic, hap, UUIDGen;
 const Nest = require('./lib/nest.js').NestAPI;
 const NestConnection = require('./lib/nest-connection.js');
-const Promise = require('bluebird');
+
+Promise.delay = function(time_ms) {
+  return new Promise(resolve => setTimeout(resolve, time_ms));
+}
+
 const modelTypes = {
   8: 'Nest Cam Indoor',
   9: 'Nest Cam Outdoor',
@@ -22,27 +26,24 @@ module.exports = (homebridge) => {
   homebridge.registerPlatform('homebridge-nest-cam', 'Nest-cam', NestCamPlatform, true);
 }
 
-const setupConnection = function(config, log) {
-  return new Promise(function (resolve, reject) {
-    if (!config.access_token && !config.googleAuth && (!config.email || !config.password)) {
-      reject('You did not specify your Nest account credentials {\'email\',\'password\'}, or an access_token, or googleAuth, in config.json');
-        return;
-    }
-
-    if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
-      reject('When using googleAuth, you must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
+const setupConnection = async function(config, log) {
+  if (!config.googleAuth) {
+    reject('You did not specify your Google account credentials, googleAuth, in config.json');
       return;
-    }
+  }
 
-    const conn = new NestConnection(config, log);
-    conn.auth().then(connected => {
-      if (connected) {
-        resolve(conn);
-      } else {
-        reject('Unable to connect to Nest service.');
-      }
-    });
-  });
+  if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
+    reject('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
+    return;
+  }
+
+  const conn = new NestConnection(config, log);
+  try {
+    let connected = await conn.auth();
+    return connected;
+  } catch(error) {
+    throw('Unable to connect to Nest service.', error);
+  }
 };
 
 class NestCamPlatform {
@@ -68,9 +69,18 @@ class NestCamPlatform {
    * Add fetched cameras from nest to Homebridge
    * @param accessToken The google access token
    */
-  addCameras(accessToken) {
+  async addCameras(accessToken) {
     let self = this;
     self.nestAPI = new Nest(accessToken, self.config, self.log);
+
+    // Nest needs to be reauthenticated about every hour
+    setInterval(async function() {
+      let connected = await setupConnection(self.config, self.log);
+      if (connected) {
+        self.nestAPI.accessToken = self.config.access_token;
+      }
+    }, 3600000);
+
     self.nestAPI.on('cameras', (cameras) => {
       let configuredAccessories = [];
       cameras.forEach((camera) => {
@@ -95,8 +105,8 @@ class NestCamPlatform {
         accessory.addService(Service.Switch, 'Streaming')
         .setCharacteristic(Characteristic.On, camera.enabled)
         .getCharacteristic(Characteristic.On)
-        .on('set', function(value, callback) {
-          camera.toggleActive(value);
+        .on('set', async function(value, callback) {
+          await camera.toggleActive(value);
           self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
           callback();
         });
@@ -105,28 +115,19 @@ class NestCamPlatform {
       });
       self.api.publishCameraAccessories('Nest-cam', configuredAccessories);
     });
-    self.nestAPI.fetchCameras();
+    await self.nestAPI.fetchCameras();
   }
 
-  didFinishLaunching() {
+  async didFinishLaunching() {
     let self = this;
     let googleAuth = self.config['googleAuth'];
     if ( typeof googleAuth == 'undefined')
     {
       throw new Error('googleAuth is not defined in the Homebridge config');
     }
-    setupConnection(self.config, self.log)
-        .then(function(conn){
-            return;
-        })
-        .then(function(data) {
-            self.addCameras(self.config.access_token);
-        })
-        .catch(function(err) {
-            self.log.error(err);
-            if (callback) {
-                callback([]);
-            }
-        });
+    let connected = await setupConnection(self.config, self.log);
+    if (connected) {
+      await self.addCameras(self.config.access_token);
+    }
   }
 }
