@@ -31,7 +31,6 @@ On Raspberry Pi you might want to use OMX for transcoding as CPU on the board is
 
 On MacOS you might want to use VideoToolbox hardware acceleration for transcoding. In that case, make sure the ffmpeg you installed has `videotoolbox` support and set `ffmpegCodec` to `h264_videotoolbox`.
 
-
 ### Setting up the Config.json
 
 Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you don't log out of your Google Account.
@@ -64,10 +63,6 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 11. In the 'Filter' box, enter `issue_jwt`
 12. Click on the last `issue_jwt` call.
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
-
-## Run Homebridge using Docker
-
-If you are having issues with this plugin, you may want to try running Homebridge inside a docker container. This ensures that you are using the most up-to-date resources and that no external programs are interfering with the plugin. Just follow the instructions [here](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Docker) to install homebridge using docker and add **PACKAGES=ffmpeg** to the environment section.
 
 ## Credits
 
