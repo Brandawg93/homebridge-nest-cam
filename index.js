@@ -4,6 +4,8 @@ let Accessory, Service, Characteristic, hap, UUIDGen;
 const Nest = require('./lib/nest.js').NestAPI;
 const NestConnection = require('./lib/nest-connection.js');
 
+const UPDATE_INTERVAL = 10000;
+
 Promise.delay = function(time_ms) {
   return new Promise(resolve => setTimeout(resolve, time_ms));
 }
@@ -101,7 +103,7 @@ class NestCamPlatform {
           accessory.addService(motion);
           setInterval(async function() {
             camera.checkMotion(accessory);
-          }, 10000);
+          }, UPDATE_INTERVAL);
         }
         //Add enabled/disabled service
         accessory.addService(Service.Switch, 'Streaming')
@@ -112,6 +114,13 @@ class NestCamPlatform {
           self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
           callback();
         });
+        //Check enabled/disabled state
+        setInterval(async function() {
+          await camera.updateInfo();
+          let service = accessory.getService(Service.Switch);
+          service.updateCharacteristic(Characteristic.On, camera.enabled);
+        }, UPDATE_INTERVAL);
+
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);
       });
