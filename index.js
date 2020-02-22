@@ -18,24 +18,14 @@ const modelTypes = {
   12: 'Nest Hello'
 }
 
-module.exports = (homebridge) => {
-  Accessory = homebridge.platformAccessory;
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
-  hap = homebridge.hap;
-  UUIDGen = homebridge.hap.uuid;
-
-  homebridge.registerPlatform('homebridge-nest-cam', 'Nest-cam', NestCamPlatform, true);
-}
-
 const setupConnection = async function(config, log) {
   if (!config.googleAuth) {
-    reject('You did not specify your Google account credentials, googleAuth, in config.json');
+    log.error('You did not specify your Google account credentials, googleAuth, in config.json');
     return;
   }
 
   if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
-    reject('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
+    log.error('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
     return;
   }
 
@@ -142,3 +132,13 @@ class NestCamPlatform {
     }
   }
 }
+
+module.exports = (homebridge) => {
+  Accessory = homebridge.platformAccessory;
+  Service = homebridge.hap.Service;
+  Characteristic = homebridge.hap.Characteristic;
+  hap = homebridge.hap;
+  UUIDGen = homebridge.hap.uuid;
+
+  homebridge.registerPlatform('homebridge-nest-cam', 'Nest-cam', NestCamPlatform, true);
+};
