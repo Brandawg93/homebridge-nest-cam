@@ -111,7 +111,7 @@ class NestCamPlatform {
           .getCharacteristic(Characteristic.On)
           .on('set', async function(value, callback) {
             await camera.toggleActive(value);
-            self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
+            self.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
             callback();
           });
         //Check enabled/disabled state
