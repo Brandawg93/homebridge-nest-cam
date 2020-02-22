@@ -132,7 +132,7 @@ class NestCamPlatform {
   async didFinishLaunching() {
     let self = this;
     let googleAuth = self.config['googleAuth'];
-    if ( typeof googleAuth == 'undefined')
+    if ( typeof googleAuth === 'undefined')
     {
       throw new Error('googleAuth is not defined in the Homebridge config');
     }
