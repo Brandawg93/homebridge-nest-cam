@@ -3,8 +3,10 @@
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
 
 [![NPM](https://nodei.co/npm/homebridge-nest-cam2.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam2/)
+
 [![PayPal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam2&currency_code=USD&source=url)
-![npm](https://img.shields.io/npm/dt/homebridge-nest-cam2)
+[![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam2)](https://nodei.co/npm/homebridge-nest-cam2/)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam2?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam2&amp;utm_campaign=Badge_Grade)
 
 ## Notes
 - This is a continuation of the previous [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) plugin.
@@ -15,25 +17,21 @@ Q: Why is there no audio?
 
 A: Audio is not supported at this time. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/1).
 
-Q: The video thumbnail is not updating.
-
-A: This is a HomeKit issue and not a Homebridge issue. Rebooting your phone usually fixes it.
-
 ## Installation
-
 1. Install ffmpeg
 2. Install this plugin using: npm install -g homebridge-nest-cam2
 3. Add google authentication to ``config.json``
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
 4. Add extra camera accessories in Home app using the same setup code as [Homebridge](https://github.com/nfarina/homebridge)
 
-On Raspberry Pi you might want to use OMX for transcoding as CPU on the board is too slow. In that case, make sure the ffmpeg you installed has `h264_omx` support and set `ffmpegCodec` above to `h264_omx`. There are [pre-compiled deb](https://github.com/legotheboss/homebridge-camera-ffmpeg-omx) online if you don't want to compile one yourself.
+#### Raspberry Pi
+You may want to use OMX for transcoding as the CPU on the board can be slow. If so, make sure the ffmpeg installed on your Pi has `h264_omx` support and set the `ffmpegCodec` option below to `h264_omx`. You can always compile ffmpeg from source using [these instructions](https://github.com/legotheboss/YouTube-files/wiki/(RPi)-Compile-FFmpeg-with-the-OpenMAX-H.264-GPU-acceleration).
 
-On MacOS you might want to use VideoToolbox hardware acceleration for transcoding. In that case, make sure the ffmpeg you installed has `videotoolbox` support and set `ffmpegCodec` to `h264_videotoolbox`.
+#### Mac OS
+You may want to use VideoToolbox hardware acceleration for transcoding. If so, make sure the ffmpeg installed on your Mac has `videotoolbox` support and set `ffmpegCodec` option below to `h264_videotoolbox`.
 
 ### Setting up the Config.json
-
-Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you don't log out of your Google Account.
+Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you do not log out of your Google Account.
 
 Google Accounts are configured using the `"googleAuth"` object in `config.json`, which contains three fields, `"issueToken"`, `"cookies"` and `"apiKey"`, and looks like this:
 
@@ -65,7 +63,6 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
 
 ## Credits
-
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
 
 Nest Hello doorbell resolution by [schmittx](https://github.com/schmittx/homebridge-nest-cam/commit/0878058dc5293c297a99c3a0c60d6c1b43e661b5).

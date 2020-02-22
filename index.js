@@ -31,7 +31,7 @@ module.exports = (homebridge) => {
 const setupConnection = async function(config, log) {
   if (!config.googleAuth) {
     reject('You did not specify your Google account credentials, googleAuth, in config.json');
-      return;
+    return;
   }
 
   if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
@@ -107,13 +107,13 @@ class NestCamPlatform {
         }
         //Add enabled/disabled service
         accessory.addService(Service.Switch, 'Streaming')
-        .setCharacteristic(Characteristic.On, camera.enabled)
-        .getCharacteristic(Characteristic.On)
-        .on('set', async function(value, callback) {
-          await camera.toggleActive(value);
-          self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
-          callback();
-        });
+          .setCharacteristic(Characteristic.On, camera.enabled)
+          .getCharacteristic(Characteristic.On)
+          .on('set', async function(value, callback) {
+            await camera.toggleActive(value);
+            self.log.info("Setting %s to %s", accessory.displayName, (value ? 'on' : 'off'));
+            callback();
+          });
         //Check enabled/disabled state
         setInterval(async function() {
           await camera.updateInfo();
