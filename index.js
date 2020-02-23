@@ -7,7 +7,7 @@ const NestConnection = require('./lib/nest-connection.js');
 const UPDATE_INTERVAL = 10000;
 
 Promise.delay = function(time_ms) {
-  return new Promise(resolve => setTimeout(resolve, time_ms));
+  return new Promise((resolve) => setTimeout(resolve, time_ms));
 }
 
 const modelTypes = {
@@ -16,7 +16,7 @@ const modelTypes = {
   10: 'Nest Cam IQ Indoor',
   11: 'Nest Cam IQ Outdoor',
   12: 'Nest Hello'
-}
+};
 
 const setupConnection = async function(config, log) {
   if (!config.googleAuth) {
