@@ -8,7 +8,7 @@ const UPDATE_INTERVAL = 10000;
 
 Promise.delay = function(time_ms) {
   return new Promise((resolve) => setTimeout(resolve, time_ms));
-}
+};
 
 const modelTypes = {
   8: 'Nest Cam Indoor',
