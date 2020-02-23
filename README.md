@@ -63,6 +63,9 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 12. Click on the last `issue_jwt` call.
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
 
+## Join the Discord
+Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, join the [Discord Server](https://discord.gg/qrPrAy) and let me know what you would like to test. Also, if you have general questions or support, feel free to [ask in the server](https://discord.gg/s5f8mN).
+
 ## Credits
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
 
