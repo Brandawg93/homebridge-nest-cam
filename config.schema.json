@@ -34,6 +34,19 @@
       "default": "libx264",
       "required": true,
       "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
+    },
+    "options": {
+      "title": "Options",
+      "type": "object",
+      "properties": {
+        "fieldTest": {
+          "title": "Field Test",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Field testers can set this to true to see cameras."
+        }
+      }
     }
   }
 }
