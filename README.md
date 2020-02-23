@@ -5,7 +5,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 [![NPM](https://nodei.co/npm/homebridge-nest-cam2.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam2/)
 
 [![PayPal](https://img.shields.io/badge/paypal-donate-yellow)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam2&currency_code=USD&source=url)
-[![Discord](https://img.shields.io/discord/681137725071425676)](https://discord.gg/JzhSMMM)
+[![Discord](https://img.shields.io/discord/681137725071425676)](https://discord.gg/E6dnwsE)
 [![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam2)](https://nodei.co/npm/homebridge-nest-cam2/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam2?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam2&amp;utm_campaign=Badge_Grade)
 
@@ -64,7 +64,7 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
 
 ## Join the Discord
-Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, join the [Discord Server](https://discord.gg/JzhSMMM) and let me know what you would like to test. Also, if you have general questions or support, feel free to [ask in the server](https://discord.gg/e7bPJnJ).
+Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, join the [Discord Server](https://discord.gg/E6dnwsE) and let me know what you would like to test. Also, if you have general questions or support, feel free to [ask in the server](https://discord.gg/e7bPJnJ).
 
 ## Credits
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
