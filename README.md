@@ -18,6 +18,12 @@ Q: Why is there no audio?
 
 A: Audio is not supported at this time. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/1).
 
+Q: Why is the stream slow/lagging/skipping?
+
+A: Your device running Homebridge must encode the stream into a format that iOS can recognize. This requires significant processing power for devices such as a Raspberry Pi. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/15).
+
+**Other asked questions can be found [here](https://github.com/Brandawg93/homebridge-nest-cam2/issues?utf8=%E2%9C%93&q=label%3Aquestion+).**
+
 ## Installation
 1. Install ffmpeg
 2. Install this plugin using: npm install -g homebridge-nest-cam2
