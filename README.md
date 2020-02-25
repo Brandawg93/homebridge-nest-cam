@@ -50,6 +50,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 {
     "platform": "Nest-cam",
     "ffmpegCodec": "libx264",
+    "options": {},
     "googleAuth": {
         "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
         "cookies": "SMSV=ADHTe...",
@@ -57,6 +58,8 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     }
 }
 ```
+
+#### googleAuth
 The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Google Account. To get them, follow these steps (only needs to be done once, as long as you stay logged into your Google Account).
 
 1. Open a Chrome browser tab in Incognito Mode (or clear your cache).
@@ -73,6 +76,15 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 12. Click on the last `issue_jwt` call.
 13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
 14. Do not log out of `home.nest.com`, as this will invalidate your credentials. Just close the browser tab.
+
+#### options
+Extra options can be added to the configuration file for specific functionality. Below is a list of the currently available options and their defaults:
+```
+"options": {
+  "fieldTest": false
+}
+```
+- fieldTest: Field testers can enable this to access their cameras
 
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, join the [Discord Server](https://discord.gg/E6dnwsE) and let me know what you would like to test. Also, if you have general questions or support, feel free to [ask in the server](https://discord.gg/e7bPJnJ).
