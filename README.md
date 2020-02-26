@@ -41,6 +41,9 @@ You may want to use OMX for transcoding as the CPU on the board can be slow. If 
 #### Mac OS
 You may want to use VideoToolbox hardware acceleration for transcoding. If so, make sure the ffmpeg installed on your Mac has `videotoolbox` support and set `ffmpegCodec` option below to `h264_videotoolbox`.
 
+#### Docker
+The Homebridge Docker container requires an extra environment variable to install ffmpeg: `PACKAGES=ffmpeg`. The Docker container also requires the `libx264` codec as it uses the ffmpeg inside the container and not the ffmpeg on the device running the container.
+
 ### Setting up the Config.json
 Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you do not log out of your Google Account.
 
