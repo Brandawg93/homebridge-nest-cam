@@ -60,7 +60,6 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     }
 }
 ```
-
 The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Google Account. To get them, follow these steps (only needs to be done once, as long as you stay logged into your Google Account).
 
 1. Open a Chrome browser tab in Incognito Mode (or clear your cache).
