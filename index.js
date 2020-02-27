@@ -29,6 +29,8 @@ const setupConnection = async function(config, log) {
     return;
   }
 
+  config.options.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
+  log.debug('Setting Field Test to %s', config.options.fieldTest);
   const conn = new NestConnection(config, log);
   try {
     let connected = await conn.auth();
@@ -122,9 +124,14 @@ class NestCamPlatform {
   async didFinishLaunching() {
     let self = this;
     let googleAuth = self.config['googleAuth'];
-    if ( typeof googleAuth === 'undefined')
+    let options = self.config['options'];
+    if (typeof googleAuth === 'undefined')
     {
       throw new Error('googleAuth is not defined in the Homebridge config');
+    }
+    if (typeof options === 'undefined')
+    {
+      self.config.options = {};
     }
     let connected = await setupConnection(self.config, self.log);
     if (connected) {
