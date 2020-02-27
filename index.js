@@ -30,7 +30,7 @@ const setupConnection = async function(config, log) {
   }
 
   config.options.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
-  log.debug("Setting Field Test to %s", config.options.fieldTest);
+  log.debug('Setting Field Test to %s', config.options.fieldTest);
   const conn = new NestConnection(config, log);
   try {
     let connected = await conn.auth();
