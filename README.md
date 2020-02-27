@@ -35,14 +35,8 @@ A: Your device running Homebridge must encode the stream into a format that iOS 
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
 4. Add extra camera accessories in Home app using the same setup code as [Homebridge](https://github.com/nfarina/homebridge)
 
-#### Raspberry Pi
-You may want to use OMX for transcoding as the CPU on the board can be slow. If so, make sure the ffmpeg installed on your Pi has `h264_omx` support and set the `ffmpegCodec` option below to `h264_omx`. You can always compile ffmpeg from source using [these instructions](https://github.com/legotheboss/YouTube-files/wiki/(RPi)-Compile-FFmpeg-with-the-OpenMAX-H.264-GPU-acceleration).
-
-#### Mac OS
-You may want to use VideoToolbox hardware acceleration for transcoding. If so, make sure the ffmpeg installed on your Mac has `videotoolbox` support and set `ffmpegCodec` option below to `h264_videotoolbox`.
-
 #### Docker
-The Homebridge Docker container requires an extra environment variable to install ffmpeg: `PACKAGES=ffmpeg`. The Docker container also requires the `libx264` codec as it uses the ffmpeg inside the container and not the ffmpeg on the device running the container.
+The Homebridge Docker container requires an extra environment variable to install ffmpeg: `PACKAGES=ffmpeg`.
 
 ### Setting up the Config.json
 Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you do not log out of your Google Account.
@@ -52,7 +46,6 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 ```
 {
     "platform": "Nest-cam",
-    "ffmpegCodec": "libx264",
     "googleAuth": {
         "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
         "cookies": "SMSV=ADHTe...",

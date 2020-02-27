@@ -27,13 +27,6 @@
           "required": true
         }
       }
-    },
-    "ffmpegCodec": {
-      "title": "ffmpeg Codec",
-      "type": "string",
-      "default": "libx264",
-      "required": true,
-      "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
     }
   }
 }
