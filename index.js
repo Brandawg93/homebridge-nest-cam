@@ -90,7 +90,11 @@ class NestCamPlatform {
         accessoryInformation.setCharacteristic(Characteristic.FirmwareRevision, camera.softwareVersion);
         self.log.info('Create camera - ' + name);
         //Add motion detection
-        if (camera.detectors.includes('motion')) {
+        let motionDetection = self.config.options['motionDetection'];
+        if (typeof motionDetection === 'undefined') {
+          motionDetection = true;
+        }
+        if (camera.detectors.includes('motion') && motionDetection) {
           var motion = new Service.MotionSensor(name);
           accessory.addService(motion);
           setInterval(async function() {
@@ -98,21 +102,26 @@ class NestCamPlatform {
           }, UPDATE_INTERVAL);
         }
         //Add enabled/disabled service
-        accessory.addService(Service.Switch, 'Streaming')
-          .setCharacteristic(Characteristic.On, camera.enabled)
-          .getCharacteristic(Characteristic.On)
-          .on('set', async function(value, callback) {
-            await camera.toggleActive(value);
-            self.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
-            callback();
-          });
-        //Check enabled/disabled state
-        setInterval(async function() {
-          await camera.updateInfo();
-          let service = accessory.getService(Service.Switch);
-          service.updateCharacteristic(Characteristic.On, camera.enabled);
-        }, UPDATE_INTERVAL);
-
+        let streamingSwitch = self.config.options['streamingSwitch'];
+        if (typeof streamingSwitch === 'undefined') {
+          streamingSwitch = true;
+        }
+        if (streamingSwitch) {
+          accessory.addService(Service.Switch, 'Streaming')
+            .setCharacteristic(Characteristic.On, camera.enabled)
+            .getCharacteristic(Characteristic.On)
+            .on('set', async function(value, callback) {
+              await camera.toggleActive(value);
+              self.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
+              callback();
+            });
+          //Check enabled/disabled state
+          setInterval(async function() {
+            await camera.updateInfo();
+            let service = accessory.getService(Service.Switch);
+            service.updateCharacteristic(Characteristic.On, camera.enabled);
+          }, UPDATE_INTERVAL);
+        }
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);
       });

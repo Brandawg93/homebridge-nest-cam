@@ -34,6 +34,24 @@
       "default": "libx264",
       "required": true,
       "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
+    },
+    "options": {
+      "title": "Options",
+      "type": "object",
+      "properties": {
+        "motionDetection": {
+          "title": "Motion Detection",
+          "type": "boolean",
+          "default": true,
+          "required": true
+        },
+        "streamingSwitch": {
+          "title": "Streaming Switch",
+          "type": "boolean",
+          "default": true,
+          "required": true
+        }
+      }
     }
   }
 }
