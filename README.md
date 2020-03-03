@@ -83,7 +83,7 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 14. Do not log out of `home.nest.com`, as this will invalidate your credentials. Just close the browser tab.
 
 #### options
-Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here are the current list of available options:
+Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
 - motionDetection: enable/disable the motion sensor
 - streamingSwitch: enable/disable the ability to turn the camera on or off
 
