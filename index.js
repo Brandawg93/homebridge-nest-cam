@@ -43,6 +43,9 @@ const setupConnection = async function(config, log) {
 class NestCamPlatform {
   constructor(log, config, api) {
     let self = this;
+    if (!config) {
+      return;
+    }
     self.log = log;
     self.config = config || {};
     if (api) {
