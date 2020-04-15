@@ -50,6 +50,12 @@
           "type": "boolean",
           "default": true,
           "required": true
+        },
+        "pathToFfmpeg": {
+          "title": "Path to FFMPEG",
+          "type": "string",
+          "default": "",
+          "required": true
         }
       }
     }
