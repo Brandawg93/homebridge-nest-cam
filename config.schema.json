@@ -35,6 +35,13 @@
       "required": true,
       "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
     },
+    "nestStreamDesired": {
+      "title": "Nest Video Stream Desired",
+      "type": "string",
+      "default": "",
+      "required": true,
+      "description": "Manually set the video stream you wish to retrieve from Nest. Users of the `copy` codec may find setting this to `VIDEO_H264_100KBIT_L30` beneficial."
+    },
     "options": {
       "title": "Options",
       "type": "object",
