@@ -128,7 +128,7 @@ class NestCamPlatform {
         accessory.configureCameraSource(camera);
         configuredAccessories.push(accessory);
       });
-      self.api.publishCameraAccessories('Nest-cam', configuredAccessories);
+      self.api.publishCameraAccessories('homebridge-nest-cam2', configuredAccessories);
     });
     await self.nestAPI.fetchCameras();
   }
@@ -159,5 +159,5 @@ module.exports = (homebridge) => {
   hap = homebridge.hap;
   UUIDGen = homebridge.hap.uuid;
 
-  homebridge.registerPlatform('homebridge-nest-cam', 'Nest-cam', NestCamPlatform, true);
+  homebridge.registerPlatform('homebridge-nest-cam2', 'Nest-cam', NestCamPlatform, true);
 };
