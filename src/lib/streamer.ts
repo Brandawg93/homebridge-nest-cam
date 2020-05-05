@@ -1,12 +1,14 @@
-'use strict';
+import {
+  Logging,
+  StreamingRequest
+} from 'homebridge';
+import { TLSSocket, connect } from 'tls';
+import { Socket } from 'net';
+import { APIError } from './errors';
+import { ChildProcess } from 'child_process';
 
 const crypto = require('crypto');
-const tls = require('tls');
 const PBF = require('pbf');
-const EventEmitter = require('events');
-const ip = require('ip');
-const spawn = require('child_process').spawn;
-var pathToFfmpeg = require('ffmpeg-for-homebridge');
 
 const StreamProfile = require('./protos/PlaybackBegin.js').StreamProfile;
 const PlaybackPacket = require('./protos/PlaybackPacket.js').PlaybackPacket;
@@ -19,51 +21,36 @@ const Hello = require('./protos/Hello.js').Hello;
 const AuthorizeRequest = require('./protos/AuthorizeRequest.js').AuthorizeRequest;
 const NestEndpoints = require('./nest-endpoints.js');
 
-class NexusStreamer extends EventEmitter {
-  constructor(host, cameraUUID, accessToken, ffmpegCodec, pathToFfmpeg, log) {
-    super();
-    let self = this;
-    self.isStreaming = false;
-    self.authorized = false;
-    self.ffmpegCodec = ffmpegCodec;
-    self.customFfmpeg = pathToFfmpeg;
-    self.log = log;
-    self.sessionID = Math.floor(Math.random() * 100);
-    self.host = host;
-    self.cameraUUID = cameraUUID;
-    self.accessToken = accessToken;
-  }
+export class NexusStreamer {
+  private ffmpeg: ChildProcess;
+  private authorized: boolean = false;
+  private readonly log: Logging;
+  private sessionID: number = Math.floor(Math.random() * 100);
+  private host: string = '';
+  private cameraUUID: string = '';
+  private accessToken: string = '';
+  private socket: TLSSocket = new TLSSocket(new Socket());
+  private pendingMessages: any[] = [];
+  private pendingBuffer: any;
+  private videoChannelID: number = -1;
+  private audioChannelID: number = -1;
+  private pingInterval = setInterval(() => {
+    this.sendPingMessage();
+  }, 15000);
 
-  startPlaybackWithRequest(request) {
-    let self = this;
-
-    if (self.isStreaming) {
-      self.log.debug('Streamer is currently streaming!!!');
-      return;
-    }
-
-    self.isStreaming = true;
-    self.setupFFMPEGPipe(request);
-    self.requestStartPlayback();
+  constructor(ffmpeg: ChildProcess, host: string, cameraUUID: string, accessToken: string, log: Logging) {
+    this.log = log;
+    this.ffmpeg = ffmpeg;
+    this.host = host;
+    this.cameraUUID = cameraUUID;
+    this.accessToken = accessToken;
+    this.setupConnection();
   }
 
   stopPlayback() {
-    let self = this;
-
-    if (!self.isStreaming) {
-      return;
-    }
-
-    self.unschedulePingMessage();
-
-    if (self.ffmpeg) {
-      self.ffmpeg.kill('SIGKILL');
-      self.ffmpeg = void 0;
-    }
-    if (self.socket) {
-      self.isStreaming = false;
-      self.socket.end();
-      self.socket = void 0;
+    if (this.socket) {
+      this.unschedulePingMessage();
+      this.socket.end();
     }
   }
 
@@ -72,17 +59,12 @@ class NexusStreamer extends EventEmitter {
   setupConnection() {
     let self = this;
 
-    if (self.socket) {
-      self.unschedulePingMessage();
-      self.socket.end();
-      self.socket = void 0;
-    }
-
+    self.stopPlayback();
     let options = {
       host: self.host,
       port: 1443
     };
-    self.socket = tls.connect(options, () => {
+    self.socket = connect(options, () => {
       self.log.info('[NexusStreamer] Connected');
       self.requestHello();
     });
@@ -101,14 +83,14 @@ class NexusStreamer extends EventEmitter {
     let self = this;
     if (self.pendingMessages) {
       let messages = self.pendingMessages;
-      self.pendingMessages = void 0;
+      self.pendingMessages = [];
       messages.forEach((message) => {
         self._sendMessage(message.type, message.buffer);
       });
     }
   }
 
-  _sendMessage(type, buffer) {
+  _sendMessage(type: number, buffer: any) {
     let self = this;
 
     if (self.socket.connecting || !self.socket.encrypted) {
@@ -157,28 +139,14 @@ class NexusStreamer extends EventEmitter {
     self._sendMessage(1, Buffer.alloc(0));
   }
 
-  schedulePingMessage() {
-    let self = this;
-
-    if (self.pingInterval) {
-      return;
-    }
-
-    self.pingInterval = setInterval(() => {
-      self.sendPingMessage();
-    }, 15000);
-  }
-
   unschedulePingMessage() {
     let self = this;
 
-    let interval = self.pingInterval;
-    if (!interval) {
+    if (!self.pingInterval) {
       return;
     }
 
-    self.pingInterval = void 0;
-    clearInterval(interval);
+    clearInterval(self.pingInterval);
   }
 
   requestHello() {
@@ -222,7 +190,7 @@ class NexusStreamer extends EventEmitter {
     self._sendMessage(PacketType.START_PLAYBACK, buffer);
   }
 
-  handleRedirect(payload) {
+  handleRedirect(payload: any) {
     let self = this;
     let packet = Redirect.read(payload);
     if (packet.new_host) {
@@ -233,7 +201,7 @@ class NexusStreamer extends EventEmitter {
     }
   }
 
-  handlePlaybackBegin(payload) {
+  handlePlaybackBegin(payload: any) {
     let self = this;
     let packet = PlaybackBegin.read(payload);
 
@@ -251,18 +219,17 @@ class NexusStreamer extends EventEmitter {
     }
   }
 
-  handlePlaybackPacket(payload) {
+  handlePlaybackPacket(payload: any) {
     let self = this;
     let packet = PlaybackPacket.read(payload);
     if (packet.channel_id === self.videoChannelID) {
-      if (!self.ffmpeg) {
-        return;
+      if (self.ffmpeg.stdin) {
+        self.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
-      self.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
     }
   }
 
-  handleNexusPacket(type, payload) {
+  handleNexusPacket(type: number, payload: any) {
     let self = this;
     switch(type) {
     case PacketType.PING:
@@ -272,7 +239,6 @@ class NexusStreamer extends EventEmitter {
       self.log.debug('[NexusStreamer] OK');
       self.authorized = true;
       self._processPendingMessages();
-      self.schedulePingMessage();
       break;
     case PacketType.ERROR:
       self.log.debug('[NexusStreamer] Error');
@@ -305,7 +271,7 @@ class NexusStreamer extends EventEmitter {
     }
   }
 
-  handleNexusData(data) {
+  handleNexusData(data: any) {
     let self = this;
     if (self.pendingBuffer === void 0) {
       self.pendingBuffer = data;
@@ -335,130 +301,4 @@ class NexusStreamer extends EventEmitter {
       }
     }
   }
-
-  // HAP Streaming
-
-  prepareStream(request, callback) {
-    let self = this;
-    self.setupConnection();
-
-    let sessionInfo = {};
-    let targetAddress = request['targetAddress'];
-    sessionInfo['address'] = targetAddress;
-
-    let response = {};
-
-    let videoInfo = request['video'];
-    if (videoInfo) {
-      let port = videoInfo['port'];
-      let srtp_key = videoInfo['srtp_key'];
-      let srtp_salt = videoInfo['srtp_salt'];
-
-      // SSRC is a 32 bit integer that is unique per stream
-      let ssrcSource = crypto.randomBytes(4);
-      ssrcSource[0] = 0;
-      let ssrc = ssrcSource.readInt32BE(0);
-
-      let videoResp = {
-        port,
-        ssrc,
-        srtp_key,
-        srtp_salt
-      };
-
-      response['video'] = videoResp;
-
-      sessionInfo['video_port'] = port;
-      sessionInfo['video_srtp'] = Buffer.concat([srtp_key, srtp_salt]);
-      sessionInfo['video_ssrc'] = ssrc;
-    }
-
-    let audioInfo = request['audio'];
-    if (audioInfo) {
-      let port = audioInfo['port'];
-      let srtp_key = audioInfo['srtp_key'];
-      let srtp_salt = audioInfo['srtp_salt'];
-
-      // SSRC is a 32 bit integer that is unique per stream
-      let ssrcSource = crypto.randomBytes(4);
-      ssrcSource[0] = 0;
-      let ssrc = ssrcSource.readInt32BE(0);
-
-      let audioResp = {
-        port,
-        ssrc,
-        srtp_key,
-        srtp_salt
-      };
-
-      response['audio'] = audioResp;
-
-      sessionInfo['audio_port'] = port;
-      sessionInfo['audio_srtp'] = Buffer.concat([srtp_key, srtp_salt]);
-      sessionInfo['audio_ssrc'] = ssrc;
-    }
-
-    let currentAddress = ip.address();
-    let addressResp = {
-      address: currentAddress
-    };
-
-    if (ip.isV4Format(currentAddress)) {
-      addressResp['type'] = 'v4';
-    } else {
-      addressResp['type'] = 'v6';
-    }
-
-    response['address'] = addressResp;
-    self.sessionInfo = sessionInfo;
-
-    callback(response);
-  }
-
-  setupFFMPEGPipe(request) {
-    let self = this;
-    let sessionInfo = self.sessionInfo;
-
-    if (sessionInfo) {
-      let targetAddress = sessionInfo['address'];
-      let targetVideoPort = sessionInfo['video_port'];
-      let videoKey = sessionInfo['video_srtp'];
-      let videoSsrc = sessionInfo['video_ssrc'];
-
-      let targetAudioPort = sessionInfo['audio_port'];
-      let audioKey = sessionInfo['audio_srtp'];
-      let audioSsrc = sessionInfo['audio_ssrc'];
-
-      let x264Params = '';
-      if (self.ffmpegCodec === 'libx264') {
-        x264Params = '-preset ultrafast -tune zerolatency ';
-      }
-
-      let ffmpegCommand = '-use_wallclock_as_timestamps 1 -i - -c:v ' + self.ffmpegCodec + ' -an -pix_fmt yuv420p ' + x264Params + '-payload_type 99 -ssrc ' + videoSsrc + ' -f rtp -srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params ' + videoKey.toString('base64') + ' srtp://'+targetAddress+':' + targetVideoPort+'?rtcpport='+targetVideoPort+'&localrtcpport='+targetVideoPort+'&pkt_size=1316';
-      //audio - https://github.com/KhaosT/homebridge-camera-ffmpeg/issues/9
-      //ffmpegCommand += ' -c:a libfdk_aac -profile:a aac_eld -vn -ac 1 -ar 16000 -b:a 8000 -flags +global_header -payload_type 110 -ssrc ' + audioSsrc + ' -f rtp -srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params '+audioKey.toString('base64')+' -rtsp_transport tcp srtp://'+targetAddress+':'+targetAudioPort+'?rtcpport='+targetAudioPort+'&localrtcpport='+targetAudioPort+'&pkt_size=188';
-      let ffmpeg;
-      if (self.customFfmpeg && self.customFfmpeg !== '') {
-        ffmpeg = spawn(self.customFfmpeg, ffmpegCommand.split(' '), {env: process.env});
-      } else if (pathToFfmpeg) {
-        ffmpeg = spawn(pathToFfmpeg, ffmpegCommand.split(' '), {env: process.env});
-      } else {
-        ffmpeg = spawn('ffmpeg', ffmpegCommand.split(' '), {env: process.env});
-      }
-      ffmpeg.stdin.on('error', (e) => {
-        if (e.code !== 'EPIPE') {
-          self.log.error(e.code);
-        }
-        self.stopPlayback();
-      });
-      ffmpeg.stderr.on('data', (data) => {
-        self.log.debug(`${data}`);
-      });
-      self.ffmpeg = ffmpeg;
-    }
-  }
 }
-
-module.exports = {
-  NexusStreamer
-};
