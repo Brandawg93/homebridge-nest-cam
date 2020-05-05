@@ -32,8 +32,7 @@ A: Your device running Homebridge must encode the stream into a format that iOS 
 1. Install ffmpeg
 2. Install this plugin using: npm install -g homebridge-nest-cam2
 3. Add google authentication to ``config.json``
-3. Run [Homebridge](https://github.com/nfarina/homebridge)
-4. Add extra camera accessories in Home app using the same setup code as [Homebridge](https://github.com/nfarina/homebridge)
+4. Run [Homebridge](https://github.com/nfarina/homebridge)
 
 #### Raspberry Pi
 You may want to use OMX for transcoding as the CPU on the board can be slow. If so, make sure the ffmpeg installed on your Pi has `h264_omx` support and set the `ffmpegCodec` option below to `h264_omx`. You can always compile ffmpeg from source using [these instructions](https://github.com/legotheboss/YouTube-files/wiki/(RPi)-Compile-FFmpeg-with-the-OpenMAX-H.264-GPU-acceleration).
@@ -94,6 +93,8 @@ Unfortunately, there is no way for me to test every subscription, camera type, a
 This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
 
 Nest Hello doorbell resolution by [schmittx](https://github.com/schmittx/homebridge-nest-cam/commit/0878058dc5293c297a99c3a0c60d6c1b43e661b5).
+
+This plugin was converted to typescript using both [homebridge-ring](https://github.com/dgreif/ring) and [homebridge-examples](https://github.com/homebridge/homebridge-examples).
 
 ## Donate to Support homebridge-nest-cam2
 This plugin was made with you in mind. If you'd like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam2&currency_code=USD&source=url).
