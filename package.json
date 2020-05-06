@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/ip": "^1.1.0",
-    "@types/node": "10.17.19",
+    "@types/node": "13.13.5",
     "@typescript-eslint/eslint-plugin": "^2.30.0",
     "@typescript-eslint/parser": "^2.30.0",
     "eslint-config-prettier": "^6.11.0",
