@@ -1,11 +1,10 @@
-name: Publish
+name: Prepublish
 
 on:
   release:
-    types: [published]
+    types: [prereleased]
 jobs:
   publish-npm:
-    if: "!github.event.release.prerelease"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -14,6 +13,6 @@ jobs:
           node-version: 12
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: npm publish
+      - run: npm publish --tag beta
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
