@@ -5,7 +5,6 @@ import {
   AudioStreamingSamplerate,
   CameraControllerOptions,
   CharacteristicEventTypes,
-  CharacteristicGetCallback,
   CharacteristicSetCallback,
   CharacteristicValue,
   DynamicPlatformPlugin,
@@ -36,15 +35,15 @@ const modelTypes = [
   'Nest Hello'
 ];
 
-const setupConnection = async function(config: PlatformConfig, log: Logging) {
+const setupConnection = async function(config: PlatformConfig, log: Logging): Promise<boolean> {
   if (!config.googleAuth) {
     log.error('You did not specify your Google account credentials, googleAuth, in config.json');
-    return;
+    return false;
   }
 
   if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
     log.error('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
-    return;
+    return false;
   }
 
   config.options.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
@@ -225,11 +224,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
    * Add fetched cameras from nest to Homebridge
    */
   async addCameras() {
-    let self = this;
-
     // Nest needs to be reauthenticated about every hour
+    let config = this.config;
+    let log = this.log;
     setInterval(async function() {
-      await setupConnection(self.config, self.log);
+      await setupConnection(config, log);
     }, 3600000);
 
     try {
@@ -255,8 +254,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         }
       });
     } catch(error) {
-      self.log.error('Error fetching cameras: ');
-      self.log.error(error);
+      this.log.error('Error fetching cameras: ');
+      this.log.error(error);
     }
   }
 
