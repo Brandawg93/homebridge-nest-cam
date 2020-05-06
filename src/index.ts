@@ -53,12 +53,30 @@ const setupConnection = async function(config: PlatformConfig, log: Logging) {
   return await conn.auth();
 };
 
+const setMotionInterval = async function(camera: NestCam, accessory: PlatformAccessory) {
+  setInterval(async function() {
+    camera.checkMotion(accessory);
+  }, UPDATE_INTERVAL);
+}
+
+const setSwitchInterval = async function(camera: NestCam, accessory: PlatformAccessory) {
+  setInterval(async function() {
+    await camera.updateInfo();
+    let service = accessory.getService(hap.Service.Switch);
+    if (service) {
+      service.updateCharacteristic(hap.Characteristic.On, camera.enabled);
+    }
+  }, UPDATE_INTERVAL);
+}
+
 class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
   private config: PlatformConfig;
   private endpoints: NestEndpoints;
   private readonly accessories: PlatformAccessory[] = [];
+  private motionDetection: boolean = true;
+  private streamingSwitch: boolean = false;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -70,6 +88,27 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (!config) {
       return;
     }
+
+    let googleAuth = config['googleAuth'];
+    let options = config['options'];
+    if (typeof googleAuth === 'undefined')
+    {
+      throw new Error('googleAuth is not defined in the Homebridge config');
+    }
+    if (typeof options === 'undefined')
+    {
+      config.options = {};
+    } else {
+      let motionDetection = config.options['motionDetection'];
+      if (typeof motionDetection !== 'undefined') {
+        this.motionDetection = motionDetection;
+      }
+      let streamingSwitch = config.options['streamingSwitch'];
+      if (typeof streamingSwitch !== 'undefined') {
+        this.streamingSwitch = streamingSwitch;
+      }
+    }
+
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
   }
 
@@ -80,7 +119,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.log(`Create camera - ${accessory.displayName}`);
     });
 
-    const camera = accessory.context.camera as NestCam;
+    const cameraInfo = accessory.context.cameraInfo;
+    let camera = new NestCam(this.config, cameraInfo, this.log, hap);
     const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
@@ -122,6 +162,62 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     accessory.configureController(cameraController);
 
+    // Configure services
+    let motion = accessory.getService('Motion');
+    let enabledSwitch = accessory.getService('Streaming');
+
+    // Motion configuration
+    if (motion) {
+      if (!this.motionDetection) {
+        // Remove motion service
+        accessory.removeService(motion);
+      } else {
+        // Check existing motion service
+        setMotionInterval(camera, accessory);
+      }
+    } else {
+      // Add motion service
+      if (camera.detectors.includes('motion') && this.motionDetection) {
+        let motion = new hap.Service.MotionSensor('Motion');
+        accessory.addService(motion);
+        setMotionInterval(camera, accessory);
+      }
+    }
+
+    // Streaming configuration
+    if (enabledSwitch) {
+      if (!this.streamingSwitch) {
+        // Remove streaming service
+        accessory.removeService(enabledSwitch);
+      } else {
+        // Check existing switch service
+        enabledSwitch
+          .setCharacteristic(hap.Characteristic.On, camera.enabled)
+          .getCharacteristic(hap.Characteristic.On)
+          .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+            await camera.toggleActive(value as boolean);
+            this.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
+            callback();
+          });
+          // Check enabled/disabled state
+          setSwitchInterval(camera, accessory);
+      }
+    } else {
+      // Add enabled/disabled service
+      if (this.streamingSwitch) {
+        accessory.addService(hap.Service.Switch, 'Streaming')
+          .setCharacteristic(hap.Characteristic.On, camera.enabled)
+          .getCharacteristic(hap.Characteristic.On)
+          .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+            await camera.toggleActive(value as boolean);
+            this.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
+            callback();
+          });
+        // Check enabled/disabled state
+        setSwitchInterval(camera, accessory);
+      }
+    }
+
     this.accessories.push(accessory);
   }
 
@@ -139,58 +235,21 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     try {
       let response = await this.endpoints.sendRequest(this.config.access_token, this.endpoints.CAMERA_API_HOSTNAME, '/api/cameras.get_owned_and_member_of_with_properties', 'GET');
       response.items.forEach((cameraInfo: any) => {
-        let camera = new NestCam(this.config, cameraInfo, self.log, hap);
-        const uuid = hap.uuid.generate(camera.uuid);
-        const accessory = new Accessory(camera.name, uuid);
-        accessory.context.camera = camera;
+        const uuid = hap.uuid.generate(cameraInfo.uuid);
+        const accessory = new Accessory(cameraInfo.name, uuid);
+        accessory.context.cameraInfo = cameraInfo;
 
-        let model = (camera.type < modelTypes.length) ? modelTypes[camera.type] : 'Unknown';
+        let model = (cameraInfo.type < modelTypes.length) ? modelTypes[cameraInfo.type] : 'Unknown';
         let accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
         if (accessoryInformation) {
           accessoryInformation.setCharacteristic(hap.Characteristic.Manufacturer, 'Nest');
           accessoryInformation.setCharacteristic(hap.Characteristic.Model, model);
-          accessoryInformation.setCharacteristic(hap.Characteristic.SerialNumber, camera.serialNumber);
-          accessoryInformation.setCharacteristic(hap.Characteristic.FirmwareRevision, camera.softwareVersion);
+          accessoryInformation.setCharacteristic(hap.Characteristic.SerialNumber, cameraInfo.serial_number);
+          accessoryInformation.setCharacteristic(hap.Characteristic.FirmwareRevision, cameraInfo.combined_software_version);
         }
 
+        // Only add new cameras that are not cached
         if (!this.accessories.find(x => x.UUID === uuid)) {
-
-          // Add motion detection
-          let motionDetection = this.config.options['motionDetection'];
-          if (typeof motionDetection === 'undefined') {
-            motionDetection = true;
-          }
-          if (camera.detectors.includes('motion') && motionDetection) {
-            var motion = new hap.Service.MotionSensor(camera.name);
-            accessory.addService(motion);
-            setInterval(async function() {
-              camera.checkMotion(accessory);
-            }, UPDATE_INTERVAL);
-          }
-          // Add enabled/disabled service
-          let streamingSwitch = this.config.options['streamingSwitch'];
-          if (typeof streamingSwitch === 'undefined') {
-            streamingSwitch = true;
-          }
-          if (streamingSwitch) {
-            accessory.addService(hap.Service.Switch, 'Streaming')
-              .setCharacteristic(hap.Characteristic.On, camera.enabled)
-              .getCharacteristic(hap.Characteristic.On)
-              .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-                await camera.toggleActive(value as boolean);
-                this.log.info('Setting %s to %s', accessory.displayName, (value ? 'on' : 'off'));
-                callback();
-              });
-            // Check enabled/disabled state
-            setInterval(async function() {
-              await camera.updateInfo();
-              let service = accessory.getService(hap.Service.Switch);
-              if (service) {
-                service.updateCharacteristic(hap.Characteristic.On, camera.enabled);
-              }
-            }, UPDATE_INTERVAL);
-          }
-
           this.configureAccessory(accessory); // abusing the configureAccessory here
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
@@ -202,20 +261,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   async didFinishLaunching() {
-    let self = this;
-    let googleAuth = self.config['googleAuth'];
-    let options = self.config['options'];
-    if (typeof googleAuth === 'undefined')
-    {
-      throw new Error('googleAuth is not defined in the Homebridge config');
-    }
-    if (typeof options === 'undefined')
-    {
-      self.config.options = {};
-    }
-    let connected = await setupConnection(self.config, self.log);
+    let connected = await setupConnection(this.config, this.log);
     if (connected) {
-      await self.addCameras();
+      await this.addCameras();
     }
   }
 }

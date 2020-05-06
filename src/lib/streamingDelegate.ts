@@ -71,7 +71,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   pendingSessions: Record<string, SessionInfo> = {};
   ongoingSessions: Record<string, ChildProcess> = {};
 
-  constructor(hap: HAP, camera: NestCam, config: PlatformConfig, log: Logging) {
+  constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
     this.hap = hap;
     this.log = log;
     this.config = config;
