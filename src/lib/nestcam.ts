@@ -61,8 +61,11 @@ export class NestCam {
         self.setAttributes(info);
       });
     } catch(error) {
-      self.log.error('Error updating camera info: ');
-      self.log.error(error);
+      if (error.response) {
+        self.log.error(`Error updating camera info: ${error.response.status}`);
+      } else {
+        self.log.error(error);
+      }
     }
   }
 
@@ -88,8 +91,11 @@ export class NestCam {
       await this.endpoints.sendRequest(this.config.access_token, this.endpoints.CAMERA_API_HOSTNAME, '/api/dropcams.set_properties', 'POST', 'json', query);
       self.enabled = enabled;
     } catch(error) {
-      self.log.error('Error toggling camera state: ');
-      self.log.error(error);
+      if (error.response) {
+        self.log.error(`Error toggling camera state: ${error.response.status}`);
+      } else {
+        self.log.error(error);
+      }
     }
   }
 
@@ -113,8 +119,11 @@ export class NestCam {
         self.setMotion(accessory, false);
       }
     } catch(error) {
-      self.log.error('Error checking motion: ');
-      self.log.error(error);
+      if (error.response) {
+        self.log.error(`Error checking motion: ${error.response.status}`);
+      } else {
+        self.log.error(error);
+      }
     }
   }
 
