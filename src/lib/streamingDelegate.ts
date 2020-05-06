@@ -26,7 +26,6 @@ import { NestCam } from './nestcam';
 import { NestEndpoints } from './nest-endpoints';
 import { readFile } from 'fs';
 
-const https = require('https');
 const querystring = require('querystring');
 const pathToFfmpeg = require('ffmpeg-for-homebridge');
 

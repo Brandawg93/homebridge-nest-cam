@@ -10,6 +10,18 @@ import { APIError } from './errors';
 const querystring = require('querystring');
 const ModelTypes = require('./protos/ModelTypes.js').ModelTypes;
 
+export interface CameraInfo {
+  name: string;
+  uuid: string;
+  is_streaming_enabled: boolean;
+  serial_number: string;
+  combined_software_version: string;
+  detectors: string[];
+  type: number;
+  direct_nexustalk_host: string;
+  nexus_api_http_server: string;
+}
+
 export class NestCam {
   private readonly config: PlatformConfig;
   private readonly log: Logging;
@@ -28,7 +40,7 @@ export class NestCam {
   public nexusTalkHost: string = '';
   public apiHost: string = '';
 
-  constructor(config: PlatformConfig, info: any, log: Logging, hap: HAP) {
+  constructor(config: PlatformConfig, info: CameraInfo, log: Logging, hap: HAP) {
     this.hap = hap;
     this.log = log;
     this.config = config;

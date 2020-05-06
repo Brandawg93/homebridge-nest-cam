@@ -6,8 +6,8 @@ import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { APIError } from './errors';
 import { ChildProcess } from 'child_process';
+import { NestEndpoints } from './nest-endpoints';
 
-const crypto = require('crypto');
 const PBF = require('pbf');
 
 const StreamProfile = require('./protos/PlaybackBegin.js').StreamProfile;
@@ -19,7 +19,6 @@ const Redirect = require('./protos/Redirect.js').Redirect;
 const StartPlayback = require('./protos/StartPlayback.js').StartPlayback;
 const Hello = require('./protos/Hello.js').Hello;
 const AuthorizeRequest = require('./protos/AuthorizeRequest.js').AuthorizeRequest;
-const NestEndpoints = require('./nest-endpoints.js');
 
 export class NexusStreamer {
   private ffmpeg: ChildProcess;

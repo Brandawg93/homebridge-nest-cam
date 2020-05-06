@@ -15,7 +15,7 @@ import {
   PlatformAccessoryEvent,
   PlatformConfig,
 } from 'homebridge';
-import { NestCam } from './lib/nestcam';
+import { NestCam, CameraInfo } from './lib/nestcam';
 import { NestEndpoints } from './lib/nest-endpoints';
 import { StreamingDelegate } from './lib/streamingDelegate';
 import { Connection } from './lib/nest-connection'
@@ -234,7 +234,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     try {
       let response = await this.endpoints.sendRequest(this.config.access_token, this.endpoints.CAMERA_API_HOSTNAME, '/api/cameras.get_owned_and_member_of_with_properties', 'GET');
-      response.items.forEach((cameraInfo: any) => {
+      response.items.forEach((cameraInfo: CameraInfo) => {
         const uuid = hap.uuid.generate(cameraInfo.uuid);
         const accessory = new Accessory(cameraInfo.name, uuid);
         accessory.context.cameraInfo = cameraInfo;
