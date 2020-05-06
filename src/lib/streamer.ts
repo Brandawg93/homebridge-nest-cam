@@ -34,9 +34,6 @@ export class NexusStreamer {
   private pendingBuffer: any;
   private videoChannelID: number = -1;
   private audioChannelID: number = -1;
-  private pingInterval = setInterval(() => {
-    this.sendPingMessage();
-  }, 15000);
 
   constructor(ffmpeg: ChildProcess, host: string, cameraUUID: string, accessToken: string, log: Logging) {
     this.log = log;
@@ -49,7 +46,6 @@ export class NexusStreamer {
 
   stopPlayback() {
     if (this.socket) {
-      this.unschedulePingMessage();
       this.socket.end();
     }
   }
@@ -58,6 +54,7 @@ export class NexusStreamer {
 
   setupConnection() {
     let self = this;
+    let pingInterval: NodeJS.Timeout;
 
     self.stopPlayback();
     let options = {
@@ -67,6 +64,9 @@ export class NexusStreamer {
     self.socket = connect(options, () => {
       self.log.info('[NexusStreamer] Connected');
       self.requestHello();
+      pingInterval = setInterval(() => {
+        self.sendPingMessage();
+      }, 15000);
     });
 
     self.socket.on('data', (data) => {
@@ -74,7 +74,7 @@ export class NexusStreamer {
     });
 
     self.socket.on('end', () => {
-      self.unschedulePingMessage();
+      self.unschedulePingMessage(pingInterval);
       self.log.info('[NexusStreamer] Disconnected');
     });
   }
@@ -135,24 +135,16 @@ export class NexusStreamer {
   // Ping
 
   sendPingMessage() {
-    let self = this;
-    self._sendMessage(1, Buffer.alloc(0));
+    this._sendMessage(1, Buffer.alloc(0));
   }
 
-  unschedulePingMessage() {
-    let self = this;
-
-    if (!self.pingInterval) {
-      return;
-    }
-
-    clearInterval(self.pingInterval);
+  unschedulePingMessage(pingInterval: NodeJS.Timeout) {
+    clearInterval(pingInterval);
   }
 
   requestHello() {
-    let self = this;
     let token = {
-      olive_token: self.accessToken
+      olive_token: this.accessToken
     };
     let tokenContainer = new PBF();
     AuthorizeRequest.write(token, tokenContainer);
@@ -160,7 +152,7 @@ export class NexusStreamer {
 
     let request = {
       protocol_version: Hello.ProtocolVersion.VERSION_3,
-      uuid: self.cameraUUID,
+      uuid: this.cameraUUID,
       require_connected_camera: true,
       user_agent: NestEndpoints.USER_AGENT_STRING,
       client_type: Hello.ClientType.IOS,
@@ -169,13 +161,12 @@ export class NexusStreamer {
     let pbfContainer = new PBF();
     Hello.write(request, pbfContainer);
     let buffer = pbfContainer.finish();
-    self._sendMessage(PacketType.HELLO, buffer);
+    this._sendMessage(PacketType.HELLO, buffer);
   }
 
   requestStartPlayback() {
-    let self = this;
     let request = {
-      session_id: self.sessionID,
+      session_id: this.sessionID,
       profile: StreamProfile.AVPROFILE_HD_MAIN_1,
       other_profiles: [
         StreamProfile.VIDEO_H264_2MBIT_L40,
@@ -187,44 +178,41 @@ export class NexusStreamer {
     let pbfContainer = new PBF();
     StartPlayback.write(request, pbfContainer);
     let buffer = pbfContainer.finish();
-    self._sendMessage(PacketType.START_PLAYBACK, buffer);
+    this._sendMessage(PacketType.START_PLAYBACK, buffer);
   }
 
   handleRedirect(payload: any) {
-    let self = this;
     let packet = Redirect.read(payload);
     if (packet.new_host) {
-      self.log.info('[NexusStreamer] Redirecting...');
-      self.host = packet.new_host;
-      self.setupConnection();
-      self.requestStartPlayback();
+      this.log.info('[NexusStreamer] Redirecting...');
+      this.host = packet.new_host;
+      this.setupConnection();
+      this.requestStartPlayback();
     }
   }
 
   handlePlaybackBegin(payload: any) {
-    let self = this;
     let packet = PlaybackBegin.read(payload);
 
-    if (packet.session_id !== self.sessionID) {
+    if (packet.session_id !== this.sessionID) {
       return;
     }
 
     for (let i = 0; i < packet.channels.length; i++) {
       var stream = packet.channels[`${i}`];
       if (stream.codec_type === CodecType.H264) {
-        self.videoChannelID = stream.channel_id;
+        this.videoChannelID = stream.channel_id;
       } else if (stream.codec_type === CodecType.AAC || stream.codec_type === CodecType.OPUS || stream.codec_type === CodecType.SPEEX) {
-        self.audioChannelID = stream.channel_id;
+        this.audioChannelID = stream.channel_id;
       }
     }
   }
 
   handlePlaybackPacket(payload: any) {
-    let self = this;
     let packet = PlaybackPacket.read(payload);
-    if (packet.channel_id === self.videoChannelID) {
-      if (self.ffmpeg.stdin) {
-        self.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
+    if (packet.channel_id === this.videoChannelID) {
+      if (this.ffmpeg.stdin) {
+        this.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
     }
   }
