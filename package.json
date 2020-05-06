@@ -32,7 +32,7 @@
   "files": [
     "LICENSE",
     "dist/**/*",
-    "images/*",
+    "images/*.jpg",
     "config.schema.json"
   ],
   "dependencies": {
