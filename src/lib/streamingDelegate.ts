@@ -25,6 +25,7 @@ import { APIError } from './errors';
 import { NestCam } from './nestcam';
 import { NestEndpoints } from './nest-endpoints';
 import { readFile } from 'fs';
+import { join } from 'path';
 
 const querystring = require('querystring');
 const pathToFfmpeg = require('ffmpeg-for-homebridge');
@@ -95,7 +96,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       callback(void 0, snapshot);
     } catch(error) {
       if (error.response.status === 404) {
-        readFile(`images/offline.jpg`, function (err, data) {
+        readFile(join(__dirname, `../../images/offline.jpg`), function (err, data) {
           if (err) {
             self.log.error(err.message);
             callback(err);
