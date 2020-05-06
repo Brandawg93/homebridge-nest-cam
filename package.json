@@ -11,7 +11,7 @@
     "test": "jest && eslint **/*.ts",
     "watch:tests": "jest --watch",
     "lint": "eslint **/*.ts --fix",
-    "prepare" : "npm run build",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean"
   },
