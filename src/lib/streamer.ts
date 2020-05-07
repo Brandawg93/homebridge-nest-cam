@@ -198,7 +198,7 @@ export class NexusStreamer {
     }
 
     for (let i = 0; i < packet.channels.length; i++) {
-      var stream = packet.channels[`${i}`];
+      let stream = packet.channels[`${i}`];
       if (stream.codec_type === CodecType.H264) {
         this.videoChannelID = stream.channel_id;
       } else if (stream.codec_type === CodecType.AAC || stream.codec_type === CodecType.OPUS || stream.codec_type === CodecType.SPEEX) {
@@ -267,8 +267,8 @@ export class NexusStreamer {
     }
 
     const type = self.pendingBuffer.readUInt8();
-    var headerLength = 0;
-    var length = 0;
+    let headerLength = 0;
+    let length = 0;
     if (type === PacketType.LONG_PLAYBACK_PACKET) {
       headerLength = 5;
       length = self.pendingBuffer.readUInt32BE(1);
@@ -276,7 +276,7 @@ export class NexusStreamer {
       headerLength = 3;
       length = self.pendingBuffer.readUInt16BE(1);
     }
-    var payloadEndPosition = length + headerLength;
+    let payloadEndPosition = length + headerLength;
     if (self.pendingBuffer.length >= payloadEndPosition) {
       const rawPayload = self.pendingBuffer.slice(headerLength, payloadEndPosition);
       const payload = new PBF(rawPayload);

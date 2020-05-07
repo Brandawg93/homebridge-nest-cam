@@ -62,7 +62,7 @@ export class NestCam {
       });
     } catch(error) {
       if (error.response) {
-        self.log.error(`Error updating camera info: ${error.response.status}`);
+        self.log.debug(`Error updating camera info: ${error.response.status}`);
       } else {
         self.log.error(error);
       }
@@ -120,7 +120,7 @@ export class NestCam {
       }
     } catch(error) {
       if (error.response) {
-        self.log.error(`Error checking motion: ${error.response.status}`);
+        self.log.debug(`Error checking motion: ${error.response.status}`);
       } else {
         self.log.error(error);
       }
