@@ -206,6 +206,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         if (this.ffmpegCodec === 'libx264') {
           x264Params = '-preset ultrafast -tune zerolatency ';
         }
+        // Old video command
+        // let videoffmpegCommand = `-use_wallclock_as_timestamps 1 -i - -map 0:0 ` +
+        //   `-c:v ${self.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-an ` +
+        //   `-payload_type ${payloadType} -ssrc ${ssrc} -f rtp `;
 
         let videoffmpegCommand = `-use_wallclock_as_timestamps 1 -i - -map 0:0 ` +
           `-c:v ${this.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-r ${fps} -an -sn -dn -b:v ${maxBitrate}k -bufsize ${2*maxBitrate}k -maxrate ${maxBitrate}k ` +

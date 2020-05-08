@@ -164,15 +164,16 @@ export class NexusStreamer {
   }
 
   requestStartPlayback() {
+    let profiles = [
+      StreamProfile.VIDEO_H264_2MBIT_L40,
+      StreamProfile.VIDEO_H264_530KBIT_L31,
+      StreamProfile.VIDEO_H264_100KBIT_L30,
+      StreamProfile.AUDIO_AAC
+    ];
     let request = {
       session_id: this.sessionID,
-      profile: StreamProfile.AVPROFILE_HD_MAIN_1,
-      other_profiles: [
-        StreamProfile.VIDEO_H264_2MBIT_L40,
-        StreamProfile.VIDEO_H264_530KBIT_L31,
-        StreamProfile.AVPROFILE_MOBILE_1,
-        StreamProfile.AVPROFILE_HD_MAIN_1
-      ]
+      profile: profiles[0],
+      other_profiles: profiles
     };
     let pbfContainer = new PBF();
     StartPlayback.write(request, pbfContainer);
@@ -201,7 +202,7 @@ export class NexusStreamer {
       let stream = packet.channels[`${i}`];
       if (stream.codec_type === CodecType.H264) {
         this.videoChannelID = stream.channel_id;
-      } else if (stream.codec_type === CodecType.AAC || stream.codec_type === CodecType.OPUS || stream.codec_type === CodecType.SPEEX) {
+      } else if (stream.codec_type === CodecType.AAC) {
         this.audioChannelID = stream.channel_id;
       }
     }
@@ -211,6 +212,7 @@ export class NexusStreamer {
     let packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
       if (this.ffmpeg.stdin) {
+        // H264 NAL Units require 0001 added to beginning
         this.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
     }
