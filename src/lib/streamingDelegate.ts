@@ -246,11 +246,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         let started = false;
         if (ffmpegVideo.stdin) {
-          ffmpegVideo.stdin.on('error', (e: NodeJS.ErrnoException) => {
-            if (e.code !== 'EPIPE' && e.code !== 'ERR_STREAM_DESTROYED') {
-              self.log.error(e.code || 'unknown');
+          ffmpegVideo.stdin.on('error', error => {
+            if (!error.message.includes('EPIPE')) {
+              self.log.error(error.message);
             }
-            streamer.stopPlayback();
           });
         }
         if (ffmpegVideo.stderr) {
@@ -273,6 +272,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         });
         ffmpegVideo.on('exit', (code, signal) => {
           const message = '[Video] ffmpeg exited with code: ' + code + ' and signal: ' + signal;
+          streamer.stopPlayback();
 
           if (code == null || code === 255) {
             self.log.debug(message + ' (Video stream stopped!)');

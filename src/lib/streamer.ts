@@ -5,8 +5,7 @@ import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { NestEndpoints } from './nest-endpoints';
-
-const PBF = require('pbf');
+import Pbf from 'pbf';
 
 const StreamProfile = require('./protos/PlaybackBegin.js').StreamProfile;
 const PlaybackPacket = require('./protos/PlaybackPacket.js').PlaybackPacket;
@@ -145,7 +144,7 @@ export class NexusStreamer {
     let token = {
       olive_token: this.accessToken
     };
-    let tokenContainer = new PBF();
+    let tokenContainer = new Pbf();
     AuthorizeRequest.write(token, tokenContainer);
     let tokenBuffer = tokenContainer.finish();
 
@@ -157,7 +156,7 @@ export class NexusStreamer {
       client_type: Hello.ClientType.IOS,
       authorize_request: tokenBuffer
     };
-    let pbfContainer = new PBF();
+    let pbfContainer = new Pbf();
     Hello.write(request, pbfContainer);
     let buffer = pbfContainer.finish();
     this._sendMessage(PacketType.HELLO, buffer);
@@ -178,7 +177,7 @@ export class NexusStreamer {
       profile: profiles[0],
       other_profiles: profiles
     };
-    let pbfContainer = new PBF();
+    let pbfContainer = new Pbf();
     StartPlayback.write(request, pbfContainer);
     let buffer = pbfContainer.finish();
     this._sendMessage(PacketType.START_PLAYBACK, buffer);
@@ -214,13 +213,13 @@ export class NexusStreamer {
   handlePlaybackPacket(payload: any) {
     let packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
-      if (this.ffmpegVideo.stdin) {
+      if (this.ffmpegVideo.stdin && !this.ffmpegVideo.stdin?.destroyed) {
         // H264 NAL Units require 0001 added to beginning
         this.ffmpegVideo.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
     }
     if (packet.channel_id === this.audioChannelID) {
-      if (this.ffmpegAudio && this.ffmpegAudio.stdin) {
+      if (this.ffmpegAudio && this.ffmpegAudio.stdin && !this.ffmpegAudio.stdin?.destroyed) {
         this.ffmpegAudio.stdin.write(Buffer.from(packet.payload));
       }
     }
@@ -289,7 +288,7 @@ export class NexusStreamer {
     let payloadEndPosition = length + headerLength;
     if (self.pendingBuffer.length >= payloadEndPosition) {
       const rawPayload = self.pendingBuffer.slice(headerLength, payloadEndPosition);
-      const payload = new PBF(rawPayload);
+      const payload = new Pbf(rawPayload);
       self.handleNexusPacket(type, payload);
       const remainingData = self.pendingBuffer.slice(payloadEndPosition);
       self.pendingBuffer = void 0;
