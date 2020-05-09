@@ -10,20 +10,12 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 [![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam2)](https://nodei.co/npm/homebridge-nest-cam2/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam2?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam2&amp;utm_campaign=Badge_Grade)
 
+| [FAQ](https://github.com/Brandawg93/homebridge-nest-cam2/wiki/FAQ)    | [Troubleshooting](https://github.com/Brandawg93/homebridge-nest-cam2/wiki/Troubleshooting) |
+|--------|-----------------|
+
 ## Notes
 - This is a continuation of the previous [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) plugin.
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
-
-## FAQ
-Q: How do I enable motion detection alerts?
-
-A: Open the camera feed and press the settings gear in the top left. Select notifications and enable "Notifications on this device".
-
-Q: Why is the stream slow/lagging/skipping?
-
-A: Your device running Homebridge must encode the stream into a format that iOS can recognize. This requires significant processing power for devices such as a Raspberry Pi. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/15).
-
-**Other asked questions can be found [here](https://github.com/Brandawg93/homebridge-nest-cam2/issues?utf8=%E2%9C%93&q=label%3Aquestion+).**
 
 ## Installation
 1. Install ffmpeg
@@ -52,7 +44,8 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     "ffmpegCodec": "libx264",
     "options": {
       "motionDetection": true,
-      "streamingSwitch": true
+      "streamingSwitch": true,
+      "disableAudio": false
     },
     "googleAuth": {
         "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
@@ -82,6 +75,8 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
 - motionDetection: enable/disable the motion sensor
 - streamingSwitch: enable/disable the ability to turn the camera on or off
+- disableAudio: enable/disable the audio stream
+- pathToFfmpeg: specify the path to a custom ffmpeg binary
 
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).
