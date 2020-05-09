@@ -301,12 +301,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           }
 
           if (ffmpegAudio.stdin) {
-            ffmpegAudio.stdin.on('error', (e: NodeJS.ErrnoException) => {
-              if (e.code !== 'EPIPE' && e.code !== 'ERR_STREAM_DESTROYED') {
-                self.log.error(e.code || 'unknown');
+            ffmpegAudio.stdin.on('error', error => {
+              if (!error.message.includes('EPIPE')) {
+                self.log.error(error.message);
               }
-              streamer.stopPlayback();
-            });
+            });  
           }
 
           if (ffmpegAudio.stderr) {
