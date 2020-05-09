@@ -46,7 +46,6 @@ export class NestEndpoints {
       responseType: type
     };
 
-    // self.log.debug(`${req.method} request sent to ${req.url}`);
     return (await axios(req)).data;
   }
 }

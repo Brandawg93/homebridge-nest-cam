@@ -1,11 +1,8 @@
 import {
-  Logging,
-  StreamingRequest,
-  PlatformConfig
+  Logging
 } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
-import { APIError } from './errors';
 import { ChildProcess } from 'child_process';
 import { NestEndpoints } from './nest-endpoints';
 
@@ -26,7 +23,6 @@ export class NexusStreamer {
   private ffmpegAudio: ChildProcess | undefined;
   private authorized: boolean = false;
   private readonly log: Logging;
-  private readonly config: PlatformConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
   private host: string = '';
   private cameraUUID: string = '';
@@ -36,17 +32,14 @@ export class NexusStreamer {
   private pendingBuffer: any;
   private videoChannelID: number = -1;
   private audioChannelID: number = -1;
-  private disableAudio: boolean = false;
 
-  constructor(host: string, cameraUUID: string, config: PlatformConfig, log: Logging, ffmpegVideo: ChildProcess, ffmpegAudio?: ChildProcess) {
+  constructor(host: string, cameraUUID: string, accessToken: string, log: Logging, ffmpegVideo: ChildProcess, ffmpegAudio?: ChildProcess) {
     this.log = log;
-    this.config = config;
     this.ffmpegVideo = ffmpegVideo;
     this.ffmpegAudio = ffmpegAudio;
     this.host = host;
     this.cameraUUID = cameraUUID;
-    this.accessToken = config.access_token;
-    this.disableAudio = config.options.disableAudio;
+    this.accessToken = accessToken;
     this.setupConnection();
   }
 
@@ -177,7 +170,7 @@ export class NexusStreamer {
       StreamProfile.VIDEO_H264_100KBIT_L30,
       StreamProfile.AUDIO_AAC
     ];
-    if (this.disableAudio) {
+    if (!this.ffmpegAudio) {
       profiles.pop();
     }
     let request = {
@@ -226,7 +219,7 @@ export class NexusStreamer {
         this.ffmpegVideo.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
     }
-    if (packet.channel_id === this.audioChannelID && !this.disableAudio) {
+    if (packet.channel_id === this.audioChannelID) {
       if (this.ffmpegAudio && this.ffmpegAudio.stdin) {
         this.ffmpegAudio.stdin.write(Buffer.from(packet.payload));
       }

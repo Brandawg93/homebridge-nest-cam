@@ -5,7 +5,6 @@ import {
   PlatformConfig
 } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
-import { APIError } from './errors';
 
 const querystring = require('querystring');
 const ModelTypes = require('./protos/ModelTypes.js').ModelTypes;

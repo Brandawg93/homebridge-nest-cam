@@ -1,10 +1,8 @@
 import {
   CameraController,
-  CameraControllerOptions,
   CameraStreamingDelegate,
   HAP,
   Logging,
-  PlatformAccessory,
   PlatformConfig,
   PrepareStreamCallback,
   PrepareStreamRequest,
@@ -22,7 +20,6 @@ import {
 import ip from 'ip';
 import { ChildProcess, spawn } from 'child_process';
 import { NexusStreamer } from './streamer';
-import { APIError } from './errors';
 import { NestCam } from './nestcam';
 import { NestEndpoints } from './nest-endpoints';
 import { readFile } from 'fs';
@@ -63,7 +60,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private readonly config: PlatformConfig;
   private customFfmpeg: string = '';
   private ffmpegCodec: string = '';
-  private uuid: string = '';
   private camera: NestCam;
   private endpoints: NestEndpoints;
   controller?: CameraController;
@@ -325,11 +321,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             self.log.error('[Audio] Failed to start audio stream: ' + error.message);
             callback(new Error('ffmpeg process creation failed!'));
           });
-          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config, this.log, ffmpegVideo, ffmpegAudio);
+          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log, ffmpegVideo, ffmpegAudio);
           this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
 
         } else {
-          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config, this.log, ffmpegVideo);
+          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log, ffmpegVideo);
           this.ongoingSessions[sessionId] = [ffmpegVideo];
         }
 

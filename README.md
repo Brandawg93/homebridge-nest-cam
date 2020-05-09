@@ -15,10 +15,6 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
 
 ## FAQ
-Q: Why is there no audio?
-
-A: Audio is not supported at this time. For more info, please read this [issue](https://github.com/Brandawg93/homebridge-nest-cam2/issues/1).
-
 Q: How do I enable motion detection alerts?
 
 A: Open the camera feed and press the settings gear in the top left. Select notifications and enable "Notifications on this device".
@@ -99,3 +95,6 @@ This plugin was converted to typescript using both [homebridge-ring](https://git
 
 ## Donate to Support homebridge-nest-cam2
 This plugin was made with you in mind. If you'd like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam2&currency_code=USD&source=url).
+
+## Disclaimer
+This plugin and its contributers are not affiliated with Google LLC or Nest Labs in any way.
