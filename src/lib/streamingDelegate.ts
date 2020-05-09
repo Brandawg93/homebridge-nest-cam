@@ -210,7 +210,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           x264Params = '-preset ultrafast -tune zerolatency ';
         }
 
-        let videoffmpegCommand = `-use_wallclock_as_timestamps 1 -i - -map 0:0 ` +
+        let videoffmpegCommand = `-f h264 -use_wallclock_as_timestamps 1 -i - ` +
           `-c:v ${this.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-r ${fps} ` +
           `-an -sn -dn -b:v ${videoMaxBitrate}k -bufsize ${2*videoMaxBitrate}k -maxrate ${videoMaxBitrate}k ` +
           `-payload_type ${videoPayloadType} -ssrc ${videoSsrc} -f rtp `; // -profile:v ${profile} -level:v ${level}
@@ -221,7 +221,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         videoffmpegCommand += `rtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${videoPort}&pkt_size=${mtu}`;
 
-        let audioffmpegCommand = `-f aac -i - -map 0:0 -c:a libfdk_aac -profile:a aac_eld -vn -ac 1 -ar ${sampleRate}k -b:a ${audioMaxBitrate} ` +
+        let audioffmpegCommand = `-f aac -i - -c:a libfdk_aac -profile:a aac_eld -vn -ar ${sampleRate}k -b:a ${audioMaxBitrate}k ` +
           `-flags +global_header -payload_type ${audioPayloadType} -ssrc ${audioSsrc} -f rtp `;
 
         if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) { // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
