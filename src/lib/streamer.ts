@@ -1,6 +1,7 @@
 import {
   Logging,
-  StreamingRequest
+  StreamingRequest,
+  PlatformConfig
 } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
@@ -21,9 +22,11 @@ const Hello = require('./protos/Hello.js').Hello;
 const AuthorizeRequest = require('./protos/AuthorizeRequest.js').AuthorizeRequest;
 
 export class NexusStreamer {
-  private ffmpeg: ChildProcess;
+  private ffmpegVideo: ChildProcess;
+  private ffmpegAudio: ChildProcess | undefined;
   private authorized: boolean = false;
   private readonly log: Logging;
+  private readonly config: PlatformConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
   private host: string = '';
   private cameraUUID: string = '';
@@ -33,13 +36,17 @@ export class NexusStreamer {
   private pendingBuffer: any;
   private videoChannelID: number = -1;
   private audioChannelID: number = -1;
+  private disableAudio: boolean = false;
 
-  constructor(ffmpeg: ChildProcess, host: string, cameraUUID: string, accessToken: string, log: Logging) {
+  constructor(host: string, cameraUUID: string, config: PlatformConfig, log: Logging, ffmpegVideo: ChildProcess, ffmpegAudio?: ChildProcess) {
     this.log = log;
-    this.ffmpeg = ffmpeg;
+    this.config = config;
+    this.ffmpegVideo = ffmpegVideo;
+    this.ffmpegAudio = ffmpegAudio;
     this.host = host;
     this.cameraUUID = cameraUUID;
-    this.accessToken = accessToken;
+    this.accessToken = config.access_token;
+    this.disableAudio = config.options.disableAudio;
     this.setupConnection();
   }
 
@@ -170,6 +177,9 @@ export class NexusStreamer {
       StreamProfile.VIDEO_H264_100KBIT_L30,
       StreamProfile.AUDIO_AAC
     ];
+    if (this.disableAudio) {
+      profiles.pop();
+    }
     let request = {
       session_id: this.sessionID,
       profile: profiles[0],
@@ -211,9 +221,14 @@ export class NexusStreamer {
   handlePlaybackPacket(payload: any) {
     let packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
-      if (this.ffmpeg.stdin) {
+      if (this.ffmpegVideo.stdin) {
         // H264 NAL Units require 0001 added to beginning
-        this.ffmpeg.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
+        this.ffmpegVideo.stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
+      }
+    }
+    if (packet.channel_id === this.audioChannelID && !this.disableAudio) {
+      if (this.ffmpegAudio && this.ffmpegAudio.stdin) {
+        this.ffmpegAudio.stdin.write(Buffer.from(packet.payload));
       }
     }
   }

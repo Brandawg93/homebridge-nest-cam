@@ -16,7 +16,8 @@ import {
   StreamRequestCallback,
   StreamRequestTypes,
   StreamSessionIdentifier,
-  VideoInfo
+  VideoInfo,
+  AudioInfo
 } from 'homebridge';
 import ip from 'ip';
 import { ChildProcess, spawn } from 'child_process';
@@ -69,7 +70,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   // keep track of sessions
   pendingSessions: Record<string, SessionInfo> = {};
-  ongoingSessions: Record<string, ChildProcess> = {};
+  ongoingSessions: Record<string, ChildProcess[]> = {};
 
   constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
     this.hap = hap;
@@ -182,6 +183,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       case StreamRequestTypes.START:
         const sessionInfo = this.pendingSessions[sessionId];
         const video: VideoInfo = request.video;
+        const audio: AudioInfo = request.audio;
 
         const profile = FFMPEGH264ProfileNames[video.profile];
         const level = FFMPEGH264LevelNames[video.level];
@@ -189,37 +191,48 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const height = video.height;
         const fps = video.fps;
 
-        const payloadType = video.pt;
-        const maxBitrate = video.max_bit_rate;
+        const videoPayloadType = video.pt;
+        const audioPayloadType = audio.pt;
+        const videoMaxBitrate = video.max_bit_rate;
+        const audioMaxBitrate = audio.max_bit_rate;
         const rtcpInterval = video.rtcp_interval; // usually 0.5
+        const sampleRate = audio.sample_rate;
         const mtu = video.mtu; // maximum transmission unit
 
         const address = sessionInfo.address;
         const videoPort = sessionInfo.videoPort;
-        const ssrc = sessionInfo.videoSSRC;
+        const audioPort = sessionInfo.audioPort;
+        const videoSsrc = sessionInfo.videoSSRC;
+        const audioSsrc = sessionInfo.audioSSRC;
         const cryptoSuite = sessionInfo.videoCryptoSuite;
         const videoSRTP = sessionInfo.videoSRTP.toString('base64');
-
-        this.log.debug(`Starting video stream (${width}x${height}, ${fps} fps, ${maxBitrate} kbps, ${mtu} mtu)...`);
+        const audioSRTP = sessionInfo.audioSRTP.toString('base64');
+        this.log.debug(`Starting video stream (${width}x${height}, ${fps} fps, ${videoMaxBitrate} kbps, ${mtu} mtu)...`);
 
         let x264Params = '';
         if (this.ffmpegCodec === 'libx264') {
           x264Params = '-preset ultrafast -tune zerolatency ';
         }
-        // Old video command
-        // let videoffmpegCommand = `-use_wallclock_as_timestamps 1 -i - -map 0:0 ` +
-        //   `-c:v ${self.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-an ` +
-        //   `-payload_type ${payloadType} -ssrc ${ssrc} -f rtp `;
 
         let videoffmpegCommand = `-use_wallclock_as_timestamps 1 -i - -map 0:0 ` +
-          `-c:v ${this.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-r ${fps} -an -sn -dn -b:v ${maxBitrate}k -bufsize ${2*maxBitrate}k -maxrate ${maxBitrate}k ` +
-          `-payload_type ${payloadType} -ssrc ${ssrc} -f rtp `; // -profile:v ${profile} -level:v ${level}
+          `-c:v ${this.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-r ${fps} ` +
+          `-an -sn -dn -b:v ${videoMaxBitrate}k -bufsize ${2*videoMaxBitrate}k -maxrate ${videoMaxBitrate}k ` +
+          `-payload_type ${videoPayloadType} -ssrc ${videoSsrc} -f rtp `; // -profile:v ${profile} -level:v ${level}
 
         if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) { // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
           videoffmpegCommand += `-srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params ${videoSRTP} s`;
         }
 
         videoffmpegCommand += `rtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${videoPort}&pkt_size=${mtu}`;
+
+        let audioffmpegCommand = `-f aac -i - -map 0:0 -c:a libfdk_aac -profile:a aac_eld -vn -ac 1 -ar ${sampleRate}k -b:a ${audioMaxBitrate} ` +
+          `-flags +global_header -payload_type ${audioPayloadType} -ssrc ${audioSsrc} -f rtp `;
+
+        if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) { // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
+          audioffmpegCommand += `-srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params ${audioSRTP} -rtsp_transport tcp s`;
+        }
+
+        audioffmpegCommand += `rtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`;
 
         if (this.ffmpegDebugOutput) {
           self.log('FFMPEG command: ffmpeg ' + videoffmpegCommand);
@@ -235,9 +248,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           ffmpegVideo = spawn('ffmpeg', videoffmpegCommand.split(' '), {env: process.env});
         }
 
-
         let started = false;
-        let streamer = new NexusStreamer(ffmpegVideo, this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log);
         if (ffmpegVideo.stdin) {
           ffmpegVideo.stdin.on('error', (e: NodeJS.ErrnoException) => {
             if (e.code !== 'EPIPE' && e.code !== 'ERR_STREAM_DESTROYED') {
@@ -280,7 +291,49 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           }
         });
 
-        this.ongoingSessions[sessionId] = ffmpegVideo;
+        let streamer: NexusStreamer;
+
+        if (!this.config.options.disableAudio) {
+          let ffmpegAudio: ChildProcess;
+
+          if (this.customFfmpeg && this.customFfmpeg !== '') {
+              ffmpegAudio = spawn(this.customFfmpeg, audioffmpegCommand.split(' '), {env: process.env});
+          } else if (pathToFfmpeg) {
+            ffmpegAudio = spawn(pathToFfmpeg, audioffmpegCommand.split(' '), {env: process.env});
+          } else {
+            ffmpegAudio = spawn('ffmpeg', audioffmpegCommand.split(' '), {env: process.env});
+          }
+
+          if (ffmpegAudio.stdin) {
+            ffmpegAudio.stdin.on('error', (e: NodeJS.ErrnoException) => {
+              if (e.code !== 'EPIPE' && e.code !== 'ERR_STREAM_DESTROYED') {
+                self.log.error(e.code || 'unknown');
+              }
+              streamer.stopPlayback();
+            });
+          }
+
+          if (ffmpegAudio.stderr) {
+            ffmpegAudio.stderr.on('data', data => {
+              if (this.ffmpegDebugOutput) {
+                self.log('AUDIO: ' + String(data));
+              }
+            });
+          }
+
+          ffmpegAudio.on('error', error => {
+            self.log.error('[Audio] Failed to start audio stream: ' + error.message);
+            callback(new Error('ffmpeg process creation failed!'));
+          });
+          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config, this.log, ffmpegVideo, ffmpegAudio);
+          this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
+
+        } else {
+          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config, this.log, ffmpegVideo);
+          this.ongoingSessions[sessionId] = [ffmpegVideo];
+        }
+
+
         delete this.pendingSessions[sessionId];
         streamer.requestStartPlayback();
         break;
@@ -290,11 +343,17 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         callback();
         break;
       case StreamRequestTypes.STOP:
-        const ffmpegProcess = this.ongoingSessions[sessionId];
 
         try {
-          if (ffmpegProcess) {
-            ffmpegProcess.kill('SIGKILL');
+          const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
+          if (ffmpegVideoProcess) {
+            ffmpegVideoProcess.kill('SIGKILL');
+          }
+          if (this.ongoingSessions[sessionId].length > 1) {
+            const ffmpegAudioProcess = this.ongoingSessions[sessionId][1];
+            if (ffmpegAudioProcess && !this.config.options.disableAudio) {
+              ffmpegAudioProcess.kill('SIGKILL');
+            }
           }
         } catch (e) {
           self.log.error('Error occurred terminating the video process!');

@@ -51,11 +51,17 @@
           "default": true,
           "required": true
         },
+        "disableAudio": {
+          "title": "Disable Audio Stream",
+          "type": "boolean",
+          "default": false,
+          "required": true
+        },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
           "type": "string",
           "default": "",
-          "required": true
+          "required": false
         }
       }
     }

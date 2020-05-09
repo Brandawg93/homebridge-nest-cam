@@ -111,6 +111,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       if (typeof streamingSwitch !== 'undefined') {
         this.streamingSwitch = streamingSwitch;
       }
+      const disableAudio = config.options['disableAudio'];
+      if (typeof disableAudio === 'undefined') {
+        config.options.disableAudio = false;
+      }
     }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
