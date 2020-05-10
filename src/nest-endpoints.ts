@@ -22,7 +22,7 @@ export class NestEndpoints {
    * @param method    Usually 'GET' or 'POST'
    * @param body      The body of the request or null if a 'GET'
    */
-  async sendRequest(accessToken: string, hostname: string, endpoint: string, method: Method, type: ResponseType = 'json', data?: any): Promise<any> {
+  async sendRequest(accessToken: string | undefined, hostname: string, endpoint: string, method: Method, type: ResponseType = 'json', data?: any): Promise<any> {
     let headers: any = {
       'User-Agent': NestEndpoints.USER_AGENT_STRING,
       'Referer': this.NEST_API_HOSTNAME
@@ -32,7 +32,7 @@ export class NestEndpoints {
       headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=utf-8';
     }
 
-    if (accessToken !== void 0) {
+    if (accessToken) {
       headers['Cookie'] = `user_token=${accessToken}`;
     }
 
