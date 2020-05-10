@@ -24,9 +24,9 @@ import { NestCam } from './nestcam';
 import { NestEndpoints } from './nest-endpoints';
 import { readFile } from 'fs';
 import { join } from 'path';
+import querystring from 'querystring';
 
-const querystring = require('querystring');
-const pathToFfmpeg = require('ffmpeg-for-homebridge');
+const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 type SessionInfo = {
   address: string, // address of the HAP controller
@@ -42,16 +42,16 @@ type SessionInfo = {
   audioSSRC: number
 }
 
-const FFMPEGH264ProfileNames = [
-  'baseline',
-  'main',
-  'high'
-];
-const FFMPEGH264LevelNames = [
-  '3.1',
-  '3.2',
-  '4.0'
-];
+// const FFMPEGH264ProfileNames = [
+//   'baseline',
+//   'main',
+//   'high'
+// ];
+// const FFMPEGH264LevelNames = [
+//   '3.1',
+//   '3.2',
+//   '4.0'
+// ];
 
 export class StreamingDelegate implements CameraStreamingDelegate {
   private ffmpegDebugOutput: boolean = false;
@@ -82,27 +82,27 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     }
   }
 
-  async handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback) {
-    let self = this;
+  async handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): Promise<void> {
     let query = querystring.stringify({
-      uuid: self.camera.uuid,
+      uuid: this.camera.uuid,
       width: request.width
     });
     try {
-      let snapshot = await this.endpoints.sendRequest(this.config.access_token, self.camera.apiHost, `/get_image?${query}`, 'GET', 'arraybuffer');
+      let snapshot = await this.endpoints.sendRequest(this.config.access_token, this.camera.apiHost, `/get_image?${query}`, 'GET', 'arraybuffer');
       callback(void 0, snapshot);
     } catch(error) {
       if (error.response.status === 404) {
+        let log = this.log;
         readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
           if (err) {
-            self.log.error(err.message);
+            log.error(err.message);
             callback(err);
           } else {
             callback(void 0, data);
           }
         });
       } else {
-        self.log.error(`Error fetching snapshot - ${error.response.status}`);
+        this.log.error(`Error fetching snapshot - ${error.response.status}`);
         callback(error);
       }
     }
@@ -173,7 +173,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   handleStreamRequest(request: StreamingRequest, callback: StreamRequestCallback): void {
     const sessionId = request.sessionID;
-    let self = this;
 
     switch (request.type) {
       case StreamRequestTypes.START:
@@ -181,8 +180,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const video: VideoInfo = request.video;
         const audio: AudioInfo = request.audio;
 
-        const profile = FFMPEGH264ProfileNames[video.profile];
-        const level = FFMPEGH264LevelNames[video.level];
+        // const profile = FFMPEGH264ProfileNames[video.profile];
+        // const level = FFMPEGH264LevelNames[video.level];
         const width = video.width;
         const height = video.height;
         const fps = video.fps;
@@ -191,7 +190,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const audioPayloadType = audio.pt;
         const videoMaxBitrate = video.max_bit_rate;
         const audioMaxBitrate = audio.max_bit_rate;
-        const rtcpInterval = video.rtcp_interval; // usually 0.5
+        // const rtcpInterval = video.rtcp_interval; // usually 0.5
         const sampleRate = audio.sample_rate;
         const mtu = video.mtu; // maximum transmission unit
 
@@ -203,6 +202,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const cryptoSuite = sessionInfo.videoCryptoSuite;
         const videoSRTP = sessionInfo.videoSRTP.toString('base64');
         const audioSRTP = sessionInfo.audioSRTP.toString('base64');
+
+        let streamer: NexusStreamer;
+
         this.log.debug(`Starting video stream (${width}x${height}, ${fps} fps, ${videoMaxBitrate} kbps, ${mtu} mtu)...`);
 
         let x264Params = '';
@@ -231,7 +233,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         audioffmpegCommand += `rtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`;
 
         if (this.ffmpegDebugOutput) {
-          self.log('FFMPEG command: ffmpeg ' + videoffmpegCommand);
+          this.log('FFMPEG command: ffmpeg ' + videoffmpegCommand);
         }
 
         let ffmpegVideo: ChildProcess;
@@ -248,7 +250,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         if (ffmpegVideo.stdin) {
           ffmpegVideo.stdin.on('error', error => {
             if (!error.message.includes('EPIPE')) {
-              self.log.error(error.message);
+              this.log.error(error.message);
             }
           });
         }
@@ -256,18 +258,18 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           ffmpegVideo.stderr.on('data', data => {
             if (!started) {
               started = true;
-              self.log.debug('FFMPEG: received first frame');
+              this.log.debug('FFMPEG: received first frame');
 
               callback(); // do not forget to execute callback once set up
             }
 
             if (this.ffmpegDebugOutput) {
-              self.log('VIDEO: ' + String(data));
+              this.log('VIDEO: ' + String(data));
             }
           });
         }
         ffmpegVideo.on('error', error => {
-          self.log.error('[Video] Failed to start video stream: ' + error.message);
+          this.log.error('[Video] Failed to start video stream: ' + error.message);
           callback(new Error('ffmpeg process creation failed!'));
         });
         ffmpegVideo.on('exit', (code, signal) => {
@@ -275,19 +277,19 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           streamer.stopPlayback();
 
           if (code == null || code === 255) {
-            self.log.debug(message + ' (Video stream stopped!)');
+            this.log.debug(message + ' (Video stream stopped!)');
           } else {
-            self.log.error(message + ' (error)');
+            this.log.error(message + ' (error)');
 
             if (!started) {
               callback(new Error(message));
             } else {
-              this.controller!.forceStopStreamingSession(sessionId);
+              if (this.controller) {
+                this.controller.forceStopStreamingSession(sessionId);
+              }
             }
           }
         });
-
-        let streamer: NexusStreamer;
 
         if (!this.config.options.disableAudio) {
           let ffmpegAudio: ChildProcess;
@@ -303,7 +305,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           if (ffmpegAudio.stdin) {
             ffmpegAudio.stdin.on('error', error => {
               if (!error.message.includes('EPIPE')) {
-                self.log.error(error.message);
+                this.log.error(error.message);
               }
             });  
           }
@@ -311,13 +313,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           if (ffmpegAudio.stderr) {
             ffmpegAudio.stderr.on('data', data => {
               if (this.ffmpegDebugOutput) {
-                self.log('AUDIO: ' + String(data));
+                this.log('AUDIO: ' + String(data));
               }
             });
           }
 
           ffmpegAudio.on('error', error => {
-            self.log.error('[Audio] Failed to start audio stream: ' + error.message);
+            this.log.error('[Audio] Failed to start audio stream: ' + error.message);
             callback(new Error('ffmpeg process creation failed!'));
           });
           streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log, ffmpegVideo, ffmpegAudio);
@@ -334,7 +336,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         break;
       case StreamRequestTypes.RECONFIGURE:
         // not implemented
-        self.log.debug('Received (unsupported) request to reconfigure to: ' + JSON.stringify(request.video));
+        this.log.debug('Received (unsupported) request to reconfigure to: ' + JSON.stringify(request.video));
         callback();
         break;
       case StreamRequestTypes.STOP:
@@ -351,13 +353,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             }
           }
         } catch (e) {
-          self.log.error('Error occurred terminating the video process!');
-          self.log.error(e);
+          this.log.error('Error occurred terminating the video process!');
+          this.log.error(e);
         }
 
         delete this.ongoingSessions[sessionId];
 
-        self.log.debug('Stopped streaming session!');
+        this.log.debug('Stopped streaming session!');
         callback();
         break;
     }

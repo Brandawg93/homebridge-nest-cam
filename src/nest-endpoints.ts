@@ -22,8 +22,7 @@ export class NestEndpoints {
    * @param method    Usually 'GET' or 'POST'
    * @param body      The body of the request or null if a 'GET'
    */
-  async sendRequest(accessToken: string, hostname: string, endpoint: string, method: Method, type: ResponseType = 'json', data?: any) {
-    let self = this;
+  async sendRequest(accessToken: string, hostname: string, endpoint: string, method: Method, type: ResponseType = 'json', data?: any): Promise<any> {
     let headers: any = {
       'User-Agent': NestEndpoints.USER_AGENT_STRING,
       'Referer': this.NEST_API_HOSTNAME

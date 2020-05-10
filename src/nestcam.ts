@@ -5,9 +5,7 @@ import {
   PlatformConfig
 } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
-
-const querystring = require('querystring');
-const ModelTypes = require('./protos/ModelTypes.js').ModelTypes;
+import querystring from 'querystring';
 
 export interface CameraInfo {
   name: string;
@@ -48,27 +46,26 @@ export class NestCam {
     this.motionDetected = false;
   }
 
-  async updateInfo() {
-    let self = this;
+  async updateInfo(): Promise<void> {
     let query = querystring.stringify({
-      'uuid': self.uuid
+      'uuid': this.uuid
     });
     try {
-      self.log.debug(`Updating info for ${self.name}`);
+      this.log.debug(`Updating info for ${this.name}`);
       let response = await this.endpoints.sendRequest(this.config.access_token, this.endpoints.CAMERA_API_HOSTNAME, `/api/cameras.get_with_properties?${query}`, 'GET');
       response.items.forEach((info: any) => {
-        self.setAttributes(info);
+        this.setAttributes(info);
       });
     } catch(error) {
       if (error.response) {
-        self.log.debug(`Error updating camera info: ${error.response.status}`);
+        this.log.debug(`Error updating camera info: ${error.response.status}`);
       } else {
-        self.log.error(error);
+        this.log.error(error);
       }
     }
   }
 
-  setAttributes(info: any) {
+  setAttributes(info: any): void {
     this.name = info.name;
     this.uuid = info.uuid;
     this.enabled = info.is_streaming_enabled;
@@ -80,27 +77,25 @@ export class NestCam {
     this.apiHost = info.nexus_api_http_server;
   }
 
-  async toggleActive(enabled: boolean) {
-    let self = this;
+  async toggleActive(enabled: boolean): Promise<void> {
     let query = querystring.stringify({
       'streaming.enabled': enabled,
-      'uuid': self.uuid
+      'uuid': this.uuid
     });
     try {
       await this.endpoints.sendRequest(this.config.access_token, this.endpoints.CAMERA_API_HOSTNAME, '/api/dropcams.set_properties', 'POST', 'json', query);
-      self.enabled = enabled;
+      this.enabled = enabled;
     } catch(error) {
       if (error.response) {
-        self.log.error(`Error toggling camera state: ${error.response.status}`);
+        this.log.error(`Error toggling camera state: ${error.response.status}`);
       } else {
-        self.log.error(error);
+        this.log.error(error);
       }
     }
   }
 
-  async checkMotion(accessory: PlatformAccessory) {
-    let self = this;
-    self.log.debug(`Checking for motion on ${accessory.displayName}`);
+  async checkMotion(accessory: PlatformAccessory): Promise<void> {
+    this.log.debug(`Checking for motion on ${accessory.displayName}`);
     try {
       let currDate = new Date();
       currDate.setMinutes(currDate.getMinutes() - 1);
@@ -108,31 +103,30 @@ export class NestCam {
       let query = querystring.stringify({
         'start_time': epoch
       });
-      let response = await this.endpoints.sendRequest(this.config.access_token, self.apiHost, `/cuepoint/${self.uuid}/2?${query}`, 'GET');
+      let response = await this.endpoints.sendRequest(this.config.access_token, this.apiHost, `/cuepoint/${this.uuid}/2?${query}`, 'GET');
       if (response.length > 0) {
         let trigger = response[0];
-        if (trigger.is_important && !self.motionDetected) {
-          self.setMotion(accessory, true);
+        if (trigger.is_important && !this.motionDetected) {
+          this.setMotion(accessory, true);
         }
-      } else if (self.motionDetected) {
-        self.setMotion(accessory, false);
+      } else if (this.motionDetected) {
+        this.setMotion(accessory, false);
       }
     } catch(error) {
       if (error.response) {
-        self.log.debug(`Error checking motion: ${error.response.status}`);
+        this.log.debug(`Error checking motion: ${error.response.status}`);
       } else {
-        self.log.error(error);
+        this.log.error(error);
       }
     }
   }
 
-  setMotion(accessory: PlatformAccessory, state: boolean) {
-    let self = this;
-    self.log.debug(`Setting ${accessory.displayName} Motion to ${state}`);
+  setMotion(accessory: PlatformAccessory, state: boolean): void {
+    this.log.debug(`Setting ${accessory.displayName} Motion to ${state}`);
     let service = accessory.getService(this.hap.Service.MotionSensor);
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
-      self.motionDetected = state;
+      this.motionDetected = state;
     }
   }
 }

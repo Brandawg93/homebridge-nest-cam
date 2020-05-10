@@ -59,13 +59,13 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
   return await conn.auth();
 };
 
-const setMotionInterval = async function (camera: NestCam, accessory: PlatformAccessory) {
+const setMotionInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
   setInterval(async function () {
     camera.checkMotion(accessory);
   }, UPDATE_INTERVAL);
 };
 
-const setSwitchInterval = async function (camera: NestCam, accessory: PlatformAccessory) {
+const setSwitchInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
   setInterval(async function () {
     await camera.updateInfo();
     const service = accessory.getService(hap.Service.Switch);
@@ -233,7 +233,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   /**
    * Add fetched cameras from nest to Homebridge
    */
-  async addCameras() {
+  async addCameras(): Promise<void> {
     // Nest needs to be reauthenticated about every hour
     const config = this.config;
     const log = this.log;
@@ -277,7 +277,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async didFinishLaunching() {
+  async didFinishLaunching(): Promise<void> {
     const connected = await setupConnection(this.config, this.log);
     if (connected) {
       await this.addCameras();
@@ -285,7 +285,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 }
 
-export = (api: API) => {
+export = (api: API): void => {
   hap = api.hap;
   Accessory = api.platformAccessory;
 

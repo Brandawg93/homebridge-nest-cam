@@ -12,8 +12,8 @@ const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
 // Timeout other API calls after this number of seconds
 const API_TIMEOUT_SECONDS = 40;
 
-const delay = function(time_ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, time_ms));
+const delay = function(time: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, time));
 };
 
 export class Connection {

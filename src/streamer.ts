@@ -28,7 +28,7 @@ export class NexusStreamer {
   private accessToken: string = '';
   private socket: TLSSocket = new TLSSocket(new Socket());
   private pendingMessages: any[] = [];
-  private pendingBuffer: any;
+  private pendingBuffer: Buffer | undefined;
   private videoChannelID: number = -1;
   private audioChannelID: number = -1;
 
@@ -42,7 +42,7 @@ export class NexusStreamer {
     this.setupConnection();
   }
 
-  stopPlayback() {
+  stopPlayback(): void {
     if (this.socket) {
       this.socket.end();
     }
@@ -50,16 +50,16 @@ export class NexusStreamer {
 
   // Internal
 
-  setupConnection() {
-    let self = this;
+  setupConnection(): void {
+    let self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     let pingInterval: NodeJS.Timeout;
 
-    self.stopPlayback();
+    this.stopPlayback();
     let options = {
-      host: self.host,
+      host: this.host,
       port: 1443
     };
-    self.socket = connect(options, () => {
+    this.socket = connect(options, () => {
       self.log.info('[NexusStreamer] Connected');
       self.requestHello();
       pingInterval = setInterval(() => {
@@ -67,48 +67,45 @@ export class NexusStreamer {
       }, 15000);
     });
 
-    self.socket.on('data', (data) => {
+    this.socket.on('data', (data) => {
       self.handleNexusData(data);
     });
 
-    self.socket.on('end', () => {
+    this.socket.on('end', () => {
       self.unschedulePingMessage(pingInterval);
       self.log.info('[NexusStreamer] Disconnected');
     });
   }
 
-  _processPendingMessages() {
-    let self = this;
-    if (self.pendingMessages) {
-      let messages = self.pendingMessages;
-      self.pendingMessages = [];
+  _processPendingMessages(): void {
+    if (this.pendingMessages) {
+      let messages = this.pendingMessages;
+      this.pendingMessages = [];
       messages.forEach((message) => {
-        self._sendMessage(message.type, message.buffer);
+        this._sendMessage(message.type, message.buffer);
       });
     }
   }
 
-  _sendMessage(type: number, buffer: any) {
-    let self = this;
-
-    if (self.socket.connecting || !self.socket.encrypted) {
-      self.log.debug('waiting for socket to connect');
-      if (!self.pendingMessages) {
-        self.pendingMessages = [];
+  _sendMessage(type: number, buffer: any): void {
+    if (this.socket.connecting || !this.socket.encrypted) {
+      this.log.debug('waiting for socket to connect');
+      if (!this.pendingMessages) {
+        this.pendingMessages = [];
       }
-      self.pendingMessages.push({
+      this.pendingMessages.push({
         type,
         buffer
       });
       return;
     }
 
-    if (type !== PacketType.HELLO && !self.authorized) {
-      self.log.debug('waiting for authorization');
-      if (!self.pendingMessages) {
-        self.pendingMessages = [];
+    if (type !== PacketType.HELLO && !this.authorized) {
+      this.log.debug('waiting for authorization');
+      if (!this.pendingMessages) {
+        this.pendingMessages = [];
       }
-      self.pendingMessages.push({
+      this.pendingMessages.push({
         type,
         buffer
       });
@@ -127,20 +124,20 @@ export class NexusStreamer {
       requestBuffer.writeUInt16BE(buffer.length, 1);
       requestBuffer = Buffer.concat([requestBuffer, Buffer.from(buffer)]);
     }
-    self.socket.write(requestBuffer);
+    this.socket.write(requestBuffer);
   }
 
   // Ping
 
-  sendPingMessage() {
+  sendPingMessage(): void {
     this._sendMessage(1, Buffer.alloc(0));
   }
 
-  unschedulePingMessage(pingInterval: NodeJS.Timeout) {
+  unschedulePingMessage(pingInterval: NodeJS.Timeout): void {
     clearInterval(pingInterval);
   }
 
-  requestHello() {
+  requestHello(): void {
     let token = {
       olive_token: this.accessToken
     };
@@ -162,7 +159,7 @@ export class NexusStreamer {
     this._sendMessage(PacketType.HELLO, buffer);
   }
 
-  requestStartPlayback() {
+  requestStartPlayback(): void {
     let profiles = [
       StreamProfile.VIDEO_H264_2MBIT_L40,
       StreamProfile.VIDEO_H264_530KBIT_L31,
@@ -183,7 +180,7 @@ export class NexusStreamer {
     this._sendMessage(PacketType.START_PLAYBACK, buffer);
   }
 
-  handleRedirect(payload: any) {
+  handleRedirect(payload: any): void {
     let packet = Redirect.read(payload);
     if (packet.new_host) {
       this.log.info('[NexusStreamer] Redirecting...');
@@ -193,7 +190,7 @@ export class NexusStreamer {
     }
   }
 
-  handlePlaybackBegin(payload: any) {
+  handlePlaybackBegin(payload: any): void {
     let packet = PlaybackBegin.read(payload);
 
     if (packet.session_id !== this.sessionID) {
@@ -210,7 +207,7 @@ export class NexusStreamer {
     }
   }
 
-  handlePlaybackPacket(payload: any) {
+  handlePlaybackPacket(payload: any): void {
     let packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
       if (this.ffmpegVideo.stdin && !this.ffmpegVideo.stdin?.destroyed) {
@@ -225,75 +222,73 @@ export class NexusStreamer {
     }
   }
 
-  handleNexusPacket(type: number, payload: any) {
-    let self = this;
+  handleNexusPacket(type: number, payload: any): void {
     switch(type) {
     case PacketType.PING:
-      self.log.debug('[NexusStreamer] Ping');
+      this.log.debug('[NexusStreamer] Ping');
       break;
     case PacketType.OK:
-      self.log.debug('[NexusStreamer] OK');
-      self.authorized = true;
-      self._processPendingMessages();
+      this.log.debug('[NexusStreamer] OK');
+      this.authorized = true;
+      this._processPendingMessages();
       break;
     case PacketType.ERROR:
-      self.log.debug('[NexusStreamer] Error');
-      self.stopPlayback();
+      this.log.debug('[NexusStreamer] Error');
+      this.stopPlayback();
       break;
     case PacketType.PLAYBACK_BEGIN:
-      self.log.debug('[NexusStreamer] Playback Begin');
-      self.handlePlaybackBegin(payload);
+      this.log.debug('[NexusStreamer] Playback Begin');
+      this.handlePlaybackBegin(payload);
       break;
     case PacketType.PLAYBACK_END:
-      self.log.debug('[NexusStreamer] Playback End');
+      this.log.debug('[NexusStreamer] Playback End');
       break;
     case PacketType.PLAYBACK_PACKET:
-      // self.log.debug('[NexusStreamer] Playback Packet');
-      self.handlePlaybackPacket(payload);
+      // this.log.debug('[NexusStreamer] Playback Packet');
+      this.handlePlaybackPacket(payload);
       break;
     case PacketType.LONG_PLAYBACK_PACKET:
-      // self.log.debug('[NexusStreamer] Long Playback Packet');
-      self.handlePlaybackPacket(payload);
+      // this.log.debug('[NexusStreamer] Long Playback Packet');
+      this.handlePlaybackPacket(payload);
       break;
     case PacketType.CLOCK_SYNC:
-      self.log.debug('[NexusStreamer] Clock Sync');
+      this.log.debug('[NexusStreamer] Clock Sync');
       break;
     case PacketType.REDIRECT:
-      self.log.debug('[NexusStreamer] Redirect');
-      self.handleRedirect(payload);
+      this.log.debug('[NexusStreamer] Redirect');
+      this.handleRedirect(payload);
       break;
     default:
-      self.log.debug('[NexusStreamer] Unhandled Type: ' + type);
+      this.log.debug('[NexusStreamer] Unhandled Type: ' + type);
     }
   }
 
-  handleNexusData(data: any) {
-    let self = this;
-    if (self.pendingBuffer === void 0) {
-      self.pendingBuffer = data;
+  handleNexusData(data: Buffer): void {
+    if (this.pendingBuffer === void 0) {
+      this.pendingBuffer = data;
     } else {
-      self.pendingBuffer = Buffer.concat([self.pendingBuffer, data]);
+      this.pendingBuffer = Buffer.concat([this.pendingBuffer, data]);
     }
 
-    const type = self.pendingBuffer.readUInt8();
+    const type = this.pendingBuffer.readUInt8();
     let headerLength = 0;
     let length = 0;
     if (type === PacketType.LONG_PLAYBACK_PACKET) {
       headerLength = 5;
-      length = self.pendingBuffer.readUInt32BE(1);
+      length = this.pendingBuffer.readUInt32BE(1);
     } else {
       headerLength = 3;
-      length = self.pendingBuffer.readUInt16BE(1);
+      length = this.pendingBuffer.readUInt16BE(1);
     }
     let payloadEndPosition = length + headerLength;
-    if (self.pendingBuffer.length >= payloadEndPosition) {
-      const rawPayload = self.pendingBuffer.slice(headerLength, payloadEndPosition);
+    if (this.pendingBuffer.length >= payloadEndPosition) {
+      const rawPayload = this.pendingBuffer.slice(headerLength, payloadEndPosition);
       const payload = new Pbf(rawPayload);
-      self.handleNexusPacket(type, payload);
-      const remainingData = self.pendingBuffer.slice(payloadEndPosition);
-      self.pendingBuffer = void 0;
+      this.handleNexusPacket(type, payload);
+      const remainingData = this.pendingBuffer.slice(payloadEndPosition);
+      this.pendingBuffer = void 0;
       if (remainingData.length !== 0) {
-        self.handleNexusData(remainingData);
+        this.handleNexusData(remainingData);
       }
     }
   }
