@@ -93,7 +93,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       callback(void 0, snapshot);
     } catch(error) {
       if (error.response.status === 404) {
-        readFile(join(__dirname, `../../images/offline.jpg`), function (err, data) {
+        readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
           if (err) {
             self.log.error(err.message);
             callback(err);

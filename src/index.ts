@@ -14,10 +14,10 @@ import {
   PlatformAccessoryEvent,
   PlatformConfig,
 } from 'homebridge';
-import { NestCam, CameraInfo } from './lib/nestcam';
-import { NestEndpoints } from './lib/nest-endpoints';
-import { StreamingDelegate } from './lib/streamingDelegate';
-import { Connection } from './lib/nest-connection';
+import { NestCam, CameraInfo } from './nestcam';
+import { NestEndpoints } from './nest-endpoints';
+import { StreamingDelegate } from './streamingDelegate';
+import { Connection } from './nest-connection';
 
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
