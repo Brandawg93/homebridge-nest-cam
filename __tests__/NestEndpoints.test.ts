@@ -1,4 +1,4 @@
-import { NestEndpoints } from '../nest-endpoints';
+import { NestEndpoints } from '../src/nest-endpoints';
 
 test('Nest Endpoints', () => {
     let endpoints = new NestEndpoints(false);
