@@ -19,8 +19,6 @@ export class NestCam {
   private readonly log: Logging;
   private endpoints: NestEndpoints;
   private readonly hap: HAP;
-  private ffmpegCodec = 'libx264';
-  private pathToFfmpeg = '';
   public name = '';
   public uuid = '';
   public enabled = false;

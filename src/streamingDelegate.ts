@@ -59,7 +59,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private readonly log: Logging;
   private readonly config: PlatformConfig;
   private customFfmpeg = '';
-  private ffmpegCodec = '';
+  private ffmpegCodec = 'libx264';
   private camera: NestCam;
   private endpoints: NestEndpoints;
   controller?: CameraController;
