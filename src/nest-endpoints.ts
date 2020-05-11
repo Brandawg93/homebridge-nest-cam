@@ -2,10 +2,11 @@ import axios from 'axios';
 import { AxiosRequestConfig, Method, ResponseType } from 'axios';
 
 export class NestEndpoints {
-  public static USER_AGENT_STRING: string = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36';
-  public NEST_API_HOSTNAME: string = 'https://home.nest.com';
-  public CAMERA_API_HOSTNAME: string = 'https://webapi.camera.home.nest.com';
-  public CAMERA_AUTH_COOKIE: string = 'website_2';
+  public static USER_AGENT_STRING =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36';
+  public NEST_API_HOSTNAME = 'https://home.nest.com';
+  public CAMERA_API_HOSTNAME = 'https://webapi.camera.home.nest.com';
+  public CAMERA_AUTH_COOKIE = 'website_2';
 
   constructor(fieldTestMode: boolean) {
     if (fieldTestMode) {
@@ -22,10 +23,17 @@ export class NestEndpoints {
    * @param method    Usually 'GET' or 'POST'
    * @param body      The body of the request or null if a 'GET'
    */
-  async sendRequest(accessToken: string | undefined, hostname: string, endpoint: string, method: Method, type: ResponseType = 'json', data?: any): Promise<any> {
-    let headers: any = {
+  async sendRequest(
+    accessToken: string | undefined,
+    hostname: string,
+    endpoint: string,
+    method: Method,
+    type: ResponseType = 'json',
+    data?: any,
+  ): Promise<any> {
+    const headers: any = {
       'User-Agent': NestEndpoints.USER_AGENT_STRING,
-      'Referer': this.NEST_API_HOSTNAME
+      Referer: this.NEST_API_HOSTNAME,
     };
 
     if (method === 'POST') {
@@ -36,13 +44,13 @@ export class NestEndpoints {
       headers['Cookie'] = `user_token=${accessToken}`;
     }
 
-    let url = hostname + endpoint;
-    let req: AxiosRequestConfig = {
+    const url = hostname + endpoint;
+    const req: AxiosRequestConfig = {
       method,
       url,
       data,
       headers,
-      responseType: type
+      responseType: type,
     };
 
     return (await axios(req)).data;

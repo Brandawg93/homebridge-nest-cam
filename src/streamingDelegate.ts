@@ -15,7 +15,7 @@ import {
   StreamRequestTypes,
   StreamSessionIdentifier,
   VideoInfo,
-  AudioInfo
+  AudioInfo,
 } from 'homebridge';
 import ip from 'ip';
 import { ChildProcess, spawn } from 'child_process';
@@ -29,18 +29,18 @@ import querystring from 'querystring';
 const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 type SessionInfo = {
-  address: string, // address of the HAP controller
+  address: string; // address of the HAP controller
 
-  videoPort: number,
-  videoCryptoSuite: SRTPCryptoSuites, // should be saved if multiple suites are supported
-  videoSRTP: Buffer, // key and salt concatenated
-  videoSSRC: number, // rtp synchronisation source
+  videoPort: number;
+  videoCryptoSuite: SRTPCryptoSuites; // should be saved if multiple suites are supported
+  videoSRTP: Buffer; // key and salt concatenated
+  videoSSRC: number; // rtp synchronisation source
 
-  audioPort: number,
-  audioCryptoSuite: SRTPCryptoSuites,
-  audioSRTP: Buffer,
-  audioSSRC: number
-}
+  audioPort: number;
+  audioCryptoSuite: SRTPCryptoSuites;
+  audioSRTP: Buffer;
+  audioSSRC: number;
+};
 
 // const FFMPEGH264ProfileNames = [
 //   'baseline',
@@ -54,19 +54,19 @@ type SessionInfo = {
 // ];
 
 export class StreamingDelegate implements CameraStreamingDelegate {
-  private ffmpegDebugOutput: boolean = false;
+  private ffmpegDebugOutput = false;
   private readonly hap: HAP;
   private readonly log: Logging;
   private readonly config: PlatformConfig;
-  private customFfmpeg: string = '';
-  private ffmpegCodec: string = '';
+  private customFfmpeg = '';
+  private ffmpegCodec = '';
   private camera: NestCam;
   private endpoints: NestEndpoints;
   controller?: CameraController;
 
   // keep track of sessions
   pendingSessions: Record<string, SessionInfo> = {};
-  ongoingSessions: Record<string, ChildProcess[]> = {};
+  ongoingSessions: Record<string, Array<ChildProcess>> = {};
 
   constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
     this.hap = hap;
@@ -83,16 +83,22 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   }
 
   async handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): Promise<void> {
-    let query = querystring.stringify({
+    const query = querystring.stringify({
       uuid: this.camera.uuid,
-      width: request.width
+      width: request.width,
     });
     try {
-      let snapshot = await this.endpoints.sendRequest(this.config.access_token, this.camera.apiHost, `/get_image?${query}`, 'GET', 'arraybuffer');
+      const snapshot = await this.endpoints.sendRequest(
+        this.config.access_token,
+        this.camera.apiHost,
+        `/get_image?${query}`,
+        'GET',
+        'arraybuffer',
+      );
       callback(void 0, snapshot);
-    } catch(error) {
+    } catch (error) {
       if (error.response.status === 404) {
-        let log = this.log;
+        const log = this.log;
         readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
           if (err) {
             log.error(err.message);
@@ -144,7 +150,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         audioPort: audioPort,
         audioCryptoSuite: audioCryptoSuite,
         audioSRTP: Buffer.concat([audioSrtpKey, audioSrtpSalt]),
-        audioSSRC: audioSSRC
+        audioSSRC: audioSSRC,
       };
 
       const currentAddress = ip.address('public', request.addressVersion); // ipAddress version must match
@@ -205,28 +211,34 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         let streamer: NexusStreamer;
 
-        this.log.debug(`Starting video stream (${width}x${height}, ${fps} fps, ${videoMaxBitrate} kbps, ${mtu} mtu)...`);
+        this.log.debug(
+          `Starting video stream (${width}x${height}, ${fps} fps, ${videoMaxBitrate} kbps, ${mtu} mtu)...`,
+        );
 
         let x264Params = '';
         if (this.ffmpegCodec === 'libx264') {
           x264Params = '-preset ultrafast -tune zerolatency ';
         }
 
-        let videoffmpegCommand = `-f h264 -use_wallclock_as_timestamps 1 -i - ` +
+        let videoffmpegCommand =
+          `-f h264 -use_wallclock_as_timestamps 1 -i - ` +
           `-c:v ${this.ffmpegCodec} -pix_fmt yuv420p ${x264Params}-r ${fps} ` +
-          `-an -sn -dn -b:v ${videoMaxBitrate}k -bufsize ${2*videoMaxBitrate}k -maxrate ${videoMaxBitrate}k ` +
+          `-an -sn -dn -b:v ${videoMaxBitrate}k -bufsize ${2 * videoMaxBitrate}k -maxrate ${videoMaxBitrate}k ` +
           `-payload_type ${videoPayloadType} -ssrc ${videoSsrc} -f rtp `; // -profile:v ${profile} -level:v ${level}
 
-        if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) { // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
+        if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) {
+          // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
           videoffmpegCommand += `-srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params ${videoSRTP} s`;
         }
 
         videoffmpegCommand += `rtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${videoPort}&pkt_size=${mtu}`;
 
-        let audioffmpegCommand = `-f aac -i - -c:a libfdk_aac -profile:a aac_eld -vn -ar ${sampleRate}k -b:a ${audioMaxBitrate}k ` +
+        let audioffmpegCommand =
+          `-f aac -i - -c:a libfdk_aac -profile:a aac_eld -vn -ar ${sampleRate}k -b:a ${audioMaxBitrate}k ` +
           `-flags +global_header -payload_type ${audioPayloadType} -ssrc ${audioSsrc} -f rtp `;
 
-        if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) { // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
+        if (cryptoSuite === SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80) {
+          // actually ffmpeg just supports AES_CM_128_HMAC_SHA1_80
           audioffmpegCommand += `-srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params ${audioSRTP} -rtsp_transport tcp s`;
         }
 
@@ -239,23 +251,23 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         let ffmpegVideo: ChildProcess;
 
         if (this.customFfmpeg && this.customFfmpeg !== '') {
-          ffmpegVideo = spawn(this.customFfmpeg, videoffmpegCommand.split(' '), {env: process.env});
+          ffmpegVideo = spawn(this.customFfmpeg, videoffmpegCommand.split(' '), { env: process.env });
         } else if (pathToFfmpeg) {
-          ffmpegVideo = spawn(pathToFfmpeg, videoffmpegCommand.split(' '), {env: process.env});
+          ffmpegVideo = spawn(pathToFfmpeg, videoffmpegCommand.split(' '), { env: process.env });
         } else {
-          ffmpegVideo = spawn('ffmpeg', videoffmpegCommand.split(' '), {env: process.env});
+          ffmpegVideo = spawn('ffmpeg', videoffmpegCommand.split(' '), { env: process.env });
         }
 
         let started = false;
         if (ffmpegVideo.stdin) {
-          ffmpegVideo.stdin.on('error', error => {
+          ffmpegVideo.stdin.on('error', (error) => {
             if (!error.message.includes('EPIPE')) {
               this.log.error(error.message);
             }
           });
         }
         if (ffmpegVideo.stderr) {
-          ffmpegVideo.stderr.on('data', data => {
+          ffmpegVideo.stderr.on('data', (data) => {
             if (!started) {
               started = true;
               this.log.debug('FFMPEG: received first frame');
@@ -268,7 +280,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             }
           });
         }
-        ffmpegVideo.on('error', error => {
+        ffmpegVideo.on('error', (error) => {
           this.log.error('[Video] Failed to start video stream: ' + error.message);
           callback(new Error('ffmpeg process creation failed!'));
         });
@@ -295,41 +307,52 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           let ffmpegAudio: ChildProcess;
 
           if (this.customFfmpeg && this.customFfmpeg !== '') {
-              ffmpegAudio = spawn(this.customFfmpeg, audioffmpegCommand.split(' '), {env: process.env});
+            ffmpegAudio = spawn(this.customFfmpeg, audioffmpegCommand.split(' '), { env: process.env });
           } else if (pathToFfmpeg) {
-            ffmpegAudio = spawn(pathToFfmpeg, audioffmpegCommand.split(' '), {env: process.env});
+            ffmpegAudio = spawn(pathToFfmpeg, audioffmpegCommand.split(' '), { env: process.env });
           } else {
-            ffmpegAudio = spawn('ffmpeg', audioffmpegCommand.split(' '), {env: process.env});
+            ffmpegAudio = spawn('ffmpeg', audioffmpegCommand.split(' '), { env: process.env });
           }
 
           if (ffmpegAudio.stdin) {
-            ffmpegAudio.stdin.on('error', error => {
+            ffmpegAudio.stdin.on('error', (error) => {
               if (!error.message.includes('EPIPE')) {
                 this.log.error(error.message);
               }
-            });  
+            });
           }
 
           if (ffmpegAudio.stderr) {
-            ffmpegAudio.stderr.on('data', data => {
+            ffmpegAudio.stderr.on('data', (data) => {
               if (this.ffmpegDebugOutput) {
                 this.log('AUDIO: ' + String(data));
               }
             });
           }
 
-          ffmpegAudio.on('error', error => {
+          ffmpegAudio.on('error', (error) => {
             this.log.error('[Audio] Failed to start audio stream: ' + error.message);
             callback(new Error('ffmpeg process creation failed!'));
           });
-          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log, ffmpegVideo, ffmpegAudio);
+          streamer = new NexusStreamer(
+            this.camera.nexusTalkHost,
+            this.camera.uuid,
+            this.config.access_token,
+            this.log,
+            ffmpegVideo,
+            ffmpegAudio,
+          );
           this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
-
         } else {
-          streamer = new NexusStreamer(this.camera.nexusTalkHost, this.camera.uuid, this.config.access_token, this.log, ffmpegVideo);
+          streamer = new NexusStreamer(
+            this.camera.nexusTalkHost,
+            this.camera.uuid,
+            this.config.access_token,
+            this.log,
+            ffmpegVideo,
+          );
           this.ongoingSessions[sessionId] = [ffmpegVideo];
         }
-
 
         delete this.pendingSessions[sessionId];
         streamer.requestStartPlayback();
@@ -340,7 +363,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         callback();
         break;
       case StreamRequestTypes.STOP:
-
         try {
           const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
           if (ffmpegVideoProcess) {
