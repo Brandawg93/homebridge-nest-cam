@@ -17,6 +17,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 ## Notes
 - This is a continuation of the previous [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) plugin.
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
+- As of v2.0.0, this plugin is *no longer* supported on HOOBS. To install an older version that is still supported by HOOBS, run `npm -g i homebridge-nest-cam2@hoobs`.
 
 ## Installation
 1. Install this plugin using: `npm install -g homebridge-nest-cam2`
