@@ -19,19 +19,18 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
 
 ## Installation
-1. Install ffmpeg
-2. Install this plugin using: npm install -g homebridge-nest-cam2
-3. Add google authentication to ``config.json``
-4. Run [Homebridge](https://github.com/nfarina/homebridge)
+1. Install this plugin using: `npm install -g homebridge-nest-cam2`
+2. Add google authentication to `config.json`
+3. Run [Homebridge](https://github.com/nfarina/homebridge)
+
+### FFMPEG
+In order to use the below ffmpeg options, you must specify your custom ffmpeg path in the `pathToFfmpeg` config option.
 
 #### Raspberry Pi
 You may want to use OMX for transcoding as the CPU on the board can be slow. If so, make sure the ffmpeg installed on your Pi has `h264_omx` support and set the `ffmpegCodec` option below to `h264_omx`. You can always compile ffmpeg from source using [these instructions](https://github.com/legotheboss/YouTube-files/wiki/(RPi)-Compile-FFmpeg-with-the-OpenMAX-H.264-GPU-acceleration).
 
 #### Mac OS
 You may want to use VideoToolbox hardware acceleration for transcoding. If so, make sure the ffmpeg installed on your Mac has `videotoolbox` support and set `ffmpegCodec` option below to `h264_videotoolbox`.
-
-#### Docker
-The Homebridge Docker container requires an extra environment variable to install ffmpeg: `PACKAGES=ffmpeg`. The Docker container also requires the `libx264` codec as it uses the ffmpeg inside the container and not the ffmpeg on the device running the container.
 
 ### Setting up the Config.json
 Setting up a Google Account with homebridge-nest is a pain, but only needs to be done once, as long as you do not log out of your Google Account.
