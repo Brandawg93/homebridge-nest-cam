@@ -1,6 +1,6 @@
-# homebridge-nest-cam2
+<img align="right" height="40" src="https://i.imgur.com/EJ0z6P3.png">
 
-<img align="right" width="150" src="https://i.imgur.com/EJ0z6P3.png">
+# homebridge-nest-cam2
 
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
 
