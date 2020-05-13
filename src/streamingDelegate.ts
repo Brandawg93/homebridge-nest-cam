@@ -364,14 +364,16 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         break;
       case StreamRequestTypes.STOP:
         try {
-          const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
-          if (ffmpegVideoProcess) {
-            ffmpegVideoProcess.kill('SIGKILL');
-          }
-          if (this.ongoingSessions[sessionId].length > 1) {
-            const ffmpegAudioProcess = this.ongoingSessions[sessionId][1];
-            if (ffmpegAudioProcess && !this.config.options.disableAudio) {
-              ffmpegAudioProcess.kill('SIGKILL');
+          if (this.ongoingSessions[sessionId]) {
+            const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
+            if (ffmpegVideoProcess) {
+              ffmpegVideoProcess.kill('SIGKILL');
+            }
+            if (this.ongoingSessions[sessionId].length > 1) {
+              const ffmpegAudioProcess = this.ongoingSessions[sessionId][1];
+              if (ffmpegAudioProcess && !this.config.options.disableAudio) {
+                ffmpegAudioProcess.kill('SIGKILL');
+              }
             }
           }
         } catch (e) {
