@@ -59,7 +59,7 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
   return await conn.auth();
 };
 
-const setMotionInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
+const setAlertInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
   setInterval(async function () {
     camera.checkMotion(accessory);
   }, UPDATE_INTERVAL);
@@ -82,6 +82,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private endpoints: NestEndpoints;
   private readonly accessories: Array<PlatformAccessory> = [];
   private motionDetection = true;
+  private doorbellAlerts = true;
   private streamingSwitch = false;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -106,6 +107,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const motionDetection = config.options['motionDetection'];
       if (typeof motionDetection !== 'undefined') {
         this.motionDetection = motionDetection;
+      }
+      const doorbellAlerts = config.options['doorbellAlerts'];
+      if (typeof doorbellAlerts !== 'undefined') {
+        this.doorbellAlerts = doorbellAlerts;
       }
       const streamingSwitch = config.options['streamingSwitch'];
       if (typeof streamingSwitch !== 'undefined') {
@@ -172,6 +177,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Configure services
     const motion = accessory.getService('Motion');
+    const doorbell = accessory.getService('Doorbell');
     const enabledSwitch = accessory.getService('Streaming');
 
     // Motion configuration
@@ -181,14 +187,34 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         accessory.removeService(motion);
       } else {
         // Check existing motion service
-        setMotionInterval(camera, accessory);
+        setAlertInterval(camera, accessory);
       }
     } else {
       // Add motion service
       if (camera.detectors.includes('motion') && this.motionDetection) {
         const motion = new hap.Service.MotionSensor('Motion');
         accessory.addService(motion);
-        setMotionInterval(camera, accessory);
+        setAlertInterval(camera, accessory);
+      }
+    }
+
+    // Doorbell configuration
+    if (doorbell) {
+      if (!this.doorbellAlerts) {
+        // Remove doorbell service
+        accessory.removeService(doorbell);
+      } else if (!this.motionDetection) {
+        // Check existing doorbell service
+        setAlertInterval(camera, accessory);
+      }
+    } else {
+      // Add doorbell service
+      if (camera.detectors.includes('doorbellPress') && this.doorbellAlerts) {
+        const doorbell = new hap.Service.Doorbell('Doorbell');
+        accessory.addService(doorbell);
+        if (!this.motionDetection) {
+          setAlertInterval(camera, accessory);
+        }
       }
     }
 

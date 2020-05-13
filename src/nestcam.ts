@@ -23,6 +23,7 @@ export class NestCam {
   public uuid = '';
   public enabled = false;
   private motionDetected = false;
+  private doorbellRang = false;
   public serialNumber = '';
   public softwareVersion = '';
   public detectors: any;
@@ -115,12 +116,26 @@ export class NestCam {
         'GET',
       );
       if (response.length > 0) {
-        const trigger = response[0];
-        if (trigger.is_important && !this.motionDetected) {
-          this.setMotion(accessory, true);
+        for (let i = 0; i < response.length; i++) {
+          const trigger = response[i];
+          if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
+            this.setDoorbell(accessory, true);
+            break;
+          }
+
+          if (trigger.is_important && trigger.types.includes('motion') && !this.motionDetected) {
+            this.setMotion(accessory, true);
+            break;
+          }
         }
-      } else if (this.motionDetected) {
-        this.setMotion(accessory, false);
+      } else {
+        if (this.motionDetected) {
+          this.setMotion(accessory, false);
+        }
+
+        if (this.doorbellRang) {
+          this.setDoorbell(accessory, false);
+        }
       }
     } catch (error) {
       if (error.response) {
@@ -137,6 +152,15 @@ export class NestCam {
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
       this.motionDetected = state;
+    }
+  }
+
+  setDoorbell(accessory: PlatformAccessory, state: boolean): void {
+    this.log.debug(`Setting ${accessory.displayName} Doorbell to ${state}`);
+    const service = accessory.getService(this.hap.Service.Doorbell);
+    if (service) {
+      service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, state);
+      this.doorbellRang = state;
     }
   }
 }
