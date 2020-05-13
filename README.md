@@ -1,4 +1,4 @@
-# homebridge-nest-cam2
+# homebridge-nest-cam
 
 <img align="right" width="100" src="https://i.imgur.com/EJ0z6P3.png">
 
@@ -17,7 +17,6 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 |--------|-----------------|
 
 ## Notes
-- This is a continuation of the previous [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) plugin.
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
 - As of v2.0.0, this plugin is *no longer* supported on HOOBS. To install an older version that is still supported by HOOBS, run `npm -g i homebridge-nest-cam2@hoobs`.
 
@@ -86,13 +85,11 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).
 
 ## Credits
-This plugin was derived from [homebridge-nest-cam](https://github.com/KhaosT/homebridge-nest-cam) with the new google authentication from [homebridge-nest](https://github.com/chrisjshull/homebridge-nest).
-
-Nest Hello doorbell resolution by [schmittx](https://github.com/schmittx/homebridge-nest-cam/commit/0878058dc5293c297a99c3a0c60d6c1b43e661b5).
+This plugin was originally developed by [KhaosT](https://github.com/KhaosT).
 
 This plugin was converted to typescript using both [homebridge-ring](https://github.com/dgreif/ring) and [homebridge-examples](https://github.com/homebridge/homebridge-examples).
 
-## Donate to Support homebridge-nest-cam2
+## Donate to Support homebridge-nest-cam
 This plugin was made with you in mind. If you'd like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam2&currency_code=USD&source=url).
 
 ## Disclaimer

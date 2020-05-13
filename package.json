@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-nest-cam2",
+  "name": "homebridge-nest-cam",
   "version": "2.1.0-beta.0",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
@@ -20,10 +20,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Brandawg93/homebridge-nest-cam2"
+    "url": "git://github.com/Brandawg93/homebridge-nest-cam"
   },
   "bugs": {
-    "url": "https://github.com/Brandawg93/homebridge-nest-cam2/issues"
+    "url": "https://github.com/Brandawg93/homebridge-nest-cam/issues"
   },
   "engines": {
     "node": ">=10",
