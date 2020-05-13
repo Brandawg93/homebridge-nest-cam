@@ -129,7 +129,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     this.log(`Configuring accessory ${accessory.displayName}`);
 
     accessory.on(PlatformAccessoryEvent.IDENTIFY, () => {
-      this.log(`Create camera - ${accessory.displayName}`);
+      this.log(`${accessory.displayName} identified!`);
     });
 
     const cameraInfo = accessory.context.cameraInfo;
@@ -292,9 +292,16 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         }
 
         // Only add new cameras that are not cached
-        if (!this.accessories.find((x) => x.UUID === uuid)) {
+        if (!this.accessories.find((x: PlatformAccessory) => x.UUID === uuid)) {
           this.configureAccessory(accessory); // abusing the configureAccessory here
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        }
+      });
+
+      // Remove cameras that were not in previous call
+      this.accessories.forEach((accessory: PlatformAccessory) => {
+        if (!response.items.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
+          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       });
     } catch (error) {
