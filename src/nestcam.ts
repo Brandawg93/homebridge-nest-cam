@@ -2,6 +2,8 @@ import { HAP, Logging, PlatformAccessory, PlatformConfig } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
 import querystring from 'querystring';
 
+const ALERT_COOLDOWN = 300000;
+
 export interface CameraInfo {
   name: string;
   uuid: string;
@@ -100,7 +102,7 @@ export class NestCam {
     }
   }
 
-  async checkMotion(accessory: PlatformAccessory): Promise<void> {
+  async checkAlerts(accessory: PlatformAccessory): Promise<void> {
     this.log.debug(`Checking for motion on ${accessory.displayName}`);
     try {
       const currDate = new Date();
@@ -120,26 +122,26 @@ export class NestCam {
           const trigger = response[i];
           if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
             this.setDoorbell(accessory, true);
+            const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+            setTimeout(async function () {
+              self.doorbellRang = false;
+            }, ALERT_COOLDOWN);
             break;
           }
 
           if (trigger.is_important && trigger.types.includes('motion') && !this.motionDetected) {
             this.setMotion(accessory, true);
+            const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+            setTimeout(async function () {
+              self.motionDetected = false;
+            }, ALERT_COOLDOWN);
             break;
           }
-        }
-      } else {
-        if (this.motionDetected) {
-          this.setMotion(accessory, false);
-        }
-
-        if (this.doorbellRang) {
-          this.setDoorbell(accessory, false);
         }
       }
     } catch (error) {
       if (error.response) {
-        this.log.debug(`Error checking motion: ${error.response.status}`);
+        this.log.debug(`Error checking alerts: ${error.response.status}`);
       } else {
         this.log.error(error);
       }

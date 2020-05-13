@@ -1,6 +1,6 @@
 {
-  "name": "homebridge-nest-cam",
-  "version": "2.1.0-beta.0",
+  "name": "homebridge-nest-cam2",
+  "version": "2.1.0-beta.1",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "ISC",

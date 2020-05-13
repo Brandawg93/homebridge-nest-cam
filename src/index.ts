@@ -54,14 +54,14 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
   }
 
   config.options.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
-  log.debug('Setting Field Test to %s', config.options.fieldTest);
+  log.debug(`Setting Field Test to ${config.options.fieldTest}`);
   const conn = new Connection(config, log);
   return await conn.auth();
 };
 
 const setAlertInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
   setInterval(async function () {
-    camera.checkMotion(accessory);
+    camera.checkAlerts(accessory);
   }, UPDATE_INTERVAL);
 };
 
@@ -89,7 +89,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     this.log = log;
     this.api = api;
     this.config = config;
-    this.endpoints = new NestEndpoints(config.options.fieldTest);
+    const fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
+    this.endpoints = new NestEndpoints(fieldTest);
 
     // Need a config or plugin will not start
     if (!config) {
