@@ -121,20 +121,12 @@ export class NestCam {
         for (let i = 0; i < response.length; i++) {
           const trigger = response[i];
           if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
-            this.setDoorbell(accessory, true);
-            const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-            setTimeout(async function () {
-              self.doorbellRang = false;
-            }, ALERT_COOLDOWN);
+            this.triggerDoorbell(accessory);
             break;
           }
 
           if (trigger.is_important && trigger.types.includes('motion') && !this.motionDetected) {
-            this.setMotion(accessory, true);
-            const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-            setTimeout(async function () {
-              self.motionDetected = false;
-            }, ALERT_COOLDOWN);
+            this.triggerMotion(accessory);
             break;
           }
         }
@@ -148,13 +140,38 @@ export class NestCam {
     }
   }
 
+  triggerMotion(accessory: PlatformAccessory): void {
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+    this.setMotion(accessory, true);
+    this.motionDetected = true;
+    setTimeout(async function () {
+      self.setMotion(accessory, false);
+    }, 5000);
+
+    setTimeout(async function () {
+      self.motionDetected = false;
+    }, ALERT_COOLDOWN);
+  }
+
   setMotion(accessory: PlatformAccessory, state: boolean): void {
     this.log.debug(`Setting ${accessory.displayName} Motion to ${state}`);
     const service = accessory.getService(this.hap.Service.MotionSensor);
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
-      this.motionDetected = state;
     }
+  }
+
+  triggerDoorbell(accessory: PlatformAccessory): void {
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+    this.setDoorbell(accessory, true);
+    this.doorbellRang = true;
+    setTimeout(async function () {
+      self.setDoorbell(accessory, false);
+    }, 10000);
+
+    setTimeout(async function () {
+      self.doorbellRang = false;
+    }, ALERT_COOLDOWN);
   }
 
   setDoorbell(accessory: PlatformAccessory, state: boolean): void {
@@ -162,7 +179,6 @@ export class NestCam {
     const service = accessory.getService(this.hap.Service.Doorbell);
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, state);
-      this.doorbellRang = state;
     }
   }
 }
