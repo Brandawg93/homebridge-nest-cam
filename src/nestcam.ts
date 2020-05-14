@@ -3,6 +3,7 @@ import { NestEndpoints } from './nest-endpoints';
 import querystring from 'querystring';
 
 const ALERT_COOLDOWN = 300000;
+const ALERT_LENGTH = 5000;
 
 export interface CameraInfo {
   name: string;
@@ -146,7 +147,7 @@ export class NestCam {
     this.motionDetected = true;
     setTimeout(async function () {
       self.setMotion(accessory, false);
-    }, 5000);
+    }, ALERT_LENGTH);
 
     setTimeout(async function () {
       self.motionDetected = false;
@@ -167,7 +168,7 @@ export class NestCam {
     this.doorbellRang = true;
     setTimeout(async function () {
       self.setDoorbell(accessory, false);
-    }, 10000);
+    }, ALERT_LENGTH);
 
     setTimeout(async function () {
       self.doorbellRang = false;
