@@ -60,7 +60,7 @@ export class NestCam {
       });
     } catch (error) {
       if (error.response) {
-        this.log.debug(`Error updating camera info: ${error.response.status}`);
+        this.log.error(`Error updating camera info: ${error.response.status}`);
       } else {
         this.log.error(error);
       }
@@ -104,7 +104,7 @@ export class NestCam {
   }
 
   async checkAlerts(accessory: PlatformAccessory): Promise<void> {
-    this.log.debug(`Checking for motion on ${accessory.displayName}`);
+    this.log.debug(`Checking for alerts on ${accessory.displayName}`);
     try {
       const currDate = new Date();
       currDate.setMinutes(currDate.getMinutes() - 1);
@@ -134,7 +134,7 @@ export class NestCam {
       }
     } catch (error) {
       if (error.response) {
-        this.log.debug(`Error checking alerts: ${error.response.status}`);
+        this.log.error(`Error checking alerts: ${error.response.status}`);
       } else {
         this.log.error(error);
       }
