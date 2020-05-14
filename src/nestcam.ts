@@ -76,7 +76,7 @@ export class NestCam {
     this.detectors = info.detectors;
     this.type = info.type;
     this.nexusTalkHost = info.direct_nexustalk_host;
-    this.apiHost = info.nexus_api_http_server;
+    this.apiHost = `https://${info.nexus_api_nest_domain_host}`;
   }
 
   async toggleActive(enabled: boolean): Promise<void> {
