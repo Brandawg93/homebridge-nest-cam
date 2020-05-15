@@ -5,10 +5,10 @@
   "main": "dist/index.js",
   "license": "ISC",
   "scripts": {
-    "clean": "rimraf ./dist",
-    "build": "rimraf ./dist && tsc",
+    "clean": "rimraf ./dist ./coverage",
+    "build": "rimraf ./dist ./coverage && tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "test": "jest",
+    "test": "jest --coverage",
     "watch:tests": "jest --watch",
     "lint": "eslint **/*.ts --fix",
     "prepare": "npm run build",
