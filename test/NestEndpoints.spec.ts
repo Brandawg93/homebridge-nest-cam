@@ -1,8 +1,9 @@
 import { NestEndpoints } from '../src/nest-endpoints';
 
-test('Nest Endpoints', () => {
+test('works as expected', () => {
   const endpoints = new NestEndpoints(false);
-  endpoints.sendRequest(undefined, 'https://store.nest.com', `/mt-api/v1/current`, 'GET').then((data) => {
-    expect(data.isLoggedIn).toBe(false);
-  });
+  expect.assertions(1);
+  return endpoints
+    .sendRequest(undefined, 'https://store.nest.com', `/mt-api/v1/current`, 'GET')
+    .then((data) => expect(data.isLoggedIn).toBe(false));
 });

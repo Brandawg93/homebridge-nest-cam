@@ -1,7 +1,7 @@
 import { Logger, Logging, PlatformConfig } from 'homebridge';
 import { Connection } from '../src/nest-connection';
 
-test('Nest Connection', () => {
+test('works as expected', () => {
   const config: PlatformConfig = {
     platform: 'test',
     googleAuth: {
@@ -15,7 +15,6 @@ test('Nest Connection', () => {
   };
   const log: Logging = Logger.withPrefix('[test]');
   const connection = new Connection(config, log);
-  connection.auth().then((connected) => {
-    expect(connected).toBe(true);
-  });
+  expect.assertions(1);
+  return expect(connection.auth()).resolves.toBeTruthy();
 });
