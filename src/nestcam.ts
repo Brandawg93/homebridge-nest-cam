@@ -11,10 +11,12 @@ export interface CameraInfo {
   is_streaming_enabled: boolean;
   serial_number: string;
   combined_software_version: string;
-  detectors: Array<string>;
+  all_detectors: Array<string>;
+  capabilities: Array<string>;
   type: number;
   direct_nexustalk_host: string;
   nexus_api_http_server: string;
+  nexus_api_nest_domain_host: string;
 }
 
 export class NestCam {
@@ -29,7 +31,9 @@ export class NestCam {
   private doorbellRang = false;
   public serialNumber = '';
   public softwareVersion = '';
-  public detectors: any;
+  public detectors: Array<string> = [];
+  public capabilities: Array<string> = [];
+  private alertTypes: Array<string> = ['motion'];
   public type = -1;
   public nexusTalkHost = '';
   public apiHost = '';
@@ -38,9 +42,9 @@ export class NestCam {
     this.hap = hap;
     this.log = log;
     this.config = config;
+    this.alertTypes = config.options.alertTypes;
     this.endpoints = new NestEndpoints(config.options.fieldTest);
     this.setAttributes(info);
-    this.motionDetected = false;
   }
 
   async updateInfo(): Promise<void> {
@@ -55,7 +59,7 @@ export class NestCam {
         `/api/cameras.get_with_properties?${query}`,
         'GET',
       );
-      response.items.forEach((info: any) => {
+      response.items.forEach((info: CameraInfo) => {
         this.setAttributes(info);
       });
     } catch (error) {
@@ -67,13 +71,14 @@ export class NestCam {
     }
   }
 
-  setAttributes(info: any): void {
+  setAttributes(info: CameraInfo): void {
     this.name = info.name;
     this.uuid = info.uuid;
     this.enabled = info.is_streaming_enabled;
     this.serialNumber = info.serial_number;
     this.softwareVersion = info.combined_software_version;
-    this.detectors = info.detectors;
+    this.detectors = info.all_detectors;
+    this.capabilities = info.capabilities;
     this.type = info.type;
     this.nexusTalkHost = info.direct_nexustalk_host;
     this.apiHost = `https://${info.nexus_api_nest_domain_host}`;
@@ -112,23 +117,27 @@ export class NestCam {
       const query = querystring.stringify({
         start_time: epoch,
       });
-      const response = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.apiHost,
-        `/cuepoint/${this.uuid}/2?${query}`,
-        'GET',
-      );
-      if (response.length > 0) {
-        for (let i = 0; i < response.length; i++) {
-          const trigger = response[i];
-          if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
-            this.triggerDoorbell(accessory);
-            break;
-          }
+      if (!accessory.context.removed) {
+        const response = await this.endpoints.sendRequest(
+          this.config.access_token,
+          this.apiHost,
+          `/cuepoint/${this.uuid}/2?${query}`,
+          'GET',
+        );
+        if (response.length > 0) {
+          for (let i = 0; i < response.length; i++) {
+            const trigger = response[i];
+            if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
+              this.triggerDoorbell(accessory);
+              break;
+            }
 
-          if (trigger.is_important && trigger.types.includes('motion') && !this.motionDetected) {
-            this.triggerMotion(accessory);
-            break;
+            // Check the intersection between user defined alert types and received alerts
+            const intersection = this.alertTypes.filter((type) => trigger.types.includes(type));
+            if (trigger.is_important && intersection.length > 0 && !this.motionDetected) {
+              this.triggerMotion(accessory);
+              break;
+            }
           }
         }
       }
@@ -164,22 +173,21 @@ export class NestCam {
 
   triggerDoorbell(accessory: PlatformAccessory): void {
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-    this.setDoorbell(accessory, true);
+    this.setDoorbell(accessory);
     this.doorbellRang = true;
-    setTimeout(async function () {
-      self.setDoorbell(accessory, false);
-    }, ALERT_LENGTH);
-
     setTimeout(async function () {
       self.doorbellRang = false;
     }, ALERT_COOLDOWN);
   }
 
-  setDoorbell(accessory: PlatformAccessory, state: boolean): void {
-    this.log.debug(`Setting ${accessory.displayName} Doorbell to ${state}`);
+  setDoorbell(accessory: PlatformAccessory): void {
+    this.log.debug(`Ringing ${accessory.displayName} Doorbell`);
     const service = accessory.getService(this.hap.Service.Doorbell);
     if (service) {
-      service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, state);
+      service.updateCharacteristic(
+        this.hap.Characteristic.ProgrammableSwitchEvent,
+        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      );
     }
   }
 }

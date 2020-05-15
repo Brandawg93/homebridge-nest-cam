@@ -97,6 +97,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       return;
     }
 
+    // Set up the config if options are not set
     const googleAuth = config['googleAuth'];
     const options = config['options'];
     if (typeof googleAuth === 'undefined') {
@@ -120,6 +121,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const disableAudio = config.options['disableAudio'];
       if (typeof disableAudio === 'undefined') {
         config.options.disableAudio = false;
+      }
+      const alertTypes = config.options['alertTypes'];
+      if (typeof alertTypes === 'undefined') {
+        config.options.alertTypes = ['motion'];
       }
     }
 
@@ -210,7 +215,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       }
     } else {
       // Add doorbell service
-      if (camera.detectors.includes('doorbellPress') && this.doorbellAlerts) {
+      if (camera.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
         const doorbell = new hap.Service.Doorbell('Doorbell');
         accessory.addService(doorbell);
         if (!this.motionDetection) {
@@ -302,6 +307,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       // Remove cameras that were not in previous call
       this.accessories.forEach((accessory: PlatformAccessory) => {
         if (!response.items.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
+          accessory.context.removed = true;
           this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       });
