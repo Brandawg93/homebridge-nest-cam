@@ -25,7 +25,7 @@ homebridge --version
 ```
 
 Make sure you have the latest LTS from https://nodejs.org
-and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam2`
+and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam`
 
 Also include debug log output from startup through seeing the issue:
 `homebridge -D`
