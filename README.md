@@ -4,13 +4,13 @@
 
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
 
-[![NPM](https://nodei.co/npm/homebridge-nest-cam2.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam2/)
+[![NPM](https://nodei.co/npm/homebridge-nest-cam.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam/)
 
 [![PayPal](https://img.shields.io/badge/paypal-donate-yellow)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 ![build](https://github.com/Brandawg93/homebridge-nest-cam/workflows/build/badge.svg)
 [![Discord](https://camo.githubusercontent.com/7494d4da7060081501319a848bbba143cbf6101a/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3433323636333333303238313232363237303f636f6c6f723d373238454435266c6f676f3d646973636f7264266c6162656c3d646973636f7264)](https://discord.gg/pc2pqmh)
-[![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam2)](https://nodei.co/npm/homebridge-nest-cam2/)
+[![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam)](https://nodei.co/npm/homebridge-nest-cam/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam&amp;utm_campaign=Badge_Grade)
 
 | [FAQ](https://github.com/Brandawg93/homebridge-nest-cam/wiki/FAQ)    | [Troubleshooting](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) |
@@ -18,10 +18,10 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 
 ## Notes
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
-- As of v2.0.0, this plugin is *no longer* supported on HOOBS. You can either install an older version that is still supported by HOOBS by running `npm -g i homebridge-nest-cam2@hoobs`, or you can [migrate to homebridge](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-to-migrate-from-HOOBS-to-Homebridge).
+- As of v2.0.0, this plugin is *no longer* supported on HOOBS. You can either install an older version that is still supported by HOOBS by running `npm -g i homebridge-nest-cam@hoobs`, or you can [migrate to homebridge](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-to-migrate-from-HOOBS-to-Homebridge).
 
 ## Installation
-1. Install this plugin using: `npm install -g homebridge-nest-cam2`
+1. Install this plugin using: `npm install -g homebridge-nest-cam`
 2. Add google authentication to `config.json`
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
 
@@ -61,17 +61,14 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 1. Open a Chrome browser tab in Incognito Mode (or clear your cache).
 2. Open Developer Tools (View/Developer/Developer Tools).
 3. Click on 'Network' tab. Make sure 'Preserve Log' is checked.
-4. In the 'Filter' box, enter `issueToken`
+4. In the 'Filter' box, enter `issue`.
 5. Go to `home.nest.com`, and click 'Sign in with Google'. Log into your account.
-6. One network call (beginning with `iframerpc`) will appear in the Dev Tools window. Click on it.
+6. Click on the last `iframerpc` call.
 7. In the Headers tab, under General, copy the entire `Request URL` (beginning with `https://accounts.google.com`, ending with `nest.com`). This is your `"issueToken"` in `config.json`.
-8. In the 'Filter' box, enter `oauth2/iframe`
-9. Several network calls will appear in the Dev Tools window. Click on the last `iframe` call.
-10. In the Headers tab, under Request Headers, copy the entire `cookie` (**include the whole string which is several lines long and has many field/value pairs** - do not include the `cookie:` name). This is your `"cookies"` in `config.json`.
-11. In the 'Filter' box, enter `issue_jwt`
-12. Click on the last `issue_jwt` call.
-13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"apiKey"` in `config.json`.
-14. Do not log out of `home.nest.com`, as this will invalidate your credentials. Just close the browser tab.
+8. In the Headers tab, under Request Headers, copy the entire `cookie` (**include the whole string which is several lines long and has many field/value pairs**). This is your `"cookies"` in `config.json`.
+9. Click on the last `issue_jwt` call.
+10. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key`. This is your `"apiKey"` in `config.json`.
+11. Do not log out of `home.nest.com`, as this will invalidate your credentials. Just close the browser tab.
 
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:

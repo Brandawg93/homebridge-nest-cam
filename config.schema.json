@@ -2,7 +2,7 @@
   "pluginAlias": "Nest-cam",
   "pluginType": "platform",
   "headerDisplay": "The ffmpeg binary must be installed for this plugin to work.",
-  "footerDisplay": "For help please see the [Github](https://github.com/Brandawg93/homebridge-nest-cam2).",
+  "footerDisplay": "For help please see the [Github](https://github.com/Brandawg93/homebridge-nest-cam).",
   "schema": {
     "googleAuth": {
       "title": "Google Authentication",

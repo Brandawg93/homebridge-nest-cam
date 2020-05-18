@@ -28,8 +28,9 @@ export class Connection {
     let req: AxiosRequestConfig;
 
     //Only doing google auth from now on
-    const issueToken = this.config.googleAuth.issueToken;
-    const cookies = this.config.googleAuth.cookies;
+    const issueToken = this.config.googleAuth.issueToken.replace('Request URL: ', '');
+    const cookies = this.config.googleAuth.cookies.replace('cookie: ', '');
+    const apiKey = this.config.googleAuth.apiKey.replace('x-goog-api-key: ', '');
 
     this.log.debug('Authenticating via Google.');
     let result;
@@ -60,14 +61,14 @@ export class Connection {
         url: 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt',
         data: {
           embed_google_oauth_access_token: true,
-          expire_after: '3600s',
+          expire_after: '3600s', //expire the access token in 1 hour
           google_oauth_access_token: googleAccessToken,
           policy_id: 'authproxy-oauth-policy',
         },
         headers: {
           Authorization: 'Bearer ' + googleAccessToken,
           'User-Agent': NestEndpoints.USER_AGENT_STRING,
-          'x-goog-api-key': this.config.googleAuth.apiKey,
+          'x-goog-api-key': apiKey,
           Referer: this.endpoints.NEST_API_HOSTNAME,
         },
       };

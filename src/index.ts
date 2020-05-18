@@ -23,7 +23,7 @@ let hap: HAP;
 let Accessory: typeof PlatformAccessory;
 
 const UPDATE_INTERVAL = 10000;
-const PLUGIN_NAME = 'homebridge-nest-cam2';
+const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
 
 const modelTypes = [

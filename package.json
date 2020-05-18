@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-nest-cam2",
+  "name": "homebridge-nest-cam",
   "version": "2.1.0",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
