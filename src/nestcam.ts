@@ -182,9 +182,17 @@ export class NestCam {
 
   setDoorbell(accessory: PlatformAccessory): void {
     this.log.debug(`Ringing ${accessory.displayName} Doorbell`);
-    const service = accessory.getService(this.hap.Service.Doorbell);
-    if (service) {
-      service.updateCharacteristic(
+    const doorbellService = accessory.getService(this.hap.Service.Doorbell);
+    if (doorbellService) {
+      doorbellService.updateCharacteristic(
+        this.hap.Characteristic.ProgrammableSwitchEvent,
+        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      );
+    }
+
+    const switchService = accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
+    if (switchService) {
+      switchService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
       );

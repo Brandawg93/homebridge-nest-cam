@@ -184,6 +184,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Configure services
     const motion = accessory.getService('Motion');
     const doorbell = accessory.getService('Doorbell');
+    const doorbellSwitch = accessory.getService('DoorbellSwitch');
     const enabledSwitch = accessory.getService('Streaming');
 
     // Motion configuration
@@ -221,6 +222,23 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         if (!this.motionDetection) {
           setAlertInterval(camera, accessory);
         }
+      }
+    }
+
+    // Add doorbell switch
+    if (doorbellSwitch) {
+      if (!this.doorbellAlerts) {
+        // Remove doorbell service
+        accessory.removeService(doorbellSwitch);
+      }
+    } else {
+      if (camera.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
+        const doorbellSwitch = new hap.Service.StatelessProgrammableSwitch('DoorbellSwitch');
+        doorbellSwitch.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
+          maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+        });
+
+        accessory.addService(doorbellSwitch);
       }
     }
 
