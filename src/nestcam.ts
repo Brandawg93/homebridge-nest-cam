@@ -5,6 +5,19 @@ import querystring from 'querystring';
 const ALERT_COOLDOWN = 300000;
 const ALERT_LENGTH = 5000;
 
+const handleError = function (log: Logging, error: any, message: string): void {
+  if (error.response) {
+    const status = parseInt(error.response.status);
+    if (status >= 500) {
+      log.debug(`${message}: ${status}`);
+    } else {
+      log.error(`${message}: ${status}`);
+    }
+  } else {
+    log.error(error);
+  }
+};
+
 export interface CameraInfo {
   name: string;
   uuid: string;
@@ -63,11 +76,7 @@ export class NestCam {
         this.setAttributes(info);
       });
     } catch (error) {
-      if (error.response) {
-        this.log.error(`Error updating camera info: ${error.response.status}`);
-      } else {
-        this.log.error(error);
-      }
+      handleError(this.log, error, 'Error updating camera info');
     }
   }
 
@@ -100,11 +109,7 @@ export class NestCam {
       );
       this.enabled = enabled;
     } catch (error) {
-      if (error.response) {
-        this.log.error(`Error toggling camera state: ${error.response.status}`);
-      } else {
-        this.log.error(error);
-      }
+      handleError(this.log, error, 'Error toggling camera state');
     }
   }
 
@@ -142,11 +147,7 @@ export class NestCam {
         }
       }
     } catch (error) {
-      if (error.response) {
-        this.log.error(`Error checking alerts: ${error.response.status}`);
-      } else {
-        this.log.error(error);
-      }
+      handleError(this.log, error, 'Error checking alerts');
     }
   }
 
