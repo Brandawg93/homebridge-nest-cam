@@ -1,9 +1,11 @@
+<p align="center">
+  <a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="Homebridge Verified" src="https://raw.githubusercontent.com/brandawg93/homebridge-nest-cam/master/branding/Homebridge_x_Nest.svg?sanitize=true" width="500px"></a>
+</p>
+
 # IMPORTANT: PLEASE READ
 The **homebridge-nest-cam2** plugin has been migrated to **homebridge-nest-cam**. The old plugin will remain active but deprecated. All future updates will be to **homebridge-nest-cam**. You can install the new plugin via `npm -g uninstall homebridge-nest-cam2 && npm -g install homebridge-nest-cam`.
 
 # homebridge-nest-cam
-
-<img align="right" width="100" src="https://i.imgur.com/EJ0z6P3.png">
 
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
 
