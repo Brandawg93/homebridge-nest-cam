@@ -47,6 +47,9 @@ export class NexusStreamer {
     this.setupConnection();
   }
 
+  /**
+   * Close the socket and stop playback
+   */
   stopPlayback(): void {
     if (this.socket) {
       this.socket.end();
@@ -55,6 +58,9 @@ export class NexusStreamer {
 
   // Internal
 
+  /**
+   * Setup socket communication and send hello packet
+   */
   setupConnection(): void {
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     let pingInterval: NodeJS.Timeout;
@@ -92,6 +98,11 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Send data to socket
+   * @param {number} type The type of packet being sent
+   * @param {any} buffer  The information to send
+   */
   _sendMessage(type: number, buffer: any): void {
     if (this.socket.connecting || !this.socket.encrypted) {
       this.log.debug('waiting for socket to connect');
@@ -142,6 +153,9 @@ export class NexusStreamer {
     clearInterval(pingInterval);
   }
 
+  /**
+   * Authenticate the socket session
+   */
   requestHello(): void {
     const token = {
       olive_token: this.accessToken,

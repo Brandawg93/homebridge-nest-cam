@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { AxiosRequestConfig, Method, ResponseType } from 'axios';
 
+/**
+ * Class used to communicate with Nest
+ * @param {boolean} fieldTestMode Whether or not the account is a field tester
+ */
 export class NestEndpoints {
   public static USER_AGENT_STRING =
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36';
@@ -18,10 +22,12 @@ export class NestEndpoints {
 
   /**
    * Send a generic api request
-   * @param hostname  The base uri to send the request
-   * @param endpoint  The endpoint to send the request
-   * @param method    Usually 'GET' or 'POST'
-   * @param body      The body of the request or null if a 'GET'
+   * @param {string} accessToken  The token used to authenticate request
+   * @param {string} hostname     The base uri to send the request
+   * @param {string} endpoint     The endpoint to send the request
+   * @param {Method} method       Usually 'GET' or 'POST'
+   * @param {ResponseType} type   The type of return object (Usually 'json')
+   * @param {any} body            The body of the request or null if a 'GET'
    */
   async sendRequest(
     accessToken: string | undefined,

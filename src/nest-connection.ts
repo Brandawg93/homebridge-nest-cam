@@ -13,6 +13,11 @@ const delay = function (time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, time));
 };
 
+/**
+ * Class used to authenticate via Google
+ * @param {PlatformConfig}  config The configuration object
+ * @param {Logging}         log The logger used for output
+ */
 export class Connection {
   private endpoints: NestEndpoints;
   private readonly config: PlatformConfig;
@@ -24,6 +29,9 @@ export class Connection {
     this.log = log;
   }
 
+  /**
+   * Attempt to authenticate Nest via Google account
+   */
   async auth(): Promise<boolean> {
     let req: AxiosRequestConfig;
 
