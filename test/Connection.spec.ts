@@ -1,4 +1,5 @@
-import { Logger, Logging, PlatformConfig } from 'homebridge';
+import { Logging, PlatformConfig } from 'homebridge';
+import { Logger } from 'homebridge/lib/logger';
 import { Connection } from '../src/nest-connection';
 
 test('works as expected', () => {

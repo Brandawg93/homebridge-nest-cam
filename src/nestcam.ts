@@ -1,5 +1,6 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
+import { CameraInfo } from './CameraInfo';
 import querystring from 'querystring';
 
 const ALERT_COOLDOWN = 300000;
@@ -18,54 +19,31 @@ const handleError = function (log: Logging, error: any, message: string): void {
   }
 };
 
-export interface CameraInfo {
-  name: string;
-  uuid: string;
-  is_streaming_enabled: boolean;
-  serial_number: string;
-  combined_software_version: string;
-  all_detectors: Array<string>;
-  capabilities: Array<string>;
-  type: number;
-  direct_nexustalk_host: string;
-  nexus_api_http_server: string;
-  nexus_api_nest_domain_host: string;
-}
-
 export class NestCam {
   private readonly config: PlatformConfig;
   private readonly log: Logging;
   private endpoints: NestEndpoints;
   private readonly hap: HAP;
-  public name = '';
-  public uuid = '';
-  public enabled = false;
+  public info: CameraInfo;
   private motionDetected = false;
   private doorbellRang = false;
-  public serialNumber = '';
-  public softwareVersion = '';
-  public detectors: Array<string> = [];
-  public capabilities: Array<string> = [];
   private alertTypes: Array<string> = ['motion'];
-  public type = -1;
-  public nexusTalkHost = '';
-  public apiHost = '';
 
   constructor(config: PlatformConfig, info: CameraInfo, log: Logging, hap: HAP) {
     this.hap = hap;
     this.log = log;
     this.config = config;
+    this.info = info;
     this.alertTypes = config.options.alertTypes;
     this.endpoints = new NestEndpoints(config.options.fieldTest);
-    this.setAttributes(info);
   }
 
   async updateInfo(): Promise<void> {
     const query = querystring.stringify({
-      uuid: this.uuid,
+      uuid: this.info.uuid,
     });
     try {
-      this.log.debug(`Updating info for ${this.name}`);
+      this.log.debug(`Updating info for ${this.info.name}`);
       const response = await this.endpoints.sendRequest(
         this.config.access_token,
         this.endpoints.CAMERA_API_HOSTNAME,
@@ -73,33 +51,20 @@ export class NestCam {
         'GET',
       );
       response.items.forEach((info: CameraInfo) => {
-        this.setAttributes(info);
+        this.info = info;
       });
     } catch (error) {
       handleError(this.log, error, 'Error updating camera info');
     }
   }
 
-  setAttributes(info: CameraInfo): void {
-    this.name = info.name;
-    this.uuid = info.uuid;
-    this.enabled = info.is_streaming_enabled;
-    this.serialNumber = info.serial_number;
-    this.softwareVersion = info.combined_software_version;
-    this.detectors = info.all_detectors;
-    this.capabilities = info.capabilities;
-    this.type = info.type;
-    this.nexusTalkHost = info.direct_nexustalk_host;
-    this.apiHost = `https://${info.nexus_api_nest_domain_host}`;
-  }
-
   async toggleActive(enabled: boolean): Promise<void> {
     const query = querystring.stringify({
       'streaming.enabled': enabled,
-      uuid: this.uuid,
+      uuid: this.info.uuid,
     });
     try {
-      await this.endpoints.sendRequest(
+      const response = await this.endpoints.sendRequest(
         this.config.access_token,
         this.endpoints.CAMERA_API_HOSTNAME,
         '/api/dropcams.set_properties',
@@ -107,7 +72,9 @@ export class NestCam {
         'json',
         query,
       );
-      this.enabled = enabled;
+      if (response.status !== 0) {
+        this.log.error(`Could not turn ${this.info.name} ${enabled ? 'on' : 'off'}`);
+      }
     } catch (error) {
       handleError(this.log, error, 'Error toggling camera state');
     }
@@ -125,8 +92,8 @@ export class NestCam {
       if (!accessory.context.removed) {
         const response = await this.endpoints.sendRequest(
           this.config.access_token,
-          this.apiHost,
-          `/cuepoint/${this.uuid}/2?${query}`,
+          `https://${this.info.nexus_api_nest_domain_host}`,
+          `/cuepoint/${this.info.uuid}/2?${query}`,
           'GET',
         );
         if (response.length > 0) {

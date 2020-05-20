@@ -1,5 +1,8 @@
-import { Logger, Logging, PlatformConfig, HAP, PlatformAccessory } from 'homebridge';
-import { NestCam, CameraInfo } from '../src/nestcam';
+import { Logging, PlatformConfig, HAP } from 'homebridge';
+import { PlatformAccessory } from 'homebridge/lib/platformAccessory';
+import { Logger } from 'homebridge/lib/logger';
+import { NestCam } from '../src/nestcam';
+import { CameraInfo } from '../src/CameraInfo';
 import { Connection } from '../src/nest-connection';
 import { NestEndpoints } from '../src/nest-endpoints';
 

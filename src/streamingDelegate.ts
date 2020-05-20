@@ -84,13 +84,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   async handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): Promise<void> {
     const query = querystring.stringify({
-      uuid: this.camera.uuid,
+      uuid: this.camera.info.uuid,
       width: request.width,
     });
     try {
       const snapshot = await this.endpoints.sendRequest(
         this.config.access_token,
-        this.camera.apiHost,
+        `https://${this.camera.info.nexus_api_nest_domain_host}`,
         `/get_image?${query}`,
         'GET',
         'arraybuffer',
@@ -115,7 +115,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   }
 
   prepareStream(request: PrepareStreamRequest, callback: PrepareStreamCallback): void {
-    if (this.camera.enabled) {
+    if (this.camera.info.is_streaming_enabled) {
       const sessionId: StreamSessionIdentifier = request.sessionID;
       const targetAddress = request.targetAddress;
 
@@ -303,7 +303,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           }
         });
 
-        if (!this.config.options.disableAudio) {
+        if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
           let ffmpegAudio: ChildProcess;
 
           if (this.customFfmpeg && this.customFfmpeg !== '') {
@@ -334,23 +334,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             this.log.error('[Audio] Failed to start audio stream: ' + error.message);
             callback(new Error('ffmpeg process creation failed!'));
           });
-          streamer = new NexusStreamer(
-            this.camera.nexusTalkHost,
-            this.camera.uuid,
-            this.config.access_token,
-            this.log,
-            ffmpegVideo,
-            ffmpegAudio,
-          );
+          streamer = new NexusStreamer(this.camera.info, this.config.access_token, this.log, ffmpegVideo, ffmpegAudio);
           this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
         } else {
-          streamer = new NexusStreamer(
-            this.camera.nexusTalkHost,
-            this.camera.uuid,
-            this.config.access_token,
-            this.log,
-            ffmpegVideo,
-          );
+          streamer = new NexusStreamer(this.camera.info, this.config.access_token, this.log, ffmpegVideo);
           this.ongoingSessions[sessionId] = [ffmpegVideo];
         }
 

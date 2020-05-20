@@ -14,7 +14,8 @@ import {
   PlatformAccessoryEvent,
   PlatformConfig,
 } from 'homebridge';
-import { NestCam, CameraInfo } from './nestcam';
+import { NestCam } from './nestcam';
+import { CameraInfo, ModelTypes } from './CameraInfo';
 import { NestEndpoints } from './nest-endpoints';
 import { StreamingDelegate } from './streamingDelegate';
 import { Connection } from './nest-connection';
@@ -25,22 +26,6 @@ let Accessory: typeof PlatformAccessory;
 const UPDATE_INTERVAL = 10000;
 const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
-
-const modelTypes = [
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  'Nest Cam Indoor',
-  'Nest Cam Outdoor',
-  'Nest Cam IQ Indoor',
-  'Nest Cam IQ Outdoor',
-  'Nest Hello',
-];
 
 const setupConnection = async function (config: PlatformConfig, log: Logging): Promise<boolean> {
   if (!config.googleAuth) {
@@ -70,7 +55,7 @@ const setSwitchInterval = async function (camera: NestCam, accessory: PlatformAc
     await camera.updateInfo();
     const service = accessory.getService(hap.Service.Switch);
     if (service) {
-      service.updateCharacteristic(hap.Characteristic.On, camera.enabled);
+      service.updateCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled);
     }
   }, UPDATE_INTERVAL);
 };
@@ -138,7 +123,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.log(`${accessory.displayName} identified!`);
     });
 
-    const cameraInfo = accessory.context.cameraInfo;
+    const cameraInfo: CameraInfo = accessory.context.cameraInfo;
     const camera = new NestCam(this.config, cameraInfo, this.log, hap);
     const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
     const options: CameraControllerOptions = {
@@ -189,92 +174,57 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Motion configuration
     if (motion) {
-      if (!this.motionDetection) {
-        // Remove motion service
-        accessory.removeService(motion);
-      } else {
-        // Check existing motion service
-        setAlertInterval(camera, accessory);
-      }
-    } else {
-      // Add motion service
-      if (camera.detectors.includes('motion') && this.motionDetection) {
-        const motion = new hap.Service.MotionSensor('Motion');
-        accessory.addService(motion);
-        setAlertInterval(camera, accessory);
-      }
+      accessory.removeService(motion);
+    }
+    // Add motion service
+    if (camera.info.detectors.includes('motion') && this.motionDetection) {
+      const motion = new hap.Service.MotionSensor('Motion');
+      accessory.addService(motion);
+      setAlertInterval(camera, accessory);
     }
 
     // Doorbell configuration
     if (doorbell) {
-      if (!this.doorbellAlerts) {
-        // Remove doorbell service
-        accessory.removeService(doorbell);
-      } else if (!this.motionDetection) {
-        // Check existing doorbell service
+      accessory.removeService(doorbell);
+    }
+    // Add doorbell service
+    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
+      const doorbell = new hap.Service.Doorbell('Doorbell');
+      accessory.addService(doorbell);
+      if (!this.motionDetection) {
         setAlertInterval(camera, accessory);
-      }
-    } else {
-      // Add doorbell service
-      if (camera.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
-        const doorbell = new hap.Service.Doorbell('Doorbell');
-        accessory.addService(doorbell);
-        if (!this.motionDetection) {
-          setAlertInterval(camera, accessory);
-        }
       }
     }
 
     // Add doorbell switch
     if (doorbellSwitch) {
-      if (!this.doorbellAlerts) {
-        // Remove doorbell service
-        accessory.removeService(doorbellSwitch);
-      }
-    } else {
-      if (camera.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
-        const doorbellSwitch = new hap.Service.StatelessProgrammableSwitch('DoorbellSwitch');
-        doorbellSwitch.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
-          maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
-        });
+      accessory.removeService(doorbellSwitch);
+    }
+    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
+      const doorbellSwitch = new hap.Service.StatelessProgrammableSwitch('DoorbellSwitch');
+      doorbellSwitch.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
+        maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      });
 
-        accessory.addService(doorbellSwitch);
-      }
+      accessory.addService(doorbellSwitch);
     }
 
     // Streaming configuration
     if (enabledSwitch) {
-      if (!this.streamingSwitch) {
-        // Remove streaming service
-        accessory.removeService(enabledSwitch);
-      } else {
-        // Check existing switch service
-        enabledSwitch
-          .setCharacteristic(hap.Characteristic.On, camera.enabled)
-          .getCharacteristic(hap.Characteristic.On)
-          .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-            await camera.toggleActive(value as boolean);
-            this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
-            callback();
-          });
-        // Check enabled/disabled state
-        setSwitchInterval(camera, accessory);
-      }
-    } else {
-      // Add enabled/disabled service
-      if (this.streamingSwitch) {
-        accessory
-          .addService(hap.Service.Switch, 'Streaming')
-          .setCharacteristic(hap.Characteristic.On, camera.enabled)
-          .getCharacteristic(hap.Characteristic.On)
-          .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-            await camera.toggleActive(value as boolean);
-            this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
-            callback();
-          });
-        // Check enabled/disabled state
-        setSwitchInterval(camera, accessory);
-      }
+      accessory.removeService(enabledSwitch);
+    }
+    if (this.streamingSwitch) {
+      accessory
+        .addService(hap.Service.Switch, 'Streaming')
+        .setCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled)
+        .getCharacteristic(hap.Characteristic.On)
+        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+          await camera.toggleActive(value as boolean);
+          this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
+          callback();
+        });
+      // Check enabled/disabled state
+      setSwitchInterval(camera, accessory);
     }
 
     this.accessories.push(accessory);
@@ -289,7 +239,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const log = this.log;
     setInterval(async function () {
       await setupConnection(config, log);
-    }, 3600000);
+    }, 3480000); // 58 minutes
 
     try {
       const response = await this.endpoints.sendRequest(
@@ -303,7 +253,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         const accessory = new Accessory(cameraInfo.name, uuid);
         accessory.context.cameraInfo = cameraInfo;
 
-        const model = cameraInfo.type < modelTypes.length ? modelTypes[cameraInfo.type] : 'Unknown';
+        const model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : 'Unknown';
         const accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
         if (accessoryInformation) {
           accessoryInformation.setCharacteristic(hap.Characteristic.Manufacturer, 'Nest');

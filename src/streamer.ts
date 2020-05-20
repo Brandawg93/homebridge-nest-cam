@@ -3,17 +3,15 @@ import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { ChildProcess } from 'child_process';
 import { NestEndpoints } from './nest-endpoints';
+import { CameraInfo } from './CameraInfo';
 import Pbf from 'pbf';
-
-const StreamProfile = require('./protos/PlaybackBegin.js').StreamProfile;
-const PlaybackPacket = require('./protos/PlaybackPacket.js').PlaybackPacket;
-const PacketType = require('./protos/PlaybackPacket.js').PacketType;
-const PlaybackBegin = require('./protos/PlaybackBegin.js').PlaybackBegin;
-const CodecType = require('./protos/PlaybackBegin.js').CodecType;
-const Redirect = require('./protos/Redirect.js').Redirect;
-const StartPlayback = require('./protos/StartPlayback.js').StartPlayback;
-const Hello = require('./protos/Hello.js').Hello;
-const AuthorizeRequest = require('./protos/AuthorizeRequest.js').AuthorizeRequest;
+import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
+import { Redirect } from './protos/Redirect';
+import { Hello } from './protos/Hello';
+import { AuthorizeRequest } from './protos/AuthorizeRequest';
+import { TalkbackBegin } from './protos/TalkbackBegin';
+import { StartPlayback } from './protos/StartPlayback';
+import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin';
 
 export class NexusStreamer {
   private ffmpegVideo: ChildProcess;
@@ -21,8 +19,8 @@ export class NexusStreamer {
   private authorized = false;
   private readonly log: Logging;
   private sessionID: number = Math.floor(Math.random() * 100);
+  private cameraInfo: CameraInfo;
   private host = '';
-  private cameraUUID = '';
   private accessToken = '';
   private socket: TLSSocket = new TLSSocket(new Socket());
   private pendingMessages: Array<any> = [];
@@ -31,8 +29,7 @@ export class NexusStreamer {
   private audioChannelID = -1;
 
   constructor(
-    host: string,
-    cameraUUID: string,
+    cameraInfo: CameraInfo,
     accessToken: string,
     log: Logging,
     ffmpegVideo: ChildProcess,
@@ -41,9 +38,9 @@ export class NexusStreamer {
     this.log = log;
     this.ffmpegVideo = ffmpegVideo;
     this.ffmpegAudio = ffmpegAudio;
-    this.host = host;
-    this.cameraUUID = cameraUUID;
+    this.cameraInfo = cameraInfo;
     this.accessToken = accessToken;
+    this.host = cameraInfo.direct_nexustalk_host;
     this.setupConnection();
   }
 
@@ -166,7 +163,7 @@ export class NexusStreamer {
 
     const request = {
       protocol_version: Hello.ProtocolVersion.VERSION_3,
-      uuid: this.cameraUUID,
+      uuid: this.cameraInfo.uuid,
       require_connected_camera: true,
       user_agent: NestEndpoints.USER_AGENT_STRING,
       client_type: Hello.ClientType.IOS,
@@ -179,8 +176,11 @@ export class NexusStreamer {
   }
 
   requestStartPlayback(): void {
+    // Attempt to use camera's stream profile or use default
+    const cameraProfile = this.cameraInfo.properties['streaming.cameraprofile'] as keyof typeof StreamProfile;
+    const primaryProfile = StreamProfile[cameraProfile] || StreamProfile.VIDEO_H264_2MBIT_L40;
     const profiles = [
-      StreamProfile.VIDEO_H264_2MBIT_L40,
+      primaryProfile,
       StreamProfile.VIDEO_H264_530KBIT_L31,
       StreamProfile.VIDEO_H264_100KBIT_L30,
       StreamProfile.AUDIO_AAC,
@@ -207,6 +207,11 @@ export class NexusStreamer {
       this.setupConnection();
       this.requestStartPlayback();
     }
+  }
+
+  handleTalkback(payload: any): void {
+    const packet = TalkbackBegin.read(payload);
+    console.log(packet);
   }
 
   handlePlaybackBegin(payload: any): void {
@@ -278,6 +283,14 @@ export class NexusStreamer {
       case PacketType.REDIRECT:
         this.log.debug('[NexusStreamer] Redirect');
         this.handleRedirect(payload);
+        break;
+      case PacketType.TALKBACK_BEGIN:
+        this.log.info('[NexusStreamer] Talkback Begin');
+        this.handleTalkback(payload);
+        break;
+      case PacketType.TALKBACK_END:
+        this.log.info('[NexusStreamer] Talkback End');
+        this.handleTalkback(payload);
         break;
       default:
         this.log.debug('[NexusStreamer] Unhandled Type: ' + type);
