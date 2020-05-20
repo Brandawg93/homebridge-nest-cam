@@ -23,7 +23,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 
 ## Notes
 - This plugin *does not* use the old access token authentication method as it is no longer supported.
-- As of v2.0.0, this plugin is *no longer* supported on HOOBS. You can either install an older version that is still supported by HOOBS by running `npm -g i homebridge-nest-cam@hoobs`, or you can [migrate to homebridge](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-to-migrate-from-HOOBS-to-Homebridge).
+- This plugin is supported on HOOBS v3.2.0 or higher.
 
 ## Installation
 1. Install this plugin using: `npm install -g homebridge-nest-cam`
