@@ -18,15 +18,13 @@ import {
   AudioInfo,
 } from 'homebridge';
 import ip from 'ip';
-import { ChildProcess, spawn } from 'child_process';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nestcam';
 import { NestEndpoints } from './nest-endpoints';
+import { FfmpegProcess } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
-
-const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 type SessionInfo = {
   address: string; // address of the HAP controller
@@ -54,7 +52,6 @@ type SessionInfo = {
 // ];
 
 export class StreamingDelegate implements CameraStreamingDelegate {
-  private ffmpegDebugOutput = false;
   private readonly hap: HAP;
   private readonly log: Logging;
   private readonly config: PlatformConfig;
@@ -66,7 +63,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   // keep track of sessions
   pendingSessions: Record<string, SessionInfo> = {};
-  ongoingSessions: Record<string, Array<ChildProcess>> = {};
+  ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
+  ongoingStreams: Record<string, NexusStreamer> = {};
 
   constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
     this.hap = hap;
@@ -209,8 +207,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const videoSRTP = sessionInfo.videoSRTP.toString('base64');
         const audioSRTP = sessionInfo.audioSRTP.toString('base64');
 
-        let streamer: NexusStreamer;
-
         this.log.debug(
           `Starting video stream (${width}x${height}, ${fps} fps, ${videoMaxBitrate} kbps, ${mtu} mtu)...`,
         );
@@ -244,102 +240,36 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         audioffmpegCommand += `rtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`;
 
-        if (this.ffmpegDebugOutput) {
-          this.log('FFMPEG command: ffmpeg ' + videoffmpegCommand);
-        }
+        const ffmpegVideo = new FfmpegProcess(
+          videoffmpegCommand,
+          this.log,
+          callback,
+          this.controller,
+          sessionId,
+          this.customFfmpeg,
+        );
 
-        let ffmpegVideo: ChildProcess;
-
-        if (this.customFfmpeg && this.customFfmpeg !== '') {
-          ffmpegVideo = spawn(this.customFfmpeg, videoffmpegCommand.split(' '), { env: process.env });
-        } else if (pathToFfmpeg) {
-          ffmpegVideo = spawn(pathToFfmpeg, videoffmpegCommand.split(' '), { env: process.env });
-        } else {
-          ffmpegVideo = spawn('ffmpeg', videoffmpegCommand.split(' '), { env: process.env });
-        }
-
-        let started = false;
-        if (ffmpegVideo.stdin) {
-          ffmpegVideo.stdin.on('error', (error) => {
-            if (!error.message.includes('EPIPE')) {
-              this.log.error(error.message);
-            }
-          });
-        }
-        if (ffmpegVideo.stderr) {
-          ffmpegVideo.stderr.on('data', (data) => {
-            if (!started) {
-              started = true;
-              this.log.debug('FFMPEG: received first frame');
-
-              callback(); // do not forget to execute callback once set up
-            }
-
-            if (this.ffmpegDebugOutput) {
-              this.log('VIDEO: ' + String(data));
-            }
-          });
-        }
-        ffmpegVideo.on('error', (error) => {
-          this.log.error('[Video] Failed to start video stream: ' + error.message);
-          callback(new Error('ffmpeg process creation failed!'));
-        });
-        ffmpegVideo.on('exit', (code, signal) => {
-          const message = '[Video] ffmpeg exited with code: ' + code + ' and signal: ' + signal;
-          streamer.stopPlayback();
-
-          if (code == null || code === 255) {
-            this.log.debug(message + ' (Video stream stopped!)');
-          } else {
-            this.log.error(message + ' (error)');
-
-            if (!started) {
-              callback(new Error(message));
-            } else {
-              if (this.controller) {
-                this.controller.forceStopStreamingSession(sessionId);
-              }
-            }
-          }
-        });
-
+        let ffmpegAudio: FfmpegProcess | undefined;
         if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
-          let ffmpegAudio: ChildProcess;
-
-          if (this.customFfmpeg && this.customFfmpeg !== '') {
-            ffmpegAudio = spawn(this.customFfmpeg, audioffmpegCommand.split(' '), { env: process.env });
-          } else if (pathToFfmpeg) {
-            ffmpegAudio = spawn(pathToFfmpeg, audioffmpegCommand.split(' '), { env: process.env });
-          } else {
-            ffmpegAudio = spawn('ffmpeg', audioffmpegCommand.split(' '), { env: process.env });
-          }
-
-          if (ffmpegAudio.stdin) {
-            ffmpegAudio.stdin.on('error', (error) => {
-              if (!error.message.includes('EPIPE')) {
-                this.log.error(error.message);
-              }
-            });
-          }
-
-          if (ffmpegAudio.stderr) {
-            ffmpegAudio.stderr.on('data', (data) => {
-              if (this.ffmpegDebugOutput) {
-                this.log('AUDIO: ' + String(data));
-              }
-            });
-          }
-
-          ffmpegAudio.on('error', (error) => {
-            this.log.error('[Audio] Failed to start audio stream: ' + error.message);
-            callback(new Error('ffmpeg process creation failed!'));
-          });
-          streamer = new NexusStreamer(this.camera.info, this.config.access_token, this.log, ffmpegVideo, ffmpegAudio);
-          this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
-        } else {
-          streamer = new NexusStreamer(this.camera.info, this.config.access_token, this.log, ffmpegVideo);
-          this.ongoingSessions[sessionId] = [ffmpegVideo];
+          ffmpegAudio = new FfmpegProcess(
+            audioffmpegCommand,
+            this.log,
+            undefined,
+            this.controller,
+            sessionId,
+            this.customFfmpeg,
+          );
         }
+
+        const streamer = new NexusStreamer(
+          this.camera.info,
+          this.config.access_token,
+          this.log,
+          ffmpegVideo,
+          ffmpegAudio,
+        );
+        this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio];
+        this.ongoingStreams[sessionId] = streamer;
 
         delete this.pendingSessions[sessionId];
         streamer.requestStartPlayback();
@@ -351,15 +281,19 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         break;
       case StreamRequestTypes.STOP:
         try {
+          if (this.ongoingStreams[sessionId]) {
+            const streamer = this.ongoingStreams[sessionId];
+            streamer.stopPlayback();
+          }
           if (this.ongoingSessions[sessionId]) {
             const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
             if (ffmpegVideoProcess) {
-              ffmpegVideoProcess.kill('SIGKILL');
+              ffmpegVideoProcess.stop();
             }
             if (this.ongoingSessions[sessionId].length > 1) {
               const ffmpegAudioProcess = this.ongoingSessions[sessionId][1];
               if (ffmpegAudioProcess && !this.config.options.disableAudio) {
-                ffmpegAudioProcess.kill('SIGKILL');
+                ffmpegAudioProcess.stop();
               }
             }
           }

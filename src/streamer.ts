@@ -1,7 +1,7 @@
 import { Logging } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
-import { ChildProcess } from 'child_process';
+import { FfmpegProcess } from './ffmpeg';
 import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './CameraInfo';
 import Pbf from 'pbf';
@@ -14,8 +14,8 @@ import { StartPlayback } from './protos/StartPlayback';
 import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin';
 
 export class NexusStreamer {
-  private ffmpegVideo: ChildProcess;
-  private ffmpegAudio: ChildProcess | undefined;
+  private ffmpegVideo: FfmpegProcess;
+  private ffmpegAudio: FfmpegProcess | undefined;
   private authorized = false;
   private readonly log: Logging;
   private sessionID: number = Math.floor(Math.random() * 100);
@@ -32,8 +32,8 @@ export class NexusStreamer {
     cameraInfo: CameraInfo,
     accessToken: string,
     log: Logging,
-    ffmpegVideo: ChildProcess,
-    ffmpegAudio?: ChildProcess,
+    ffmpegVideo: FfmpegProcess,
+    ffmpegAudio?: FfmpegProcess,
   ) {
     this.log = log;
     this.ffmpegVideo = ffmpegVideo;
@@ -234,16 +234,18 @@ export class NexusStreamer {
   handlePlaybackPacket(payload: any): void {
     const packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
-      if (this.ffmpegVideo.stdin && !this.ffmpegVideo.stdin?.destroyed) {
+      const stdin = this.ffmpegVideo.getStdin();
+      if (stdin && !stdin?.destroyed) {
         // H264 NAL Units require 0001 added to beginning
-        this.ffmpegVideo.stdin.write(
-          Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]),
-        );
+        stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
       }
     }
     if (packet.channel_id === this.audioChannelID) {
-      if (this.ffmpegAudio && this.ffmpegAudio.stdin && !this.ffmpegAudio.stdin?.destroyed) {
-        this.ffmpegAudio.stdin.write(Buffer.from(packet.payload));
+      if (this.ffmpegAudio) {
+        const stdin = this.ffmpegAudio.getStdin();
+        if (stdin && !stdin?.destroyed) {
+          stdin.write(Buffer.from(packet.payload));
+        }
       }
     }
   }
