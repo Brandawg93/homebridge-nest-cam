@@ -5,23 +5,28 @@ import { Writable } from 'stream';
 const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 export class FfmpegProcess {
+  private title = '';
   private readonly log: Logging;
-  private readonly ffmpegDebugOutput = false;
+  private ffmpegDebugOutput = false;
   private ff: ChildProcess;
 
   constructor(
+    title: string,
     command: string,
     log: Logging,
     callback: StreamRequestCallback | undefined,
     controller: CameraController | undefined,
     sessionId: string,
+    ffmpegDebugOutput: boolean,
     customFfmpeg?: string,
   ) {
     let started = false;
     this.log = log;
+    this.ffmpegDebugOutput = ffmpegDebugOutput;
+    this.title = title;
 
     if (this.ffmpegDebugOutput) {
-      this.log('FFMPEG command: ffmpeg ' + command);
+      this.log(`${this.title} command: ffmpeg ${command}`);
     }
     if (customFfmpeg && customFfmpeg !== '') {
       this.ff = spawn(customFfmpeg, command.split(' '), { env: process.env });
@@ -42,28 +47,28 @@ export class FfmpegProcess {
       this.ff.stderr.on('data', (data) => {
         if (!started) {
           started = true;
-          this.log.debug('FFMPEG: received first frame');
+          this.log.debug(`${this.title}: received first frame`);
           if (callback) {
             callback(); // do not forget to execute callback once set up
           }
         }
 
         if (this.ffmpegDebugOutput) {
-          this.log('FFMPEG: ' + String(data));
+          this.log(`${this.title}: ${String(data)}`);
         }
       });
     }
     this.ff.on('error', (error) => {
-      this.log.error('[FFMPEG] Failed to start stream: ' + error.message);
+      this.log.error(`[${this.title}] Failed to start stream: ` + error.message);
       if (callback) {
         callback(new Error('ffmpeg process creation failed!'));
       }
     });
     this.ff.on('exit', (code, signal) => {
-      const message = '[FFMPEG] ffmpeg exited with code: ' + code + ' and signal: ' + signal;
+      const message = `[${this.title}] ffmpeg exited with code: ${code} and signal: ${signal}`;
 
       if (code == null || code === 255) {
-        this.log.debug(message + ' (Stream stopped!)');
+        this.log.debug(message + ` (${this.title} Stream stopped!)`);
       } else {
         this.log.error(message + ' (error)');
 

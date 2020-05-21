@@ -241,22 +241,26 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         audioffmpegCommand += `rtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`;
 
         const ffmpegVideo = new FfmpegProcess(
+          'VIDEO',
           videoffmpegCommand,
           this.log,
           callback,
           this.controller,
           sessionId,
+          false,
           this.customFfmpeg,
         );
 
         let ffmpegAudio: FfmpegProcess | undefined;
         if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
           ffmpegAudio = new FfmpegProcess(
+            'AUDIO',
             audioffmpegCommand,
             this.log,
             undefined,
             this.controller,
             sessionId,
+            false,
             this.customFfmpeg,
           );
         }

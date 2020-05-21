@@ -68,6 +68,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly accessories: Array<PlatformAccessory> = [];
   private motionDetection = true;
   private doorbellAlerts = true;
+  private doorbellSwitch = true;
   private streamingSwitch = false;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -98,6 +99,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const doorbellAlerts = config.options['doorbellAlerts'];
       if (typeof doorbellAlerts !== 'undefined') {
         this.doorbellAlerts = doorbellAlerts;
+      }
+      const doorbellSwitch = config.options['doorbellSwitch'];
+      if (typeof doorbellSwitch !== 'undefined') {
+        this.doorbellSwitch = doorbellSwitch;
       }
       const streamingSwitch = config.options['streamingSwitch'];
       if (typeof streamingSwitch !== 'undefined') {
@@ -224,7 +229,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (doorbellSwitch) {
       accessory.removeService(doorbellSwitch);
     }
-    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
+    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts && this.doorbellSwitch) {
       accessory
         .addService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch')
         .getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent)
