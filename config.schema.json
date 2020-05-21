@@ -51,6 +51,18 @@
           "default": true,
           "required": true
         },
+        "doorbellAlerts": {
+          "title": "Doorbell Alerts",
+          "type": "boolean",
+          "default": true,
+          "required": true
+        },
+        "doorbellSwitch": {
+          "title": "Doorbell Switch",
+          "type": "boolean",
+          "default": true,
+          "required": true
+        },
         "disableAudio": {
           "title": "Disable Audio Stream",
           "type": "boolean",

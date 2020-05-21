@@ -69,7 +69,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private motionDetection = true;
   private doorbellAlerts = true;
   private doorbellSwitch = true;
-  private streamingSwitch = false;
+  private streamingSwitch = true;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
