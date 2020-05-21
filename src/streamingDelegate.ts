@@ -95,18 +95,27 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       );
       callback(void 0, snapshot);
     } catch (error) {
-      if (error.response.status === 404) {
-        const log = this.log;
-        readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
-          if (err) {
-            log.error(err.message);
-            callback(err);
-          } else {
-            callback(void 0, data);
-          }
-        });
+      if (error.response) {
+        const status = parseInt(error.response.status);
+        const message = 'Error fetching snapshot';
+        if (status >= 500) {
+          this.log.debug(`${message}: ${status}`);
+        } else if (status === 404) {
+          const log = this.log;
+          readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
+            if (err) {
+              log.error(err.message);
+              callback(err);
+            } else {
+              callback(void 0, data);
+            }
+          });
+        } else {
+          this.log.error(`${message}: ${status}`);
+          callback(error);
+        }
       } else {
-        this.log.error(`Error fetching snapshot - ${error.response.status}`);
+        this.log.error(error);
         callback(error);
       }
     }

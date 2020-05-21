@@ -79,6 +79,7 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
 - motionDetection: enable/disable the motion sensor
 - doorbellAlerts: enable/disable doorbell ring notifications
+- doorbellSwitch: enable/disable doorbell automation switch
 - streamingSwitch: enable/disable the ability to turn the camera on or off
 - disableAudio: enable/disable the audio stream
 - pathToFfmpeg: specify the path to a custom ffmpeg binary
