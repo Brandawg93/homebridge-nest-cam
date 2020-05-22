@@ -1,11 +1,13 @@
 {
   "pluginAlias": "Nest-cam",
   "pluginType": "platform",
+  "singular": true,
   "headerDisplay": "1. Open a Chrome browser tab in Incognito Mode (or clear your cache).\n\n2. Open Developer Tools (View/Developer/Developer Tools).\n\n3. Click on 'Network' tab. Make sure 'Preserve Log' is checked.\n\n4. In the 'Filter' box, enter `issue`.\n\n5. Go to `home.nest.com`, and click 'Sign in with Google'. Log into your account.\n\n6. Click on the last `iframerpc` call.\n\n7. In the Headers tab, under General, copy the entire `Request URL` (beginning with `https://accounts.google.com`, ending with `nest.com`). This is your `\"issueToken\"` in `config.json`.\n\n8. In the Headers tab, under Request Headers, copy the entire `cookie` (**include the whole string which is several lines long and has many field/value pairs**). This is your `\"cookies\"` in `config.json`.\n\n9. Click on the last `issue_jwt` call.\n\n10. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key`. This is your `\"apiKey\"` in `config.json`.\n\n11. Do not log out of `home.nest.com`, as this will invalidate your credentials. Just close the browser tab.",
   "footerDisplay": "For help please see the [Github](https://github.com/Brandawg93/homebridge-nest-cam).",
   "schema": {
     "googleAuth": {
       "title": "Google Authentication",
+      "description": "Use the instructions above to obatain these values.",
       "type": "object",
       "properties": {
         "issueToken": {
@@ -33,10 +35,11 @@
       "type": "string",
       "default": "libx264",
       "required": true,
-      "description": "Ensure that the installed ffmpeg binary has support for the specified codec."
+      "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices."
     },
-    "options": {
-      "title": "Options",
+    "advancedSettings": {
+      "title": "Advanced Settings",
+      "expandable": true,
       "type": "object",
       "properties": {
         "motionDetection": {
@@ -71,7 +74,9 @@
         },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
+          "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",
           "type": "string",
+          "placeholder": "/path/to/ffmpeg",
           "default": "",
           "required": false
         }
