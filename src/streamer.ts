@@ -211,7 +211,7 @@ export class NexusStreamer {
 
   handleTalkback(payload: any): void {
     const packet = TalkbackBegin.read(payload);
-    console.log(packet);
+    this.log.debug(packet);
   }
 
   handlePlaybackBegin(payload: any): void {

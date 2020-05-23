@@ -27,14 +27,14 @@ export class NestCam {
   public info: CameraInfo;
   private motionDetected = false;
   private doorbellRang = false;
-  private alertTypes: Array<string> = ['motion'];
+  private alertTypes: Array<string> = [];
 
   constructor(config: PlatformConfig, info: CameraInfo, log: Logging, hap: HAP) {
     this.hap = hap;
     this.log = log;
     this.config = config;
     this.info = info;
-    this.alertTypes = config.options.alertTypes;
+    this.alertTypes = config.options.alertTypes || ['motion'];
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
