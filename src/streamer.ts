@@ -234,6 +234,8 @@ export class NexusStreamer {
   handlePlaybackPacket(payload: any): void {
     const packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
+      // const nal_unit_type = parseInt((+packet.payload[0]).toString(2).slice(-5), 2);
+      // console.log(nal_unit_type);
       const stdin = this.ffmpegVideo.getStdin();
       if (stdin && !stdin?.destroyed) {
         // H264 NAL Units require 0001 added to beginning
