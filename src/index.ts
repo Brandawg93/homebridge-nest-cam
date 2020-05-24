@@ -50,22 +50,13 @@ const setAlertInterval = async function (camera: NestCam, accessory: PlatformAcc
   }, UPDATE_INTERVAL);
 };
 
-const setSwitchInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
-  setInterval(async function () {
-    await camera.updateInfo();
-    const service = accessory.getService(hap.Service.Switch);
-    if (service) {
-      service.updateCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled);
-    }
-  }, UPDATE_INTERVAL);
-};
-
 class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
   private config: PlatformConfig;
   private endpoints: NestEndpoints;
   private readonly accessories: Array<PlatformAccessory> = [];
+  private readonly cameras: Array<NestCam> = [];
   private motionDetection = true;
   private doorbellAlerts = true;
   private doorbellSwitch = true;
@@ -248,14 +239,13 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         .setCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled)
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleActive(value as boolean);
+          await camera.toggleActive(value as boolean, accessory);
           this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
           callback();
         });
-      // Check enabled/disabled state
-      setSwitchInterval(camera, accessory);
     }
 
+    this.cameras.push(camera);
     this.accessories.push(accessory);
   }
 
@@ -306,6 +296,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         if (!response.items.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
           accessory.context.removed = true;
           this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          const index = this.accessories.indexOf(accessory);
+          if (index > -1) {
+            this.accessories.splice(index, 1);
+            this.cameras.slice(index, 1);
+          }
         }
       });
     } catch (error) {
@@ -314,10 +309,50 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  async updateCameras(): Promise<void> {
+    try {
+      const response = await this.endpoints.sendRequest(
+        this.config.access_token,
+        this.endpoints.CAMERA_API_HOSTNAME,
+        `/api/cameras.get_owned_and_member_of_with_properties`,
+        'GET',
+      );
+      response.items.forEach((info: CameraInfo) => {
+        const camera = this.cameras.find((x: NestCam) => x.info.uuid === info.uuid);
+        const uuid = hap.uuid.generate(info.uuid);
+        const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
+        if (camera && accessory) {
+          this.log.debug(`Updating info for ${info.name}`);
+          camera.info = info;
+          const service = accessory.getService(hap.Service.Switch);
+          if (service) {
+            service.updateCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled);
+          }
+        }
+      });
+    } catch (error) {
+      const message = 'Error updating camera inf';
+      if (error.response) {
+        const status = parseInt(error.response.status);
+        if (status >= 500) {
+          this.log.debug(`${message}: ${status}`);
+        } else {
+          this.log.error(`${message}: ${status}`);
+        }
+      } else {
+        this.log.error(error);
+      }
+    }
+  }
+
   async didFinishLaunching(): Promise<void> {
     const connected = await setupConnection(this.config, this.log);
     if (connected) {
       await this.addCameras();
+      const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+      setInterval(async function () {
+        await self.updateCameras();
+      }, 60000);
     }
   }
 }

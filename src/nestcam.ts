@@ -38,27 +38,7 @@ export class NestCam {
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
-  async updateInfo(): Promise<void> {
-    const query = querystring.stringify({
-      uuid: this.info.uuid,
-    });
-    try {
-      this.log.debug(`Updating info for ${this.info.name}`);
-      const response = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        `/api/cameras.get_with_properties?${query}`,
-        'GET',
-      );
-      response.items.forEach((info: CameraInfo) => {
-        this.info = info;
-      });
-    } catch (error) {
-      handleError(this.log, error, 'Error updating camera info');
-    }
-  }
-
-  async toggleActive(enabled: boolean): Promise<void> {
+  async toggleActive(enabled: boolean, accessory: PlatformAccessory): Promise<void> {
     const query = querystring.stringify({
       'streaming.enabled': enabled,
       uuid: this.info.uuid,
@@ -74,6 +54,11 @@ export class NestCam {
       );
       if (response.status !== 0) {
         this.log.error(`Could not turn ${this.info.name} ${enabled ? 'on' : 'off'}`);
+      } else {
+        const service = accessory.getService(this.hap.Service.Switch);
+        if (service) {
+          service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+        }
       }
     } catch (error) {
       handleError(this.log, error, 'Error toggling camera state');
