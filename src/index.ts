@@ -103,10 +103,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       if (typeof disableAudio === 'undefined') {
         config.options.disableAudio = false;
       }
-      const alertTypes = config.options['alertTypes'];
-      if (typeof alertTypes === 'undefined') {
-        config.options.alertTypes = ['motion', 'person', 'sound'];
-      }
     }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));

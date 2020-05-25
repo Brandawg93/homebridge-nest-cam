@@ -34,7 +34,7 @@ export class NestCam {
     this.log = log;
     this.config = config;
     this.info = info;
-    this.alertTypes = config.options.alertTypes || ['motion', 'person', 'sound'];
+    this.alertTypes = config.options.alertTypes || [];
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
@@ -90,7 +90,10 @@ export class NestCam {
             }
 
             // Check the intersection between user defined alert types and received alerts
-            const intersection = this.alertTypes.filter((type) => trigger.types.includes(type));
+            let intersection = trigger.types;
+            if (this.alertTypes.length > 0) {
+              intersection = this.alertTypes.filter((type) => trigger.types.includes(type));
+            }
             if (trigger.is_important && intersection.length > 0 && !this.motionDetected) {
               this.triggerMotion(accessory);
               break;
