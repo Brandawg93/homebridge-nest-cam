@@ -37,7 +37,7 @@
       "required": true,
       "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices."
     },
-    "advancedSettings": {
+    "options": {
       "title": "Advanced Settings",
       "expandable": true,
       "type": "object",

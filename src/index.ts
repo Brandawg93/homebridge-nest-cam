@@ -345,6 +345,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const connected = await setupConnection(this.config, this.log);
     if (connected) {
       await this.addCameras();
+      await this.updateCameras();
       const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
       setInterval(async function () {
         await self.updateCameras();

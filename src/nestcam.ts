@@ -3,7 +3,7 @@ import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './CameraInfo';
 import querystring from 'querystring';
 
-const ALERT_COOLDOWN = 300000;
+const ALERT_COOLDOWN = 180000;
 const ALERT_LENGTH = 5000;
 
 const handleError = function (log: Logging, error: any, message: string): void {
