@@ -6,10 +6,6 @@ labels: bug
 assignees: ''
 
 ---
-
-**Before Submitting**
-Please check [Nest Status](https://status.nest.com/) before submitting a bug.
-
 **Describe the bug**
 
 **To Reproduce**
@@ -17,6 +13,8 @@ Steps to reproduce the behavior:
 1. 
 
 **Expected behavior**
+
+**Last Working Version**
 
 Include with your bug report this version info:
 ```
