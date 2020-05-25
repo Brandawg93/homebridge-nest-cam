@@ -105,7 +105,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       }
       const alertTypes = config.options['alertTypes'];
       if (typeof alertTypes === 'undefined') {
-        config.options.alertTypes = ['motion'];
+        config.options.alertTypes = ['motion', 'person', 'sound'];
       }
     }
 

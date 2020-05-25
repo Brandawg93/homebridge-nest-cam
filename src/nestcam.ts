@@ -34,7 +34,7 @@ export class NestCam {
     this.log = log;
     this.config = config;
     this.info = info;
-    this.alertTypes = config.options.alertTypes || ['motion'];
+    this.alertTypes = config.options.alertTypes || ['motion', 'person', 'sound'];
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
