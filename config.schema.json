@@ -42,43 +42,53 @@
       "expandable": true,
       "type": "object",
       "properties": {
+        "alertCheckRate": {
+          "title": "Alert Check Rate",
+          "description": "How often to check for alerts? (seconds)",
+          "type": "integer",
+          "default": 10,
+          "minimum": 10,
+          "maximum": 60
+        },
+        "alertCooldownRate": {
+          "title": "Alert Cooldown Rate",
+          "description": "How long between consecutive alert notifications? (seconds)",
+          "type": "integer",
+          "default": 180,
+          "minimum": 60,
+          "maximum": 300
+        },
         "motionDetection": {
           "title": "Motion Detection",
           "type": "boolean",
-          "default": true,
-          "required": true
+          "default": true
         },
         "streamingSwitch": {
           "title": "Streaming Switch",
           "type": "boolean",
-          "default": true,
-          "required": true
+          "default": true
         },
         "doorbellAlerts": {
           "title": "Doorbell Alerts",
           "type": "boolean",
-          "default": true,
-          "required": true
+          "default": true
         },
         "doorbellSwitch": {
           "title": "Doorbell Switch",
           "type": "boolean",
-          "default": true,
-          "required": true
+          "default": true
         },
         "disableAudio": {
           "title": "Disable Audio Stream",
           "type": "boolean",
-          "default": false,
-          "required": true
+          "default": false
         },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
           "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",
           "type": "string",
           "placeholder": "/path/to/ffmpeg",
-          "default": "",
-          "required": false
+          "default": ""
         }
       }
     }

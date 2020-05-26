@@ -21,30 +21,6 @@ const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
   return camera;
 };
 
-test('updateInfo works as expected', async () => {
-  expect.assertions(1);
-  const config: PlatformConfig = {
-    platform: 'test',
-    googleAuth: {
-      issueToken: process.env.ISSUE_TOKEN,
-      cookies: process.env.COOKIES,
-      apiKey: process.env.API_KEY,
-    },
-    options: {
-      fieldTest: false,
-    },
-  };
-  const connection = new Connection(config, log);
-  const connected = await connection.auth();
-  if (connected) {
-    const cameraInfo = await getCamera(config);
-    const camera = new NestCam(config, cameraInfo, log, hap);
-    return expect(camera.updateInfo()).resolves.toBeUndefined();
-  } else {
-    throw new Error('Could not connect');
-  }
-});
-
 test('checkAlerts works as expected', async () => {
   expect.assertions(1);
   const config: PlatformConfig = {

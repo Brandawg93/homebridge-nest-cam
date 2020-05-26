@@ -23,7 +23,6 @@ import { Connection } from './nest-connection';
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
 
-const UPDATE_INTERVAL = 10000;
 const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
 
@@ -44,10 +43,14 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
   return await conn.auth();
 };
 
-const setAlertInterval = async function (camera: NestCam, accessory: PlatformAccessory): Promise<void> {
+const setAlertInterval = async function (
+  camera: NestCam,
+  accessory: PlatformAccessory,
+  interval: number,
+): Promise<void> {
   setInterval(async function () {
     camera.checkAlerts(accessory);
-  }, UPDATE_INTERVAL);
+  }, interval);
 };
 
 class NestCamPlatform implements DynamicPlatformPlugin {
@@ -158,6 +161,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     accessory.configureController(cameraController);
 
+    const alertInterval = (this.config.options.alertCheckRate || 10) * 1000;
     // Configure services
     const motion = accessory.getService(hap.Service.MotionSensor);
     const microphone = accessory.getService(hap.Service.Microphone);
@@ -197,7 +201,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Add motion service
     if (camera.info.all_detectors.includes('motion') && this.motionDetection) {
       accessory.addService(hap.Service.MotionSensor);
-      setAlertInterval(camera, accessory);
+      setAlertInterval(camera, accessory, alertInterval);
     }
 
     // Doorbell configuration
@@ -208,7 +212,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
       accessory.addService(hap.Service.Doorbell);
       if (!this.motionDetection) {
-        setAlertInterval(camera, accessory);
+        setAlertInterval(camera, accessory, alertInterval);
       }
     }
 

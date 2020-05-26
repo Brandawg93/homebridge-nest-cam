@@ -3,7 +3,6 @@ import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './CameraInfo';
 import querystring from 'querystring';
 
-const ALERT_COOLDOWN = 180000;
 const ALERT_LENGTH = 5000;
 
 const handleError = function (log: Logging, error: any, message: string): void {
@@ -28,6 +27,7 @@ export class NestCam {
   private motionDetected = false;
   private doorbellRang = false;
   private alertTypes: Array<string> = [];
+  private alertCooldown = 180000;
 
   constructor(config: PlatformConfig, info: CameraInfo, log: Logging, hap: HAP) {
     this.hap = hap;
@@ -35,6 +35,7 @@ export class NestCam {
     this.config = config;
     this.info = info;
     this.alertTypes = config.options.alertTypes || [];
+    this.alertCooldown = (config.options.alertCooldownRate || 180) * 1000;
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
@@ -116,7 +117,7 @@ export class NestCam {
 
     setTimeout(async function () {
       self.motionDetected = false;
-    }, ALERT_COOLDOWN);
+    }, this.alertCooldown);
   }
 
   setMotion(accessory: PlatformAccessory, state: boolean): void {
@@ -133,7 +134,7 @@ export class NestCam {
     this.doorbellRang = true;
     setTimeout(async function () {
       self.doorbellRang = false;
-    }, ALERT_COOLDOWN);
+    }, this.alertCooldown);
   }
 
   setDoorbell(accessory: PlatformAccessory): void {
