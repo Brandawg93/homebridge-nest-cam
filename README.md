@@ -77,6 +77,8 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
+- alertCheckRate: How often to check for alerts? (seconds)
+- alertCooldownRate: How long between consecutive alert notifications? (seconds)
 - motionDetection: enable/disable the motion sensor
 - doorbellAlerts: enable/disable doorbell ring notifications
 - doorbellSwitch: enable/disable doorbell automation switch
