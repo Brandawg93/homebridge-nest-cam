@@ -2,9 +2,6 @@
   <a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="Homebridge Verified" src="https://raw.githubusercontent.com/Brandawg93/homebridge-nest-cam/master/branding/Homebridge_x_Nest.svg?sanitize=true" width="500px"></a>
 </p>
 
-# IMPORTANT: PLEASE READ
-The **homebridge-nest-cam2** plugin has been migrated to **homebridge-nest-cam**. The old plugin will remain active but deprecated. All future updates will be to **homebridge-nest-cam**. You can install the new plugin via `npm -g uninstall homebridge-nest-cam2 && npm -g install homebridge-nest-cam`.
-
 # homebridge-nest-cam
 
 View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
@@ -22,8 +19,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 |--------|-----------------|
 
 ## Notes
-- This plugin *does not* use the old access token authentication method as it is no longer supported.
-- This plugin was developed with [Homebridge](https://github.com/nfarina/homebridge) and therefore has not been tested with HOOBS. If you use HOOBS, use this plugin at your own risk, or [migrate to homebridge](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-to-migrate-from-HOOBS-to-Homebridge).
+- This plugin *does not* use the old access token authentication method as Google is urging users to [switch to Google accounts](https://www.macrumors.com/2020/05/05/nest-two-factor-authentication-from-may/).
 
 ## Installation
 1. Install this plugin using: `npm install -g homebridge-nest-cam`
