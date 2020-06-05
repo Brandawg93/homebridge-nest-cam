@@ -73,14 +73,17 @@ The values of `"issueToken"`, `"cookies"` and `"apiKey"` are specific to your Go
 
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
-- alertCheckRate: How often to check for alerts? (seconds)
-- alertCooldownRate: How long between consecutive alert notifications? (seconds)
-- motionDetection: enable/disable the motion sensor
-- doorbellAlerts: enable/disable doorbell ring notifications
-- doorbellSwitch: enable/disable doorbell automation switch
-- streamingSwitch: enable/disable the ability to turn the camera on or off
-- disableAudio: enable/disable the audio stream
-- pathToFfmpeg: specify the path to a custom ffmpeg binary
+
+| Name              | Description                                             | Type             |
+|-------------------|---------------------------------------------------------|------------------|
+| alertCheckRate    | How often to check for alerts                           | number (seconds) |
+| alertCooldownRate | How long between consecutive alert notifications        | number (seconds) |
+| motionDetection   | enable/disable the motion sensor                        | boolean          |
+| doorbellAlerts    | enable/disable doorbell ring notifications              | boolean          |
+| doorbellSwitch    | enable/disable doorbell automation switch               | boolean          |
+| streamingSwitch   | enable/disable the ability to turn the camera on or off | boolean          |
+| disableAudio      | enable/disable the audio stream                         | boolean          |
+| pathToFfmpeg      | specify the path to a custom ffmpeg binary              | string           |
 
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).
@@ -91,7 +94,7 @@ This plugin was originally developed by [KhaosT](https://github.com/KhaosT).
 This plugin was converted to typescript using both [homebridge-ring](https://github.com/dgreif/ring) and [homebridge-examples](https://github.com/homebridge/homebridge-examples).
 
 ## Donate to Support homebridge-nest-cam
-This plugin was made with you in mind. If you'd like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url).
+This plugin was made with you in mind. If you would like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url).
 
 ## Disclaimer
 This plugin and its contributers are not affiliated with Google LLC or Nest Labs in any way.
