@@ -17,8 +17,9 @@ puppeteer.launch({ headless: false }).then(async (browser: any) => {
   await page.setRequestInterception(true);
   page.on('request', async (request: any) => {
     const headers = request.headers();
+    const url = request.url();
     // Getting cookies
-    if (request.url().includes('CheckCookie')) {
+    if (url.includes('CheckCookie')) {
       cookies = (await page.cookies())
         .map((cookie: any) => {
           return `${cookie.name}=${cookie.value}`;
@@ -27,17 +28,18 @@ puppeteer.launch({ headless: false }).then(async (browser: any) => {
     }
 
     // Building issueToken
-    if (request.url().includes('challenge?')) {
+    if (url.includes('challenge?')) {
       const postData = request.postData().split('&');
       clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
     }
 
     // Getting apiKey
-    if (request.url().includes('issue_jwt') && headers['x-goog-api-key']) {
+    if (url.includes('issue_jwt') && headers['x-goog-api-key']) {
       apiKey = headers['x-goog-api-key'];
       domain = encodeURIComponent(headers['referer'].slice(0, -1));
     }
 
+    // Build googleAuth object
     if (apiKey && clientId && loginHint && cookies) {
       const auth = {
         googleAuth: {
@@ -47,6 +49,12 @@ puppeteer.launch({ headless: false }).then(async (browser: any) => {
         },
       };
       console.log(JSON.stringify(auth, null, 4));
+      browser.close();
+    }
+
+    // Auth didn't work
+    if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
+      console.log('Could not generate authentication object.');
       browser.close();
     }
 
