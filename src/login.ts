@@ -1,21 +1,82 @@
+import puppeteer from 'puppeteer-extra';
+import pluginStealth from 'puppeteer-extra-plugin-stealth';
+import * as readline from 'readline';
+
 let clientId = '';
 let loginHint = '';
 let cookies = '';
 let apiKey = '';
 let domain = '';
 
-import puppeteer from 'puppeteer-extra';
-import pluginStealth from 'puppeteer-extra-plugin-stealth';
 puppeteer.use(pluginStealth());
 
-puppeteer.launch({ headless: false }).then(async (browser: any) => {
+const headless = !process.argv.includes('-h');
+const prompt = (query: string, hidden = false): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    try {
+      if (hidden) {
+        const stdin = process.openStdin();
+        process.stdin.on('data', (char: string) => {
+          char = char + '';
+          switch (char) {
+            case '\n':
+            case '\r':
+            case '\u0004':
+              stdin.pause();
+              break;
+            default:
+              process.stdout.clearLine(0);
+              readline.cursorTo(process.stdout, 0);
+              process.stdout.write(query + Array(rl.line.length + 1).join('*'));
+              break;
+          }
+        });
+      }
+      rl.question(query, (value) => {
+        resolve(value);
+        rl.close();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+puppeteer.launch({ headless: headless }).then(async (browser: any) => {
   console.log('Opening chromium browser...');
   const page = await browser.newPage();
   const pages = await browser.pages();
   pages[0].close();
   await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
+  if (headless) {
+    await page.waitForSelector('button[data-test="google-button-login"]');
+    await page.waitFor(1000);
+    await page.click('button[data-test="google-button-login"]');
 
-  console.log('Please sign into your google account.');
+    await page.waitForSelector('#identifierId');
+    let badInput = true;
+    while (badInput) {
+      const email = await prompt('Email or phone: ');
+      await page.type('#identifierId', email);
+      await page.waitFor(1000);
+      await page.keyboard.press('Enter');
+      await page.waitFor(1000);
+      badInput = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
+      if (badInput) {
+        console.log('Incorrect email or phone. Please try again.');
+        await page.click('#identifierId', { clickCount: 3 });
+      }
+    }
+    const password = await prompt('Enter your password: ', true);
+    console.log('Finishing up...');
+    await page.type('input[type="password"]', password);
+    await page.waitFor(1000);
+    await page.keyboard.press('Enter');
+  }
+
   await page.setRequestInterception(true);
   page.on('request', async (request: any) => {
     const headers = request.headers();
@@ -49,7 +110,7 @@ puppeteer.launch({ headless: false }).then(async (browser: any) => {
         apiKey: apiKey,
       };
       console.log('Add the following to your config.json:\n');
-      console.log('"googleAuth": ', JSON.stringify(auth, null, 4));
+      console.log('"googleAuth":', JSON.stringify(auth, null, 4));
       browser.close();
     }
 
