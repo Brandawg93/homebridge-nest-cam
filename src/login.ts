@@ -9,11 +9,13 @@ import pluginStealth from 'puppeteer-extra-plugin-stealth';
 puppeteer.use(pluginStealth());
 
 puppeteer.launch({ headless: false }).then(async (browser: any) => {
+  console.log('Opening chromium browser...');
   const page = await browser.newPage();
   const pages = await browser.pages();
   pages[0].close();
   await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
 
+  console.log('Please sign into your google account.');
   await page.setRequestInterception(true);
   page.on('request', async (request: any) => {
     const headers = request.headers();
@@ -42,13 +44,12 @@ puppeteer.launch({ headless: false }).then(async (browser: any) => {
     // Build googleAuth object
     if (apiKey && clientId && loginHint && cookies) {
       const auth = {
-        googleAuth: {
-          issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
-          cookies: cookies,
-          apiKey: apiKey,
-        },
+        issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
+        cookies: cookies,
+        apiKey: apiKey,
       };
-      console.log(JSON.stringify(auth, null, 4));
+      console.log('Add the following to your config.json:\n');
+      console.log('"googleAuth": ', JSON.stringify(auth, null, 4));
       browser.close();
     }
 
