@@ -2,12 +2,10 @@
   "pluginAlias": "Nest-cam",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "1. Run `homebridge-nest-cam login`. If your account has 2 factor authentication, run `homebridge-nest-cam login -h` instead.\n2. Login to your Nest account.\n3. Copy the output to your `config.json`.\n4. (Optional) Run `homebridge-nest-cam clean` to remove extra packages used to login.\n\n**Note:** If the steps above do not work, refer to the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).",
-  "footerDisplay": "For help please see the [Github](https://github.com/Brandawg93/homebridge-nest-cam).",
+  "headerDisplay": "Instructions for setting up the config can be found on the [Github](https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson).",
   "schema": {
     "googleAuth": {
       "title": "Google Authentication",
-      "description": "Use the instructions above to obatain these values.",
       "type": "object",
       "properties": {
         "issueToken": {
