@@ -3,8 +3,6 @@ import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './CameraInfo';
 import querystring from 'querystring';
 
-const ALERT_LENGTH = 5000;
-
 const handleError = function (log: Logging, error: any, message: string): void {
   if (error.response) {
     const status = parseInt(error.response.status);
@@ -25,6 +23,7 @@ export class NestCam {
   private readonly hap: HAP;
   public info: CameraInfo;
   private motionDetected = false;
+  private motionInProgress = false;
   private doorbellRang = false;
   private alertTypes: Array<string> = [];
   private alertCooldown = 180000;
@@ -76,6 +75,7 @@ export class NestCam {
         start_time: epoch,
       });
       if (!accessory.context.removed) {
+        const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
         const response = await this.endpoints.sendRequest(
           this.config.access_token,
           `https://${this.info.nexus_api_nest_domain_host}`,
@@ -100,6 +100,9 @@ export class NestCam {
               break;
             }
           }
+        } else if (this.motionInProgress) {
+          self.setMotion(accessory, false);
+          this.motionInProgress = false;
         }
       }
     } catch (error) {
@@ -111,9 +114,7 @@ export class NestCam {
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     this.setMotion(accessory, true);
     this.motionDetected = true;
-    setTimeout(async function () {
-      self.setMotion(accessory, false);
-    }, ALERT_LENGTH);
+    this.motionInProgress = true;
 
     setTimeout(async function () {
       self.motionDetected = false;
@@ -132,7 +133,7 @@ export class NestCam {
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     this.setDoorbell(accessory);
     this.doorbellRang = true;
-    setTimeout(async function () {
+    setTimeout(function () {
       self.doorbellRang = false;
     }, this.alertCooldown);
   }
