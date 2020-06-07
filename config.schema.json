@@ -87,6 +87,14 @@
           "type": "string",
           "placeholder": "/path/to/ffmpeg",
           "default": ""
+        },
+        "structures": {
+          "title": "Structures",
+          "type": "array",
+          "items": {
+            "title": "Structure Name",
+            "type": "string"
+          }
         }
       }
     }

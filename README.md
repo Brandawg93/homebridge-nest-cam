@@ -75,6 +75,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | streamingSwitch   | enable/disable the ability to turn the camera on or off | boolean          |
 | disableAudio      | enable/disable the audio stream                         | boolean          |
 | pathToFfmpeg      | specify the path to a custom ffmpeg binary              | string           |
+| structures        | specify which structures' cameras to use                | array            |
 
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).

@@ -64,6 +64,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private doorbellAlerts = true;
   private doorbellSwitch = true;
   private streamingSwitch = true;
+  private structures: Array<string> = [];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -101,6 +102,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const streamingSwitch = config.options['streamingSwitch'];
       if (typeof streamingSwitch !== 'undefined') {
         this.streamingSwitch = streamingSwitch;
+      }
+      const structures = config.options['structures'];
+      if (typeof structures !== 'undefined') {
+        this.structures = structures;
       }
       const disableAudio = config.options['disableAudio'];
       if (typeof disableAudio === 'undefined') {
@@ -267,7 +272,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         '/api/cameras.get_owned_and_member_of_with_properties',
         'GET',
       );
-      response.items.forEach((cameraInfo: CameraInfo) => {
+      let cameras = response.items;
+      if (this.structures.length > 0) {
+        cameras = cameras.filter((info: CameraInfo) => this.structures.includes(info.nest_structure_name));
+      }
+      cameras.forEach((cameraInfo: CameraInfo) => {
         const uuid = hap.uuid.generate(cameraInfo.uuid);
         const accessory = new Accessory(cameraInfo.name, uuid);
         accessory.context.cameraInfo = cameraInfo;
@@ -293,7 +302,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
       // Remove cameras that were not in previous call
       this.accessories.forEach((accessory: PlatformAccessory) => {
-        if (!response.items.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
+        if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
           accessory.context.removed = true;
           this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
           const index = this.accessories.indexOf(accessory);
