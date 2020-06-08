@@ -65,17 +65,17 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
 
-| Name              | Description                                             | Type             |
-|-------------------|---------------------------------------------------------|------------------|
-| alertCheckRate    | How often to check for alerts                           | number (seconds) |
-| alertCooldownRate | How long between consecutive alert notifications        | number (seconds) |
-| motionDetection   | enable/disable the motion sensor                        | boolean          |
-| doorbellAlerts    | enable/disable doorbell ring notifications              | boolean          |
-| doorbellSwitch    | enable/disable doorbell automation switch               | boolean          |
-| streamingSwitch   | enable/disable the ability to turn the camera on or off | boolean          |
-| disableAudio      | enable/disable the audio stream                         | boolean          |
-| pathToFfmpeg      | specify the path to a custom ffmpeg binary              | string           |
-| structures        | specify which structures' cameras to use                | array            |
+| Name              | Description                                                         | Type             |
+|-------------------|---------------------------------------------------------------------|------------------|
+| alertCheckRate    | How often to check for alerts                                       | number (seconds) |
+| alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |
+| motionDetection   | enable/disable the motion sensor                                    | boolean          |
+| doorbellAlerts    | enable/disable doorbell ring notifications                          | boolean          |
+| doorbellSwitch    | enable/disable doorbell automation switch                           | boolean          |
+| streamingSwitch   | enable/disable the ability to turn the camera on or off             | boolean          |
+| disableAudio      | enable/disable the audio stream                                     | boolean          |
+| pathToFfmpeg      | specify the path to a custom ffmpeg binary                          | string           |
+| structures        | specify the structure names of which structures' cameras to see     | array            |
 
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).
