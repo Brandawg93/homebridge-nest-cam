@@ -3,19 +3,21 @@ import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { FfmpegProcess } from './ffmpeg';
 import { NestEndpoints } from './nest-endpoints';
-import { CameraInfo } from './CameraInfo';
+import { CameraInfo } from './camera-info';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
 import { Redirect } from './protos/Redirect';
 import { Hello } from './protos/Hello';
 import { AuthorizeRequest } from './protos/AuthorizeRequest';
-import { TalkbackBegin } from './protos/TalkbackBegin';
+import { AudioPayload } from './protos/AudioPayload';
 import { StartPlayback } from './protos/StartPlayback';
+import { StopPlayback } from './protos/StopPlayback';
 import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin';
 
 export class NexusStreamer {
   private ffmpegVideo: FfmpegProcess;
   private ffmpegAudio: FfmpegProcess | undefined;
+  private ffmpegReturnAudio: FfmpegProcess | undefined;
   private authorized = false;
   private readonly log: Logging;
   private sessionID: number = Math.floor(Math.random() * 100);
@@ -27,6 +29,7 @@ export class NexusStreamer {
   private pendingBuffer: Buffer | undefined;
   private videoChannelID = -1;
   private audioChannelID = -1;
+  private returnAudioTimeout: NodeJS.Timeout | undefined;
 
   constructor(
     cameraInfo: CameraInfo,
@@ -34,10 +37,12 @@ export class NexusStreamer {
     log: Logging,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
+    ffmpegReturnAudio?: FfmpegProcess,
   ) {
     this.log = log;
     this.ffmpegVideo = ffmpegVideo;
     this.ffmpegAudio = ffmpegAudio;
+    this.ffmpegReturnAudio = ffmpegReturnAudio;
     this.cameraInfo = cameraInfo;
     this.accessToken = accessToken;
     this.host = cameraInfo.direct_nexustalk_host;
@@ -49,7 +54,34 @@ export class NexusStreamer {
    */
   stopPlayback(): void {
     if (this.socket) {
+      this.sendStopPlayback();
       this.socket.end();
+    }
+  }
+
+  /**
+   * Create the return audio server
+   */
+  createReturnAudioServer(): void {
+    const self = this;
+    const stdout = this.ffmpegReturnAudio?.getStdout();
+    if (stdout) {
+      stdout.on('data', (chunk) => {
+        // console.log(`Received ${chunk.length} bytes of data.`);
+        this.sendAudioPayload(chunk);
+
+        if (this.returnAudioTimeout) {
+          clearTimeout(this.returnAudioTimeout);
+          this.returnAudioTimeout = setTimeout(() => {
+            self.sendAudioPayload(Buffer.from([]));
+          }, 3000);
+        }
+      });
+      stdout.on('resume', () => {
+        this.returnAudioTimeout = setTimeout(() => {
+          self.sendAudioPayload(Buffer.from([]));
+        }, 3000);
+      });
     }
   }
 
@@ -59,10 +91,11 @@ export class NexusStreamer {
    * Setup socket communication and send hello packet
    */
   setupConnection(): void {
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+    const self = this;
     let pingInterval: NodeJS.Timeout;
 
     this.stopPlayback();
+    // this.createReturnAudioServer();
     const options = {
       host: this.host,
       port: 1443,
@@ -85,12 +118,12 @@ export class NexusStreamer {
     });
   }
 
-  _processPendingMessages(): void {
+  private processPendingMessages(): void {
     if (this.pendingMessages) {
       const messages = this.pendingMessages;
       this.pendingMessages = [];
       messages.forEach((message) => {
-        this._sendMessage(message.type, message.buffer);
+        this.sendMessage(message.type, message.buffer);
       });
     }
   }
@@ -100,7 +133,7 @@ export class NexusStreamer {
    * @param {number} type The type of packet being sent
    * @param {any} buffer  The information to send
    */
-  _sendMessage(type: number, buffer: any): void {
+  private sendMessage(type: number, buffer: any): void {
     if (this.socket.connecting || !this.socket.encrypted) {
       this.log.debug('waiting for socket to connect');
       if (!this.pendingMessages) {
@@ -143,7 +176,7 @@ export class NexusStreamer {
   // Ping
 
   sendPingMessage(): void {
-    this._sendMessage(1, Buffer.alloc(0));
+    this.sendMessage(1, Buffer.alloc(0));
   }
 
   unschedulePingMessage(pingInterval: NodeJS.Timeout): void {
@@ -172,10 +205,24 @@ export class NexusStreamer {
     const pbfContainer = new Pbf();
     Hello.write(request, pbfContainer);
     const buffer = pbfContainer.finish();
-    this._sendMessage(PacketType.HELLO, buffer);
+    this.sendMessage(PacketType.HELLO, buffer);
   }
 
-  requestStartPlayback(): void {
+  updateAuthentication(): void {
+    const token = {
+      olive_token: this.accessToken,
+    };
+    const tokenContainer = new Pbf();
+    AuthorizeRequest.write(token, tokenContainer);
+    const tokenBuffer = tokenContainer.finish();
+
+    const pbfContainer = new Pbf();
+    Hello.write(tokenBuffer, pbfContainer);
+    const buffer = pbfContainer.finish();
+    this.sendMessage(PacketType.AUTHORIZE_REQUEST, buffer);
+  }
+
+  sendStartPlayback(): void {
     // Attempt to use camera's stream profile or use default
     const cameraProfile = this.cameraInfo.properties['streaming.cameraprofile'] as keyof typeof StreamProfile;
     const primaryProfile = StreamProfile[cameraProfile] || StreamProfile.VIDEO_H264_2MBIT_L40;
@@ -196,25 +243,44 @@ export class NexusStreamer {
     const pbfContainer = new Pbf();
     StartPlayback.write(request, pbfContainer);
     const buffer = pbfContainer.finish();
-    this._sendMessage(PacketType.START_PLAYBACK, buffer);
+    this.sendMessage(PacketType.START_PLAYBACK, buffer);
   }
 
-  handleRedirect(payload: any): void {
+  sendStopPlayback(): void {
+    const request = {
+      session_id: this.sessionID,
+    };
+    const pbfContainer = new Pbf();
+    StopPlayback.write(request, pbfContainer);
+    const buffer = pbfContainer.finish();
+    this.sendMessage(PacketType.STOP_PLAYBACK, buffer);
+  }
+
+  sendAudioPayload(payload: Buffer): void {
+    const request = {
+      payload: payload,
+      session_id: this.sessionID,
+      codec: CodecType.AAC,
+      sample_rate: 16e3, // Same as 16000
+    };
+
+    const pbfContainer = new Pbf();
+    AudioPayload.write(request, pbfContainer);
+    const buffer = pbfContainer.finish();
+    this.sendMessage(PacketType.AUDIO_PAYLOAD, buffer);
+  }
+
+  handleRedirect(payload: Pbf): void {
     const packet = Redirect.read(payload);
     if (packet.new_host) {
       this.log.info('[NexusStreamer] Redirecting...');
       this.host = packet.new_host;
       this.setupConnection();
-      this.requestStartPlayback();
+      this.sendStartPlayback();
     }
   }
 
-  handleTalkback(payload: any): void {
-    const packet = TalkbackBegin.read(payload);
-    this.log.debug(packet);
-  }
-
-  handlePlaybackBegin(payload: any): void {
+  handlePlaybackBegin(payload: Pbf): void {
     const packet = PlaybackBegin.read(payload);
 
     if (packet.session_id !== this.sessionID) {
@@ -231,28 +297,26 @@ export class NexusStreamer {
     }
   }
 
-  handlePlaybackPacket(payload: any): void {
+  handlePlaybackPacket(payload: Pbf): void {
     const packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
-      // const nal_unit_type = parseInt((+packet.payload[0]).toString(2).slice(-5), 2);
-      // console.log(nal_unit_type);
+      // H264 NAL Units require 0001 added to beginning
+      const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
+      // this.h264Streamer.push(packet);
       const stdin = this.ffmpegVideo.getStdin();
       if (stdin && !stdin?.destroyed) {
-        // H264 NAL Units require 0001 added to beginning
-        stdin.write(Buffer.concat([Buffer.from([0x00, 0x00, 0x00, 0x01]), Buffer.from(packet.payload)]));
+        stdin.write(Buffer.concat([startCode, Buffer.from(packet.payload)]));
       }
     }
     if (packet.channel_id === this.audioChannelID) {
-      if (this.ffmpegAudio) {
-        const stdin = this.ffmpegAudio.getStdin();
-        if (stdin && !stdin?.destroyed) {
-          stdin.write(Buffer.from(packet.payload));
-        }
+      const stdin = this.ffmpegAudio?.getStdin();
+      if (stdin && !stdin?.destroyed) {
+        stdin.write(Buffer.from(packet.payload));
       }
     }
   }
 
-  handleNexusPacket(type: number, payload: any): void {
+  handleNexusPacket(type: number, payload: Pbf): void {
     switch (type) {
       case PacketType.PING:
         this.log.debug('[NexusStreamer] Ping');
@@ -260,10 +324,10 @@ export class NexusStreamer {
       case PacketType.OK:
         this.log.debug('[NexusStreamer] OK');
         this.authorized = true;
-        this._processPendingMessages();
+        this.processPendingMessages();
         break;
       case PacketType.ERROR:
-        this.log.debug('[NexusStreamer] Error');
+        this.log.error('[NexusStreamer] Error');
         this.stopPlayback();
         break;
       case PacketType.PLAYBACK_BEGIN:
@@ -290,11 +354,9 @@ export class NexusStreamer {
         break;
       case PacketType.TALKBACK_BEGIN:
         this.log.info('[NexusStreamer] Talkback Begin');
-        this.handleTalkback(payload);
         break;
       case PacketType.TALKBACK_END:
         this.log.info('[NexusStreamer] Talkback End');
-        this.handleTalkback(payload);
         break;
       default:
         this.log.debug('[NexusStreamer] Unhandled Type: ' + type);

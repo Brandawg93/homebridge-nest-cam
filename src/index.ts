@@ -14,10 +14,10 @@ import {
   PlatformAccessoryEvent,
   PlatformConfig,
 } from 'homebridge';
-import { NestCam } from './nestcam';
-import { CameraInfo, ModelTypes } from './CameraInfo';
+import { NestCam } from './nest-cam';
+import { CameraInfo, ModelTypes } from './camera-info';
 import { NestEndpoints } from './nest-endpoints';
-import { StreamingDelegate } from './streamingDelegate';
+import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
 
 let hap: HAP;
@@ -151,6 +151,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
           },
         },
         audio: {
+          // twoWayAudio: camera.info.capabilities.includes('audio.microphone'),
           codecs: [
             {
               type: AudioStreamingCodecType.AAC_ELD,
@@ -169,35 +170,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const alertInterval = (this.config.options.alertCheckRate || 10) * 1000;
     // Configure services
     const motion = accessory.getService(hap.Service.MotionSensor);
-    const microphone = accessory.getService(hap.Service.Microphone);
-    const speaker = accessory.getService(hap.Service.Speaker);
     const doorbell = accessory.getService(hap.Service.Doorbell);
     const doorbellSwitch = accessory.getService('DoorbellSwitch');
     const enabledSwitch = accessory.getService('Streaming');
-
-    // Microphone configuration
-    if (microphone) {
-      accessory.removeService(microphone);
-    }
-    if (speaker) {
-      accessory.removeService(speaker);
-    }
-    // Add microphone service
-    // if (camera.info.capabilities.includes('audio.microphone')) {
-    //   accessory
-    //     .addService(hap.Service.Microphone)
-    //     .getCharacteristic(hap.Characteristic.Mute)
-    //     .on(CharacteristicEventTypes.GET, (callback: CharacteristicSetCallback) => {
-    //       callback(null, false);
-    //     });
-
-    //   accessory
-    //     .addService(hap.Service.Speaker)
-    //     .getCharacteristic(hap.Characteristic.Mute)
-    //     .on(CharacteristicEventTypes.GET, (callback: CharacteristicSetCallback) => {
-    //       callback(null, false);
-    //     });
-    // }
 
     // Motion configuration
     if (motion) {
@@ -359,7 +334,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (connected) {
       await this.addCameras();
       await this.updateCameras();
-      const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+      const self = this;
       setInterval(async function () {
         await self.updateCameras();
       }, 60000);

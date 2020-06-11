@@ -1,6 +1,6 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
-import { CameraInfo } from './CameraInfo';
+import { CameraInfo } from './camera-info';
 import querystring from 'querystring';
 
 const handleError = function (log: Logging, error: any, message: string): void {
@@ -75,7 +75,7 @@ export class NestCam {
         start_time: epoch,
       });
       if (!accessory.context.removed) {
-        const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+        const self = this;
         const response = await this.endpoints.sendRequest(
           this.config.access_token,
           `https://${this.info.nexus_api_nest_domain_host}`,
@@ -111,7 +111,7 @@ export class NestCam {
   }
 
   triggerMotion(accessory: PlatformAccessory): void {
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+    const self = this;
     this.setMotion(accessory, true);
     this.motionDetected = true;
     this.motionInProgress = true;
@@ -130,7 +130,7 @@ export class NestCam {
   }
 
   triggerDoorbell(accessory: PlatformAccessory): void {
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+    const self = this;
     this.setDoorbell(accessory);
     this.doorbellRang = true;
     setTimeout(function () {
