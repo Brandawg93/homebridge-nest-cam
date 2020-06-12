@@ -170,7 +170,9 @@ export class NexusStreamer {
       requestBuffer.writeUInt16BE(buffer.length, 1);
       requestBuffer = Buffer.concat([requestBuffer, Buffer.from(buffer)]);
     }
-    this.socket.write(requestBuffer);
+    if (!this.socket.destroyed) {
+      this.socket.write(requestBuffer);
+    }
   }
 
   // Ping

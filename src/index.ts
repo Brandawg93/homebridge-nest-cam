@@ -179,7 +179,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       accessory.removeService(motion);
     }
     // Add motion service
-    if (camera.info.all_detectors.includes('motion') && this.motionDetection) {
+    if (camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection) {
       accessory.addService(hap.Service.MotionSensor);
       setAlertInterval(camera, accessory, alertInterval);
     }

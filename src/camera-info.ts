@@ -56,11 +56,9 @@ interface Properties {
 
 export interface CameraInfo {
   activation_time: number;
-  all_detectors: Array<string>;
   capabilities: Array<string>;
   combined_software_version: string;
   description: string;
-  detectors: Array<string>;
   direct_nexustalk_host: string;
   doorbell_chime_assist_enabled: boolean;
   doorbell_indoor_chime_duration: number;
