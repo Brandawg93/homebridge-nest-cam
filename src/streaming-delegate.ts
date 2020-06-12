@@ -342,7 +342,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         this.ongoingStreams[sessionId] = streamer;
 
         delete this.pendingSessions[sessionId];
-        streamer.sendStartPlayback();
+        streamer.startPlayback();
         break;
       case StreamRequestTypes.RECONFIGURE:
         // not implemented
