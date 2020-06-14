@@ -55,7 +55,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     }
 }
 ```
-1. If the plugin is installed globally, run `homebridge-nest-cam login`, otherwise, run `npx -p homebridge-nest-cam homebridge-nest-cam login` within the plugin folder. If your account has 2 factor authentication, use the `-h` flag.
+1. If the plugin is installed globally, run `homebridge-nest-cam login`, otherwise, *ensure that you are in the plugin's root directory* and run `npx -p homebridge-nest-cam homebridge-nest-cam login`. If your account has 2 factor authentication, use the `-h` flag.
 2. Login to your Nest account.
 3. Copy the output to your `config.json`.
 4. (Optional) Run `homebridge-nest-cam clean` to remove extra packages used to login.
