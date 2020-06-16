@@ -66,6 +66,11 @@
           "type": "boolean",
           "default": true
         },
+        "chimeSwitch": {
+          "title": "Indoor Chime Switch",
+          "type": "boolean",
+          "default": true
+        },
         "doorbellAlerts": {
           "title": "Doorbell Alerts",
           "type": "boolean",

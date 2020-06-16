@@ -38,30 +38,54 @@ export class NestCam {
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
+  private async updateInfo(query: string): Promise<any> {
+    return await this.endpoints.sendRequest(
+      this.config.access_token,
+      this.endpoints.CAMERA_API_HOSTNAME,
+      '/api/dropcams.set_properties',
+      'POST',
+      'json',
+      query,
+    );
+  }
+
   async toggleActive(enabled: boolean, accessory: PlatformAccessory): Promise<void> {
     const query = querystring.stringify({
       'streaming.enabled': enabled,
       uuid: this.info.uuid,
     });
+    const response = await this.updateInfo(query);
     try {
-      const response = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        '/api/dropcams.set_properties',
-        'POST',
-        'json',
-        query,
-      );
       if (response.status !== 0) {
         this.log.error(`Could not turn ${this.info.name} ${enabled ? 'on' : 'off'}`);
       } else {
-        const service = accessory.getService(this.hap.Service.Switch);
+        const service = accessory.getService('Streaming');
         if (service) {
           service.updateCharacteristic(this.hap.Characteristic.On, enabled);
         }
       }
     } catch (error) {
       handleError(this.log, error, 'Error toggling camera state');
+    }
+  }
+
+  async toggleChime(enabled: boolean, accessory: PlatformAccessory): Promise<void> {
+    const query = querystring.stringify({
+      'doorbell.indoor_chime.enabled': enabled,
+      uuid: this.info.uuid,
+    });
+    const response = await this.updateInfo(query);
+    try {
+      if (response.status !== 0) {
+        this.log.error(`Could not turn ${this.info.name} chime ${enabled ? 'on' : 'off'}`);
+      } else {
+        const service = accessory.getService('Chime');
+        if (service) {
+          service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+        }
+      }
+    } catch (error) {
+      handleError(this.log, error, 'Error toggling doorbell chime');
     }
   }
 

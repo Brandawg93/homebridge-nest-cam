@@ -26,7 +26,35 @@ export enum PacketType {
   AUTHORIZE_REQUEST = 212,
 }
 
+class DirectorsCutRegion {
+  public static read(pbf: Pbf, end?: any): any {
+    return pbf.readFields(DirectorsCutRegion._readField, { id: 0, left: 0, right: 0, top: 0, bottom: 0 }, end);
+  }
+
+  private static _readField(tag: number, obj: any, pbf: Pbf | undefined): void {
+    if (pbf) {
+      if (tag === 1) obj.id = pbf.readVarint();
+      else if (tag === 2) obj.left = pbf.readVarint();
+      else if (tag === 3) obj.right = pbf.readVarint();
+      else if (tag === 4) obj.top = pbf.readVarint();
+      else if (tag === 5) obj.bottom = pbf.readVarint();
+    }
+  }
+
+  public static write(obj: any, pbf: Pbf | undefined): void {
+    if (pbf) {
+      if (obj.id) pbf.writeVarintField(1, obj.id);
+      if (obj.left) pbf.writeVarintField(2, obj.left);
+      if (obj.right) pbf.writeVarintField(3, obj.right);
+      if (obj.top) pbf.writeVarintField(4, obj.top);
+      if (obj.bottom) pbf.writeVarintField(5, obj.bottom);
+    }
+  }
+}
+
 export class PlaybackPacket {
+  private static DirectorsCutRegion = DirectorsCutRegion;
+
   public static read(pbf: Pbf, end?: any): any {
     return pbf.readFields(
       PlaybackPacket._readField,
@@ -51,7 +79,8 @@ export class PlaybackPacket {
       else if (tag === 4) obj.payload = pbf.readBytes();
       else if (tag === 5) obj.latency_rtp_sequence = pbf.readVarint();
       else if (tag === 6) obj.latency_rtp_ssrc = pbf.readVarint();
-      else if (tag === 7) obj.directors_cut_regions.push(pbf.readVarint());
+      else if (tag === 7)
+        obj.directors_cut_regions.push(PlaybackPacket.DirectorsCutRegion.read(pbf, pbf.readVarint() + pbf.pos));
     }
   }
 
@@ -65,7 +94,7 @@ export class PlaybackPacket {
       if (obj.latency_rtp_ssrc) pbf.writeVarintField(6, obj.latency_rtp_ssrc);
       if (obj.directors_cut_regions)
         for (let i = 0; i < obj.directors_cut_regions.length; i++)
-          pbf.writeVarintField(7, obj.directors_cut_regions[i]);
+          pbf.writeMessage(2, PlaybackPacket.DirectorsCutRegion.write, obj.channels[i]);
     }
   }
 }

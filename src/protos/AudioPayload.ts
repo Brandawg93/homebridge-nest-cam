@@ -24,8 +24,8 @@ export class AudioPayload {
       if (obj.payload) pbf.writeBytesField(1, obj.payload);
       if (obj.session_id) pbf.writeVarintField(2, obj.session_id);
       if (obj.codec) pbf.writeVarintField(3, obj.codec);
-      if (obj.sample_rate) pbf.writeVarintField(3, obj.sample_rate);
-      if (obj.latency_measure_tag) pbf.writeVarintField(3, obj.latency_measure_tag);
+      if (obj.sample_rate) pbf.writeVarintField(4, obj.sample_rate);
+      if (obj.latency_measure_tag) pbf.writeVarintField(5, obj.latency_measure_tag);
     }
   }
 }

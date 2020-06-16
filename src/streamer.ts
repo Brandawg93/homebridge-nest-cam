@@ -25,7 +25,7 @@ export class NexusStreamer {
   private host = '';
   private accessToken = '';
   private socket: TLSSocket = new TLSSocket(new Socket());
-  private pendingMessages: Array<any> = [];
+  private pendingMessages: Array<{ type: number; buffer: Uint8Array }> = [];
   private pendingBuffer: Buffer | undefined;
   private videoChannelID = -1;
   private audioChannelID = -1;
@@ -67,25 +67,17 @@ export class NexusStreamer {
     const stdout = this.ffmpegReturnAudio?.getStdout();
     if (stdout) {
       stdout.on('data', (chunk) => {
-        // console.log(`Received ${chunk.length} bytes of data.`);
-        this.sendAudioPayload(chunk);
+        this.sendAudioPayload(Buffer.from(chunk));
 
         if (this.returnAudioTimeout) {
           clearTimeout(this.returnAudioTimeout);
-          this.returnAudioTimeout = setTimeout(() => {
-            self.sendAudioPayload(Buffer.from([]));
-          }, 3000);
         }
-      });
-      stdout.on('resume', () => {
         this.returnAudioTimeout = setTimeout(() => {
           self.sendAudioPayload(Buffer.from([]));
-        }, 3000);
+        }, 1000);
       });
     }
   }
-
-  // Internal
 
   /**
    * Setup socket communication and send hello packet
@@ -95,7 +87,7 @@ export class NexusStreamer {
     let pingInterval: NodeJS.Timeout;
 
     this.stopPlayback();
-    // this.createReturnAudioServer();
+    this.createReturnAudioServer();
     const options = {
       host: this.host,
       port: 1443,
@@ -131,9 +123,9 @@ export class NexusStreamer {
   /**
    * Send data to socket
    * @param {number} type The type of packet being sent
-   * @param {any} buffer  The information to send
+   * @param {Uint8Array} buffer  The information to send
    */
-  private sendMessage(type: number, buffer: any): void {
+  private sendMessage(type: number, buffer: Uint8Array): void {
     if (this.socket.connecting || !this.socket.encrypted) {
       this.log.debug('waiting for socket to connect');
       if (!this.pendingMessages) {
@@ -160,6 +152,7 @@ export class NexusStreamer {
 
     let requestBuffer;
     if (type === 0xcd) {
+      // Long packet
       requestBuffer = Buffer.alloc(5);
       requestBuffer[0] = type;
       requestBuffer.writeUInt32BE(buffer.length, 1);
@@ -199,9 +192,10 @@ export class NexusStreamer {
     const request = {
       protocol_version: Hello.ProtocolVersion.VERSION_3,
       uuid: this.cameraInfo.uuid,
-      require_connected_camera: true,
+      device_id: this.cameraInfo.homebridge_uuid,
+      require_connected_camera: false,
       user_agent: NestEndpoints.USER_AGENT_STRING,
-      client_type: Hello.ClientType.IOS,
+      client_type: Hello.ClientType.WEB,
       authorize_request: tokenBuffer,
     };
     const pbfContainer = new Pbf();
@@ -262,7 +256,7 @@ export class NexusStreamer {
     const request = {
       payload: payload,
       session_id: this.sessionID,
-      codec: CodecType.AAC,
+      codec: CodecType.SPEEX,
       sample_rate: 16e3, // Same as 16000
     };
 
@@ -304,7 +298,6 @@ export class NexusStreamer {
     if (packet.channel_id === this.videoChannelID) {
       // H264 NAL Units require 0001 added to beginning
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
-      // this.h264Streamer.push(packet);
       const stdin = this.ffmpegVideo.getStdin();
       if (stdin && !stdin?.destroyed) {
         stdin.write(Buffer.concat([startCode, Buffer.from(packet.payload)]));

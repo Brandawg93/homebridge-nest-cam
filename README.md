@@ -73,6 +73,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | doorbellAlerts    | enable/disable doorbell ring notifications                          | boolean          |
 | doorbellSwitch    | enable/disable doorbell automation switch                           | boolean          |
 | streamingSwitch   | enable/disable the ability to turn the camera on or off             | boolean          |
+| chimeSwitch       | enable/disable the ability to turn the doorbell chime on or off     | boolean          |
 | disableAudio      | enable/disable the audio stream                                     | boolean          |
 | pathToFfmpeg      | specify the path to a custom ffmpeg binary                          | string           |
 | structures        | specify the structure names of which structures' cameras to see     | array            |

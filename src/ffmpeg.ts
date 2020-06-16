@@ -1,9 +1,24 @@
 import { ChildProcess, spawn } from 'child_process';
+import execa from 'execa';
 import { Logging, StreamRequestCallback } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
 import { Readable, Writable } from 'stream';
 
 const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
+
+export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string): Promise<boolean> {
+  const output = await execa(ffmpegPath, ['-codecs']);
+  return output.stdout.includes(codec);
+}
+
+export async function isFfmpegInstalled(ffmpegPath: string): Promise<boolean> {
+  try {
+    await execa(ffmpegPath, ['-codecs']);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 export class FfmpegProcess {
   private ff: ChildProcess;

@@ -21,11 +21,13 @@ import ip from 'ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints } from './nest-endpoints';
-import { FfmpegProcess } from './ffmpeg';
+import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
 import getPort from 'get-port';
+
+const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 type SessionInfo = {
   address: string; // address of the HAP controller
@@ -191,7 +193,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const address = sessionInfo.address;
         const videoPort = sessionInfo.videoPort;
         const audioPort = sessionInfo.audioPort;
-        // const returnAudioPort = sessionInfo.returnAudioPort;
+        const returnAudioPort = sessionInfo.returnAudioPort;
         const videoSsrc = sessionInfo.videoSSRC;
         const audioSsrc = sessionInfo.audioSSRC;
         const videoSRTP = sessionInfo.videoSRTP.toString('base64');
@@ -203,7 +205,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           '-use_wallclock_as_timestamps',
           '1',
           '-i',
-          '-',
+          'pipe:',
           '-c:v',
           this.ffmpegCodec,
           '-payload_type',
@@ -227,7 +229,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           '-f',
           'aac',
           '-i',
-          '-',
+          'pipe:',
           '-c:a',
           'libfdk_aac',
           '-profile:a',
@@ -253,29 +255,43 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           `srtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`,
         ];
 
-        // const returnAudioffmpegCommand = [
-        //   '-hide_banner',
-        //   '-protocol_whitelist',
-        //   'pipe,udp,rtp,file,crypto',
-        //   '-f',
-        //   'sdp',
-        //   '-re',
-        //   '-c:a',
-        //   'libfdk_aac',
-        //   '-i',
-        //   '-',
-        //   '-c:a',
-        //   'libfdk_aac',
-        //   '-ar',
-        //   `${sampleRate}k`,
-        //   '-b:a',
-        //   `${audioMaxBitrate}k`,
-        //   '-flags',
-        //   '+global_header',
-        //   '-f',
-        //   'adts',
-        //   '-',
-        // ];
+        const returnAudioffmpegCommand = [
+          '-hide_banner',
+          '-protocol_whitelist',
+          'pipe,udp,rtp,file,crypto',
+          '-f',
+          'sdp',
+          '-c:a',
+          'libfdk_aac',
+          '-i',
+          'pipe:0',
+          '-map',
+          '0:0',
+          '-c:a',
+          'libspeex',
+          // '-abr',
+          // '1',
+          '-q:a',
+          '1',
+          // '-vad',
+          // '1',
+          // '-dtx',
+          // '1',
+          '-ac',
+          '1',
+          '-ar',
+          `16k`,
+          '-f',
+          'data',
+          'pipe:1',
+        ];
+
+        const videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
+
+        if (!(await isFfmpegInstalled(videoProcessor))) {
+          this.log.error('FFMPEG is not installed. Please install it before using this plugin.');
+          break;
+        }
 
         const ffmpegVideo = new FfmpegProcess(
           'VIDEO',
@@ -290,44 +306,51 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         let ffmpegAudio: FfmpegProcess | undefined;
         let ffmpegReturnAudio: FfmpegProcess | undefined;
-        if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
-          ffmpegAudio = new FfmpegProcess(
-            'AUDIO',
-            audioffmpegCommand,
-            this.log,
-            undefined,
-            this,
-            sessionId,
-            false,
-            this.customFfmpeg,
+        if (await doesFfmpegSupportCodec('libfdk_aac', videoProcessor)) {
+          if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
+            ffmpegAudio = new FfmpegProcess(
+              'AUDIO',
+              audioffmpegCommand,
+              this.log,
+              undefined,
+              this,
+              sessionId,
+              false,
+              this.customFfmpeg,
+            );
+
+            if (await doesFfmpegSupportCodec('libspeex', videoProcessor)) {
+              ffmpegReturnAudio = new FfmpegProcess(
+                'RETURN AUDIO',
+                returnAudioffmpegCommand,
+                this.log,
+                undefined,
+                this,
+                sessionId,
+                false,
+                this.customFfmpeg,
+              );
+
+              const sdpReturnAudio = [
+                'v=0',
+                `c=IN IP4 ${address}`,
+                `m=audio ${returnAudioPort} RTP/AVP 110`,
+                'a=rtpmap:110 MPEG4-GENERIC/16000/1',
+                'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
+                `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
+              ].join('\n');
+              ffmpegReturnAudio.getStdin()?.write(sdpReturnAudio);
+              ffmpegReturnAudio.getStdin()?.end();
+            } else {
+              this.log.error(
+                "This version of FFMPEG does not support the audio codec 'libspeex'. You may need to recompile FFMPEG using '--enable-libspeex'.",
+              );
+            }
+          }
+        } else {
+          this.log.error(
+            "This version of FFMPEG does not support the audio codec 'libfdk_aac'. You may need to recompile FFMPEG using '--enable-libfdk_aac'.",
           );
-
-          // ffmpegReturnAudio = new FfmpegProcess(
-          //   'RETURN AUDIO',
-          //   returnAudioffmpegCommand,
-          //   this.log,
-          //   undefined,
-          //   this,
-          //   sessionId,
-          //   false,
-          //   this.customFfmpeg,
-          // );
-
-          // const sdpReturnAudio = [
-          //   'v=0',
-          //   'o=- 0 0 IN IP4 127.0.0.1',
-          //   's=Talk',
-          //   `c=IN IP4 ${address}`,
-          //   't=0 0',
-          //   'a=tool:libavformat 58.38.100',
-          //   `m=audio ${returnAudioPort} RTP/AVP 110`,
-          //   'b=AS:24',
-          //   'a=rtpmap:110 MPEG4-GENERIC/16000/1',
-          //   'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
-          //   `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
-          // ].join('\n');
-          // ffmpegReturnAudio.getStdin()?.write(sdpReturnAudio);
-          // ffmpegReturnAudio.getStdin()?.end();
         }
 
         const streamer = new NexusStreamer(
