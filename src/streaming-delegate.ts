@@ -226,8 +226,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         }
 
         const audioffmpegCommand = [
-          '-f',
-          'aac',
+          '-c:a',
+          'libfdk_aac',
           '-i',
           'pipe:',
           '-c:a',
