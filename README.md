@@ -26,14 +26,8 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 2. Add google authentication to `config.json`
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
 
-### FFMPEG
-In order to use the below ffmpeg options, you must specify your custom ffmpeg path in the `pathToFfmpeg` config option.
-
-#### Raspberry Pi
-You may want to use OMX for transcoding as the CPU on the board can be slow. If so, make sure the ffmpeg installed on your Pi has `h264_omx` support and set the `ffmpegCodec` option below to `h264_omx`. You can always compile ffmpeg from source using [these instructions](https://github.com/legotheboss/YouTube-files/wiki/(RPi)-Compile-FFmpeg-with-the-OpenMAX-H.264-GPU-acceleration).
-
-#### Mac OS
-You may want to use VideoToolbox hardware acceleration for transcoding. If so, make sure the ffmpeg installed on your Mac has `videotoolbox` support and set `ffmpegCodec` option below to `h264_videotoolbox`.
+### FFmpeg
+By default, `libx264` is used as the h264 encoder. If you would like to use a hardware-accelerated encoder instead, refer to the [h264 Hardware Encoders Wiki](https://github.com/Brandawg93/homebridge-nest-cam/wiki/h264-Hardware-Encoders).
 
 ### Setting up the Config.json
 #### googleAuth
@@ -75,7 +69,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | streamingSwitch   | enable/disable the ability to turn the camera on or off             | boolean          |
 | chimeSwitch       | enable/disable the ability to turn the doorbell chime on or off     | boolean          |
 | disableAudio      | enable/disable the audio stream                                     | boolean          |
-| pathToFfmpeg      | specify the path to a custom ffmpeg binary                          | string           |
+| pathToFfmpeg      | specify the path to a custom FFmpeg binary                          | string           |
 | structures        | specify the structure names of which structures' cameras to see     | array            |
 
 ## Join the Discord
