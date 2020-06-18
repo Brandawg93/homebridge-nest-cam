@@ -100,7 +100,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (typeof doorbellSwitch !== 'undefined') {
       this.doorbellSwitch = doorbellSwitch;
     }
-    const streamingSwitch = options?.treamingSwitch;
+    const streamingSwitch = options?.streamingSwitch;
     if (typeof streamingSwitch !== 'undefined') {
       this.streamingSwitch = streamingSwitch;
     }
