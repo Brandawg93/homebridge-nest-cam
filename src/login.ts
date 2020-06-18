@@ -1,51 +1,54 @@
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
+import { PlatformConfig } from 'homebridge';
 
-let clientId = '';
-let loginHint = '';
-let cookies = '';
-let apiKey = '';
-let domain = '';
+export async function login(config?: PlatformConfig): Promise<void> {
+  let clientId = '';
+  let loginHint = '';
+  let cookies = '';
+  let apiKey = '';
+  let domain = '';
 
-puppeteer.use(pluginStealth());
+  puppeteer.use(pluginStealth());
 
-const headless = !process.argv.includes('-h');
-const prompt = (query: string, hidden = false): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    try {
-      if (hidden) {
-        const stdin = process.openStdin();
-        process.stdin.on('data', (char: string) => {
-          char = char + '';
-          switch (char) {
-            case '\n':
-            case '\r':
-            case '\u0004':
-              stdin.pause();
-              break;
-            default:
-              process.stdout.clearLine(0);
-              readline.cursorTo(process.stdout, 0);
-              process.stdout.write(query + Array(rl.line.length + 1).join('*'));
-              break;
-          }
-        });
-      }
-      rl.question(query, (value) => {
-        resolve(value);
-        rl.close();
+  const headless = !process.argv.includes('-h');
+  // const headless = typeof config !== 'undefined';
+  const prompt = (query: string, hidden = false): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
       });
-    } catch (err) {
-      reject(err);
-    }
-  });
+      try {
+        if (hidden) {
+          const stdin = process.openStdin();
+          process.stdin.on('data', (char: string) => {
+            char = char + '';
+            switch (char) {
+              case '\n':
+              case '\r':
+              case '\u0004':
+                stdin.pause();
+                break;
+              default:
+                process.stdout.clearLine(0);
+                readline.cursorTo(process.stdout, 0);
+                process.stdout.write(query + Array(rl.line.length + 1).join('*'));
+                break;
+            }
+          });
+        }
+        rl.question(query, (value) => {
+          resolve(value);
+          rl.close();
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
 
-puppeteer.launch({ headless: headless }).then(async (browser: any) => {
+  const browser = await puppeteer.launch({ headless: headless });
   console.log('Opening chromium browser...');
   const page = await browser.newPage();
   const pages = await browser.pages();
@@ -109,6 +112,9 @@ puppeteer.launch({ headless: headless }).then(async (browser: any) => {
         cookies: cookies,
         apiKey: apiKey,
       };
+      if (config) {
+        config.googleAuth = auth;
+      }
       console.log('Add the following to your config.json:\n');
       console.log('"googleAuth":', JSON.stringify(auth, null, 4));
       browser.close();
@@ -131,4 +137,8 @@ puppeteer.launch({ headless: headless }).then(async (browser: any) => {
       loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
     }
   });
-});
+}
+
+(async (): Promise<void> => {
+  await login();
+})();
