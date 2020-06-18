@@ -57,7 +57,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
   private config: PlatformConfig;
-  private endpoints: NestEndpoints;
+  private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
   private motionDetection = true;
@@ -71,8 +71,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     this.log = log;
     this.api = api;
     this.config = config;
-    const fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
-    this.endpoints = new NestEndpoints(fieldTest);
 
     // Need a config or plugin will not start
     if (!config) {
@@ -80,48 +78,49 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Set up the config if options are not set
-    const googleAuth = config['googleAuth'];
-    const options = config['options'];
-    if (typeof googleAuth === 'undefined') {
-      throw new Error('googleAuth is not defined in the Homebridge config');
+    const googleAuth = config.googleAuth;
+    const options = config.options;
+    if (!googleAuth) {
+      this.log.error('googleAuth is not defined in the Homebridge config');
+      return;
     }
-    if (typeof options === 'undefined') {
-      config.options = {};
-    } else {
-      const motionDetection = config.options['motionDetection'];
-      if (typeof motionDetection !== 'undefined') {
-        this.motionDetection = motionDetection;
-      }
-      const doorbellAlerts = config.options['doorbellAlerts'];
-      if (typeof doorbellAlerts !== 'undefined') {
-        this.doorbellAlerts = doorbellAlerts;
-      }
-      const doorbellSwitch = config.options['doorbellSwitch'];
-      if (typeof doorbellSwitch !== 'undefined') {
-        this.doorbellSwitch = doorbellSwitch;
-      }
-      const streamingSwitch = config.options['streamingSwitch'];
-      if (typeof streamingSwitch !== 'undefined') {
-        this.streamingSwitch = streamingSwitch;
-      }
-      const chimeSwitch = config.options['chimeSwitch'];
-      if (typeof chimeSwitch !== 'undefined') {
-        this.chimeSwitch = chimeSwitch;
-      }
-      const structures = config.options['structures'];
-      if (typeof structures !== 'undefined') {
-        this.structures = structures;
-      }
+
+    const fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
+    this.endpoints = new NestEndpoints(fieldTest);
+
+    const motionDetection = options?.motionDetection;
+    if (typeof motionDetection !== 'undefined') {
+      this.motionDetection = motionDetection;
+    }
+    const doorbellAlerts = options?.doorbellAlerts;
+    if (typeof doorbellAlerts !== 'undefined') {
+      this.doorbellAlerts = doorbellAlerts;
+    }
+    const doorbellSwitch = options?.doorbellSwitch;
+    if (typeof doorbellSwitch !== 'undefined') {
+      this.doorbellSwitch = doorbellSwitch;
+    }
+    const streamingSwitch = options?.treamingSwitch;
+    if (typeof streamingSwitch !== 'undefined') {
+      this.streamingSwitch = streamingSwitch;
+    }
+    const chimeSwitch = options?.chimeSwitch;
+    if (typeof chimeSwitch !== 'undefined') {
+      this.chimeSwitch = chimeSwitch;
+    }
+    const structures = options?.structures;
+    if (typeof structures !== 'undefined') {
+      this.structures = structures;
     }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
   }
 
   configureAccessory(accessory: PlatformAccessory): void {
-    this.log(`Configuring accessory ${accessory.displayName}`);
+    this.log.info(`Configuring accessory ${accessory.displayName}`);
 
     accessory.on(PlatformAccessoryEvent.IDENTIFY, () => {
-      this.log(`${accessory.displayName} identified!`);
+      this.log.info(`${accessory.displayName} identified!`);
     });
 
     const cameraInfo: CameraInfo = accessory.context.cameraInfo;
@@ -249,7 +248,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
           await camera.toggleActive(value as boolean);
-          this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
+          this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
           callback();
         });
     }
@@ -265,7 +264,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
           await camera.toggleChime(value as boolean);
-          this.log.info('Setting %s chime to %s', accessory.displayName, value ? 'on' : 'off');
+          this.log.info(`Setting ${accessory.displayName} chime to ${value ? 'on' : 'off'}`);
           callback();
         });
     }
@@ -281,7 +280,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
           await camera.toggleAudio(value as boolean);
-          this.log.info('Setting %s audio to %s', accessory.displayName, value ? 'on' : 'off');
+          this.log.info(`Setting ${accessory.displayName} audio to ${value ? 'on' : 'off'}`);
           callback();
         });
     }

@@ -306,8 +306,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         let ffmpegAudio: FfmpegProcess | undefined;
         let ffmpegReturnAudio: FfmpegProcess | undefined;
-        if (await doesFfmpegSupportCodec('libfdk_aac', videoProcessor)) {
-          if (this.camera.info.properties['audio.enabled']) {
+        if (this.camera.info.properties['audio.enabled']) {
+          if (await doesFfmpegSupportCodec('libfdk_aac', videoProcessor)) {
             ffmpegAudio = new FfmpegProcess(
               'AUDIO',
               audioffmpegCommand,
@@ -346,11 +346,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
                 "This version of FFMPEG does not support the audio codec 'libspeex'. You may need to recompile FFMPEG using '--enable-libspeex'.",
               );
             }
+          } else {
+            this.log.error(
+              "This version of FFMPEG does not support the audio codec 'libfdk_aac'. You may need to recompile FFMPEG using '--enable-libfdk_aac'.",
+            );
           }
-        } else {
-          this.log.error(
-            "This version of FFMPEG does not support the audio codec 'libfdk_aac'. You may need to recompile FFMPEG using '--enable-libfdk_aac'.",
-          );
         }
 
         const streamer = new NexusStreamer(
