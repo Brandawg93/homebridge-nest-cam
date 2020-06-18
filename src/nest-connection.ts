@@ -24,7 +24,7 @@ export class Connection {
   private readonly log: Logging;
 
   constructor(config: PlatformConfig, log: Logging) {
-    this.endpoints = new NestEndpoints(config.options.fieldTest);
+    this.endpoints = new NestEndpoints(config.fieldTest || false);
     this.config = config;
     this.log = log;
   }

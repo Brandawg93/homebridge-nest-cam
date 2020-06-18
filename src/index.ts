@@ -37,8 +37,8 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
     return false;
   }
 
-  config.options.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
-  log.debug(`Setting Field Test to ${config.options.fieldTest}`);
+  config.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
+  log.debug(`Setting Field Test to ${config.fieldTest}`);
   const conn = new Connection(config, log);
   return await conn.auth();
 };
@@ -167,7 +167,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     accessory.configureController(cameraController);
 
-    const alertInterval = (this.config.options.alertCheckRate || 10) * 1000;
+    const alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
     // Configure services
     const motion = accessory.getService(hap.Service.MotionSensor);
     const doorbell = accessory.getService(hap.Service.Doorbell);

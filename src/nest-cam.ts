@@ -35,9 +35,9 @@ export class NestCam {
     this.config = config;
     this.accessory = accessory;
     this.info = info;
-    this.alertTypes = config.options.alertTypes || [];
-    this.alertCooldown = (config.options.alertCooldownRate || 180) * 1000;
-    this.endpoints = new NestEndpoints(config.options.fieldTest);
+    this.alertTypes = config.options?.alertTypes || [];
+    this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
+    this.endpoints = new NestEndpoints(config.fieldTest || false);
   }
 
   private async setProperty(

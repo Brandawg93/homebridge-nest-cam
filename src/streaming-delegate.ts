@@ -63,7 +63,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.hap = hap;
     this.log = log;
     this.config = config;
-    this.endpoints = new NestEndpoints(config.options.fieldTest);
+    this.endpoints = new NestEndpoints(config.options?.fieldTest || false);
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
     this.ffmpegCodec = config.ffmpegCodec || 'libx264';
@@ -204,6 +204,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           'h264',
           '-use_wallclock_as_timestamps',
           '1',
+          '-probesize',
+          '100000',
           '-i',
           'pipe:',
           '-c:v',
@@ -269,16 +271,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           '0:0',
           '-c:a',
           'libspeex',
-          // '-abr',
-          // '1',
-          '-q:a',
-          '1',
-          // '-vad',
-          // '1',
-          // '-dtx',
-          // '1',
+          '-frames_per_packet',
+          '4',
           '-ac',
           '1',
+          '-b:a',
+          `${audioMaxBitrate}k`,
           '-ar',
           `16k`,
           '-f',
