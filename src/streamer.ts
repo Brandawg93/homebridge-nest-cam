@@ -13,6 +13,7 @@ import { AudioPayload } from './protos/AudioPayload';
 import { StartPlayback } from './protos/StartPlayback';
 import { StopPlayback } from './protos/StopPlayback';
 import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin';
+import { Error, ErrorCode } from './protos/Error';
 
 export class NexusStreamer {
   private ffmpegVideo: FfmpegProcess;
@@ -211,11 +212,7 @@ export class NexusStreamer {
     const tokenContainer = new Pbf();
     AuthorizeRequest.write(token, tokenContainer);
     const tokenBuffer = tokenContainer.finish();
-
-    const pbfContainer = new Pbf();
-    Hello.write(tokenBuffer, pbfContainer);
-    const buffer = pbfContainer.finish();
-    this.sendMessage(PacketType.AUTHORIZE_REQUEST, buffer);
+    this.sendMessage(PacketType.AUTHORIZE_REQUEST, tokenBuffer);
   }
 
   startPlayback(): void {
@@ -310,6 +307,17 @@ export class NexusStreamer {
     }
   }
 
+  private handleNexusError(payload: Pbf): void {
+    const packet = Error.read(payload);
+    if (packet.code === ErrorCode.ERROR_AUTHORIZATION_FAILED) {
+      this.log.debug('[NexusStreamer] Updating authentication');
+      this.updateAuthentication();
+    } else {
+      this.log.error('[NexusStreamer] Error');
+      this.stopPlayback();
+    }
+  }
+
   private handleNexusPacket(type: number, payload: Pbf): void {
     switch (type) {
       case PacketType.PING:
@@ -321,8 +329,7 @@ export class NexusStreamer {
         this.processPendingMessages();
         break;
       case PacketType.ERROR:
-        this.log.error('[NexusStreamer] Error');
-        this.stopPlayback();
+        this.handleNexusError(payload);
         break;
       case PacketType.PLAYBACK_BEGIN:
         this.log.debug('[NexusStreamer] Playback Begin');
