@@ -307,7 +307,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         let ffmpegAudio: FfmpegProcess | undefined;
         let ffmpegReturnAudio: FfmpegProcess | undefined;
         if (await doesFfmpegSupportCodec('libfdk_aac', videoProcessor)) {
-          if (!this.config.options.disableAudio && this.camera.info.is_audio_recording_enabled) {
+          if (this.camera.info.properties['audio.enabled']) {
             ffmpegAudio = new FfmpegProcess(
               'AUDIO',
               audioffmpegCommand,

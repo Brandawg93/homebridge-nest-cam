@@ -81,11 +81,6 @@
           "type": "boolean",
           "default": true
         },
-        "disableAudio": {
-          "title": "Disable Audio Stream",
-          "type": "boolean",
-          "default": false
-        },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
           "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",

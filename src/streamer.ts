@@ -222,19 +222,18 @@ export class NexusStreamer {
     // Attempt to use camera's stream profile or use default
     const cameraProfile = this.cameraInfo.properties['streaming.cameraprofile'] as keyof typeof StreamProfile;
     const primaryProfile = StreamProfile[cameraProfile] || StreamProfile.VIDEO_H264_2MBIT_L40;
-    const profiles = [
-      primaryProfile,
-      StreamProfile.VIDEO_H264_530KBIT_L31,
-      StreamProfile.VIDEO_H264_100KBIT_L30,
-      StreamProfile.AUDIO_AAC,
-    ];
-    if (!this.ffmpegAudio) {
-      profiles.pop();
-    }
+    const otherProfiles = [];
+    this.cameraInfo.capabilities.forEach((element) => {
+      if (element.startsWith('streaming.cameraprofile')) {
+        const profile = element.replace('streaming.cameraprofile.', '') as keyof typeof StreamProfile;
+        otherProfiles.push(StreamProfile[profile]);
+      }
+    });
+    this.cameraInfo.properties['audio.enabled'] && this.ffmpegAudio && otherProfiles.push(StreamProfile.AUDIO_AAC);
     const request = {
       session_id: this.sessionID,
-      profile: profiles[0],
-      other_profiles: profiles,
+      profile: primaryProfile,
+      other_profiles: otherProfiles,
     };
     const pbfContainer = new Pbf();
     StartPlayback.write(request, pbfContainer);

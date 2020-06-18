@@ -49,7 +49,7 @@ const setAlertInterval = async function (
   interval: number,
 ): Promise<void> {
   setInterval(async function () {
-    camera.checkAlerts(accessory);
+    camera.checkAlerts();
   }, interval);
 };
 
@@ -112,10 +112,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       if (typeof structures !== 'undefined') {
         this.structures = structures;
       }
-      const disableAudio = config.options['disableAudio'];
-      if (typeof disableAudio === 'undefined') {
-        config.options.disableAudio = false;
-      }
     }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
@@ -129,7 +125,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
 
     const cameraInfo: CameraInfo = accessory.context.cameraInfo;
-    const camera = new NestCam(this.config, cameraInfo, this.log, hap);
+    const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
     const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
@@ -181,6 +177,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const doorbellSwitch = accessory.getService('DoorbellSwitch');
     const enabledSwitch = accessory.getService('Streaming');
     const chimeSwitch = accessory.getService('Chime');
+    const audioSwitch = accessory.getService('Audio');
 
     // Microphone configuration
     if (microphone) {
@@ -248,10 +245,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (this.streamingSwitch) {
       accessory
         .addService(new hap.Service.Switch('Streaming', 'streaming'))
-        .setCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled)
+        .setCharacteristic(hap.Characteristic.On, camera.info.properties['streaming.enabled'])
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleActive(value as boolean, accessory);
+          await camera.toggleActive(value as boolean);
           this.log.info('Setting %s to %s', accessory.displayName, value ? 'on' : 'off');
           callback();
         });
@@ -261,14 +258,30 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (chimeSwitch) {
       accessory.removeService(chimeSwitch);
     }
-    if (this.chimeSwitch) {
+    if (camera.info.capabilities.includes('indoor_chime') && this.chimeSwitch) {
       accessory
         .addService(new hap.Service.Switch('Chime', 'chime'))
-        .setCharacteristic(hap.Characteristic.On, camera.info.doorbell_indoor_chime_enabled)
+        .setCharacteristic(hap.Characteristic.On, camera.info.properties['doorbell.indoor_chime.enabled'])
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleChime(value as boolean, accessory);
+          await camera.toggleChime(value as boolean);
           this.log.info('Setting %s chime to %s', accessory.displayName, value ? 'on' : 'off');
+          callback();
+        });
+    }
+
+    // Audio switch configuration
+    if (audioSwitch) {
+      accessory.removeService(audioSwitch);
+    }
+    if (camera.info.capabilities.includes('audio.microphone')) {
+      accessory
+        .addService(new hap.Service.Switch('Audio', 'audio'))
+        .setCharacteristic(hap.Characteristic.On, camera.info.properties['audio.enabled'])
+        .getCharacteristic(hap.Characteristic.On)
+        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+          await camera.toggleAudio(value as boolean);
+          this.log.info('Setting %s audio to %s', accessory.displayName, value ? 'on' : 'off');
           callback();
         });
     }

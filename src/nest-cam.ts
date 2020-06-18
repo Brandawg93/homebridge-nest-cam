@@ -1,4 +1,4 @@
-import { HAP, Logging, PlatformAccessory, PlatformConfig } from 'homebridge';
+import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './camera-info';
 import querystring from 'querystring';
@@ -22,24 +22,35 @@ export class NestCam {
   private endpoints: NestEndpoints;
   private readonly hap: HAP;
   public info: CameraInfo;
+  private accessory: PlatformAccessory;
   private motionDetected = false;
   private motionInProgress = false;
   private doorbellRang = false;
   private alertTypes: Array<string> = [];
   private alertCooldown = 180000;
 
-  constructor(config: PlatformConfig, info: CameraInfo, log: Logging, hap: HAP) {
+  constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     this.hap = hap;
     this.log = log;
     this.config = config;
+    this.accessory = accessory;
     this.info = info;
     this.alertTypes = config.options.alertTypes || [];
     this.alertCooldown = (config.options.alertCooldownRate || 180) * 1000;
     this.endpoints = new NestEndpoints(config.options.fieldTest);
   }
 
-  private async updateInfo(query: string): Promise<any> {
-    return await this.endpoints.sendRequest(
+  private async setProperty(
+    key: string,
+    value: string | number | boolean,
+    service: Service | undefined,
+  ): Promise<boolean> {
+    const query = querystring.stringify({
+      [key]: value,
+      uuid: this.info.uuid,
+    });
+
+    const response = await this.endpoints.sendRequest(
       this.config.access_token,
       this.endpoints.CAMERA_API_HOSTNAME,
       '/api/dropcams.set_properties',
@@ -47,50 +58,45 @@ export class NestCam {
       'json',
       query,
     );
-  }
 
-  async toggleActive(enabled: boolean, accessory: PlatformAccessory): Promise<void> {
-    const query = querystring.stringify({
-      'streaming.enabled': enabled,
-      uuid: this.info.uuid,
-    });
-    const response = await this.updateInfo(query);
     try {
       if (response.status !== 0) {
-        this.log.error(`Could not turn ${this.info.name} ${enabled ? 'on' : 'off'}`);
+        this.log.error(`Unable to set property '${key}' for ${this.info.name} to ${value}`);
       } else {
-        const service = accessory.getService('Streaming');
         if (service) {
-          service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+          service.updateCharacteristic(this.hap.Characteristic.On, value);
+          return true;
         }
       }
     } catch (error) {
-      handleError(this.log, error, 'Error toggling camera state');
+      handleError(this.log, error, `Error setting property for ${this.info.name}`);
+    }
+    return false;
+  }
+
+  async toggleActive(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService('Streaming');
+    if (await this.setProperty('streaming.enabled', enabled, service)) {
+      this.info.properties['streaming.enabled'] = enabled;
     }
   }
 
-  async toggleChime(enabled: boolean, accessory: PlatformAccessory): Promise<void> {
-    const query = querystring.stringify({
-      'doorbell.indoor_chime.enabled': enabled,
-      uuid: this.info.uuid,
-    });
-    const response = await this.updateInfo(query);
-    try {
-      if (response.status !== 0) {
-        this.log.error(`Could not turn ${this.info.name} chime ${enabled ? 'on' : 'off'}`);
-      } else {
-        const service = accessory.getService('Chime');
-        if (service) {
-          service.updateCharacteristic(this.hap.Characteristic.On, enabled);
-        }
-      }
-    } catch (error) {
-      handleError(this.log, error, 'Error toggling doorbell chime');
+  async toggleChime(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService('Chime');
+    if (await this.setProperty('doorbell.indoor_chime.enabled', enabled, service)) {
+      this.info.properties['doorbell.indoor_chime.enabled'] = enabled;
     }
   }
 
-  async checkAlerts(accessory: PlatformAccessory): Promise<void> {
-    this.log.debug(`Checking for alerts on ${accessory.displayName}`);
+  async toggleAudio(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService('Audio');
+    if (await this.setProperty('audio.enabled', enabled, service)) {
+      this.info.properties['audio.enabled'] = enabled;
+    }
+  }
+
+  async checkAlerts(): Promise<void> {
+    this.log.debug(`Checking for alerts on ${this.accessory.displayName}`);
     try {
       const currDate = new Date();
       currDate.setMinutes(currDate.getMinutes() - 1);
@@ -98,7 +104,7 @@ export class NestCam {
       const query = querystring.stringify({
         start_time: epoch,
       });
-      if (!accessory.context.removed) {
+      if (!this.accessory.context.removed) {
         const self = this;
         const response = await this.endpoints.sendRequest(
           this.config.access_token,
@@ -110,7 +116,7 @@ export class NestCam {
           for (let i = 0; i < response.length; i++) {
             const trigger = response[i];
             if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
-              this.triggerDoorbell(accessory);
+              this.triggerDoorbell();
               break;
             }
 
@@ -120,12 +126,12 @@ export class NestCam {
               intersection = this.alertTypes.filter((type) => trigger.types.includes(type));
             }
             if (trigger.is_important && intersection.length > 0 && !this.motionDetected) {
-              this.triggerMotion(accessory);
+              this.triggerMotion();
               break;
             }
           }
         } else if (this.motionInProgress) {
-          self.setMotion(accessory, false);
+          self.setMotion(false);
           this.motionInProgress = false;
         }
       }
@@ -134,9 +140,9 @@ export class NestCam {
     }
   }
 
-  triggerMotion(accessory: PlatformAccessory): void {
+  triggerMotion(): void {
     const self = this;
-    this.setMotion(accessory, true);
+    this.setMotion(true);
     this.motionDetected = true;
     this.motionInProgress = true;
 
@@ -145,26 +151,26 @@ export class NestCam {
     }, this.alertCooldown);
   }
 
-  setMotion(accessory: PlatformAccessory, state: boolean): void {
-    this.log.debug(`Setting ${accessory.displayName} Motion to ${state}`);
-    const service = accessory.getService(this.hap.Service.MotionSensor);
+  private setMotion(state: boolean): void {
+    this.log.debug(`Setting ${this.accessory.displayName} Motion to ${state}`);
+    const service = this.accessory.getService(this.hap.Service.MotionSensor);
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
     }
   }
 
-  triggerDoorbell(accessory: PlatformAccessory): void {
+  triggerDoorbell(): void {
     const self = this;
-    this.setDoorbell(accessory);
+    this.setDoorbell();
     this.doorbellRang = true;
     setTimeout(function () {
       self.doorbellRang = false;
     }, this.alertCooldown);
   }
 
-  setDoorbell(accessory: PlatformAccessory): void {
-    this.log.debug(`Ringing ${accessory.displayName} Doorbell`);
-    const doorbellService = accessory.getService(this.hap.Service.Doorbell);
+  private setDoorbell(): void {
+    this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
+    const doorbellService = this.accessory.getService(this.hap.Service.Doorbell);
     if (doorbellService) {
       doorbellService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
@@ -172,7 +178,7 @@ export class NestCam {
       );
     }
 
-    const switchService = accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
+    const switchService = this.accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
     if (switchService) {
       switchService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
