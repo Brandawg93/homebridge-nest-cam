@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "3.1.0-test.0",
+  "version": "3.1.0-test.1",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -46,7 +46,10 @@
     "ip": "^1.1.5",
     "pbf": "^3.2.1",
     "get-port": "^5.1.1",
-    "execa": "^4.0.2"
+    "execa": "^4.0.2",
+    "puppeteer": "^3.3.0",
+    "puppeteer-extra": "^3.1.9",
+    "puppeteer-extra-plugin-stealth": "^2.4.5"
   },
   "devDependencies": {
     "@types/ip": "^1.1.0",
@@ -63,9 +66,6 @@
     "homebridge": "^1.0.4",
     "jest": "^26.0.1",
     "prettier": "^2.0.5",
-    "puppeteer": "^3.3.0",
-    "puppeteer-extra": "^3.1.9",
-    "puppeteer-extra-plugin-stealth": "^2.4.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.0.0",
     "typescript": "^3.8.3"

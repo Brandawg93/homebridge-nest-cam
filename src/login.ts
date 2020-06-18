@@ -1,9 +1,8 @@
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
-import { PlatformConfig } from 'homebridge';
 
-export async function login(config?: PlatformConfig): Promise<void> {
+export async function login(email?: string, password?: string): Promise<void> {
   let clientId = '';
   let loginHint = '';
   let cookies = '';
@@ -13,7 +12,6 @@ export async function login(config?: PlatformConfig): Promise<void> {
   puppeteer.use(pluginStealth());
 
   const headless = !process.argv.includes('-h');
-  // const headless = typeof config !== 'undefined';
   const prompt = (query: string, hidden = false): Promise<string> =>
     new Promise((resolve, reject) => {
       const rl = readline.createInterface({
@@ -48,95 +46,100 @@ export async function login(config?: PlatformConfig): Promise<void> {
       }
     });
 
-  const browser = await puppeteer.launch({ headless: headless });
-  console.log('Opening chromium browser...');
-  const page = await browser.newPage();
-  const pages = await browser.pages();
-  pages[0].close();
-  await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
-  if (headless) {
-    await page.waitForSelector('button[data-test="google-button-login"]');
-    await page.waitFor(1000);
-    await page.click('button[data-test="google-button-login"]');
+  try {
+    const browser = await puppeteer.launch({ headless: headless });
+    console.log('Opening chromium browser...');
+    const page = await browser.newPage();
+    const pages = await browser.pages();
+    pages[0].close();
+    await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
+    if (headless) {
+      await page.waitForSelector('button[data-test="google-button-login"]');
+      await page.waitFor(1000);
+      await page.click('button[data-test="google-button-login"]');
 
-    await page.waitForSelector('#identifierId');
-    let badInput = true;
-    while (badInput) {
-      const email = await prompt('Email or phone: ');
-      await page.type('#identifierId', email);
+      await page.waitForSelector('#identifierId');
+      let badInput = true;
+      while (badInput) {
+        if (!email) {
+          email = await prompt('Email or phone: ');
+        }
+        await page.type('#identifierId', email);
+        await page.waitFor(1000);
+        await page.keyboard.press('Enter');
+        await page.waitFor(1000);
+        badInput = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
+        if (badInput) {
+          console.log('Incorrect email or phone. Please try again.');
+          await page.click('#identifierId', { clickCount: 3 });
+        }
+      }
+      if (!password) {
+        password = await prompt('Enter your password: ', true);
+      }
+      console.log('Finishing up...');
+      await page.type('input[type="password"]', password);
       await page.waitFor(1000);
       await page.keyboard.press('Enter');
-      await page.waitFor(1000);
-      badInput = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
-      if (badInput) {
-        console.log('Incorrect email or phone. Please try again.');
-        await page.click('#identifierId', { clickCount: 3 });
-      }
     }
-    const password = await prompt('Enter your password: ', true);
-    console.log('Finishing up...');
-    await page.type('input[type="password"]', password);
-    await page.waitFor(1000);
-    await page.keyboard.press('Enter');
+
+    await page.setRequestInterception(true);
+    page.on('request', async (request: any) => {
+      const headers = request.headers();
+      const url = request.url();
+      // Getting cookies
+      if (url.includes('CheckCookie')) {
+        cookies = (await page.cookies())
+          .map((cookie: any) => {
+            return `${cookie.name}=${cookie.value}`;
+          })
+          .join('; ');
+      }
+
+      // Building issueToken
+      if (url.includes('challenge?')) {
+        const postData = request.postData().split('&');
+        clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
+      }
+
+      // Getting apiKey
+      if (url.includes('issue_jwt') && headers['x-goog-api-key']) {
+        apiKey = headers['x-goog-api-key'];
+        domain = encodeURIComponent(headers['referer'].slice(0, -1));
+      }
+
+      // Build googleAuth object
+      if (apiKey && clientId && loginHint && cookies) {
+        const auth = {
+          issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
+          cookies: cookies,
+          apiKey: apiKey,
+        };
+        // console.log('Add the following to your config.json:\n');
+        console.log('"googleAuth":', JSON.stringify(auth, null, 4));
+        browser.close();
+      }
+
+      // Auth didn't work
+      if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
+        console.log('Could not generate authentication object.');
+        browser.close();
+      }
+
+      request.continue();
+    });
+
+    page.on('response', async (response: any) => {
+      // Building issueToken
+      if (response.url().includes('consent?')) {
+        const headers = response.headers();
+        const queries = headers.location.split('&');
+        loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+      }
+    });
+  } catch (err) {
+    console.error('Unable to retrieve credentials.');
   }
-
-  await page.setRequestInterception(true);
-  page.on('request', async (request: any) => {
-    const headers = request.headers();
-    const url = request.url();
-    // Getting cookies
-    if (url.includes('CheckCookie')) {
-      cookies = (await page.cookies())
-        .map((cookie: any) => {
-          return `${cookie.name}=${cookie.value}`;
-        })
-        .join('; ');
-    }
-
-    // Building issueToken
-    if (url.includes('challenge?')) {
-      const postData = request.postData().split('&');
-      clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
-    }
-
-    // Getting apiKey
-    if (url.includes('issue_jwt') && headers['x-goog-api-key']) {
-      apiKey = headers['x-goog-api-key'];
-      domain = encodeURIComponent(headers['referer'].slice(0, -1));
-    }
-
-    // Build googleAuth object
-    if (apiKey && clientId && loginHint && cookies) {
-      const auth = {
-        issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
-        cookies: cookies,
-        apiKey: apiKey,
-      };
-      if (config) {
-        config.googleAuth = auth;
-      }
-      console.log('Add the following to your config.json:\n');
-      console.log('"googleAuth":', JSON.stringify(auth, null, 4));
-      browser.close();
-    }
-
-    // Auth didn't work
-    if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
-      console.log('Could not generate authentication object.');
-      browser.close();
-    }
-
-    request.continue();
-  });
-
-  page.on('response', async (response: any) => {
-    // Building issueToken
-    if (response.url().includes('consent?')) {
-      const headers = response.headers();
-      const queries = headers.location.split('&');
-      loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
-    }
-  });
 }
 
 (async (): Promise<void> => {

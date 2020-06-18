@@ -19,7 +19,6 @@ import { CameraInfo, ModelTypes } from './camera-info';
 import { NestEndpoints } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
-// import { login } from './login';
 
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
@@ -37,11 +36,6 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
     log.error('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
     return false;
   }
-
-  // if (!config.googleAuth || !config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey) {
-  //   console.log('about to login');
-  //   await login(config);
-  // }
 
   config.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
   log.debug(`Setting Field Test to ${config.fieldTest}`);
