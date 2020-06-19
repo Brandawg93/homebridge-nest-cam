@@ -20,6 +20,7 @@ Include with your bug report this version info:
 ```
 node --version
 homebridge --version
+Your OS: 
 ```
 
 Make sure you have the latest LTS from https://nodejs.org
