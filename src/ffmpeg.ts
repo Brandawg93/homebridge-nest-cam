@@ -76,7 +76,7 @@ export class FfmpegProcess {
       const message = `[${title}] ffmpeg exited with code: ${code} and signal: ${signal}`;
 
       if (code == null || code === 255) {
-        log.debug(message + ` (${title} Stream stopped!)`);
+        log.debug(message + ` (${title} Stream stopped gracefully.)`);
       } else {
         log.error(message + ' (error)');
         delegate.stopStream(sessionId);

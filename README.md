@@ -15,6 +15,10 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 [![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam)](https://nodei.co/npm/homebridge-nest-cam/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam&amp;utm_campaign=Badge_Grade)
 
+[![npm (tag)](https://img.shields.io/npm/v/homebridge-nest-cam/latest)](https://www.npmjs.com/package/homebridge-nest-cam/v/latest)
+[![npm (tag)](https://img.shields.io/npm/v/homebridge-nest-cam/test)](https://www.npmjs.com/package/homebridge-nest-cam/v/test)
+[![GitHub commits since latest release (by date)](https://img.shields.io/github/commits-since/brandawg93/homebridge-nest-cam/latest)](https://github.com/Brandawg93/homebridge-nest-cam/releases/latest)
+
 | [FAQ](https://github.com/Brandawg93/homebridge-nest-cam/wiki/FAQ)    | [Troubleshooting](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) |
 |--------|-----------------|
 

@@ -139,6 +139,7 @@ export async function login(email?: string, password?: string): Promise<void> {
     });
   } catch (err) {
     console.error('Unable to retrieve credentials.');
+    console.error(err);
   }
 }
 
