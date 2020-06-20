@@ -6,10 +6,16 @@ labels: bug
 assignees: ''
 
 ---
+**Before Submitting an Issue**
+
+Please check the [TroubleShooting Wiki](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) before submitting an issue.
+
 **Describe the bug**
 
 **To Reproduce**
+
 Steps to reproduce the behavior:
+
 1. 
 
 **Expected behavior**

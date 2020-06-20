@@ -75,6 +75,12 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | pathToFfmpeg      | specify the path to a custom FFmpeg binary                          | string           |
 | structures        | specify the structure names of which structures' cameras to see     | array            |
 
+## Features
+- View cameras within homekit.
+- Receive notifications and set routines for motion or when the doorbell is rang.
+- Listen and talk back to people on equiped cameras.
+- Enable/disable the indoor chime on Hello doorbells.
+
 ## Join the Discord
 Unfortunately, there is no way for me to test every subscription, camera type, and feature. If you would like to help me test new features and enhancements, or if you have general questions or need support, join the official [Homebridge Discord Server](https://discord.gg/pc2pqmh).
 
