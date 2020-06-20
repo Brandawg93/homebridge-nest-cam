@@ -26,7 +26,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 - This plugin *does not* use the old access token authentication method as Google is urging users to [switch to Google accounts](https://www.macrumors.com/2020/05/05/nest-two-factor-authentication-from-may/).
 
 ## Installation
-1. Install this plugin using: `npm install -g homebridge-nest-cam`
+1. Install this plugin using: `npm install -g --unsafe-perm homebridge-nest-cam`
 2. Add google authentication to `config.json`
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
 
