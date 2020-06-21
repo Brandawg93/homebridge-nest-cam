@@ -13,6 +13,7 @@ import { AudioPayload } from './protos/AudioPayload';
 import { StartPlayback } from './protos/StartPlayback';
 import { StopPlayback } from './protos/StopPlayback';
 import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin';
+import { PlaybackEnd } from './protos/PlaybackEnd';
 import { Error, ErrorCode } from './protos/Error';
 
 export class NexusStreamer {
@@ -31,6 +32,7 @@ export class NexusStreamer {
   private videoChannelID = -1;
   private audioChannelID = -1;
   private returnAudioTimeout: NodeJS.Timeout | undefined;
+  private started = false;
 
   constructor(
     cameraInfo: CameraInfo,
@@ -54,6 +56,7 @@ export class NexusStreamer {
    * Close the socket and stop playback
    */
   stopPlayback(): void {
+    this.started = false;
     if (this.socket) {
       this.sendStopPlayback();
       this.socket.end();
@@ -216,6 +219,7 @@ export class NexusStreamer {
   }
 
   startPlayback(): void {
+    this.started = true;
     // Attempt to use camera's stream profile or use default
     const cameraProfile = this.cameraInfo.properties['streaming.cameraprofile'] as keyof typeof StreamProfile;
     const primaryProfile = StreamProfile[cameraProfile] || StreamProfile.VIDEO_H264_2MBIT_L40;
@@ -307,13 +311,22 @@ export class NexusStreamer {
     }
   }
 
+  private handlePlaybackEnd(payload: Pbf): void {
+    const packet = PlaybackEnd.read(payload);
+    if (packet.reason === PlaybackEnd.Reason.ERROR_TIME_NOT_AVAILABLE && !this.started) {
+      setTimeout(() => {
+        this.startPlayback();
+      }, 1000);
+    }
+  }
+
   private handleNexusError(payload: Pbf): void {
     const packet = Error.read(payload);
     if (packet.code === ErrorCode.ERROR_AUTHORIZATION_FAILED) {
       this.log.debug('[NexusStreamer] Updating authentication');
       this.updateAuthentication();
     } else {
-      this.log.error('[NexusStreamer] Error');
+      this.log.error(`[NexusStreamer] Error: ${packet.message}`);
       this.stopPlayback();
     }
   }
@@ -337,6 +350,7 @@ export class NexusStreamer {
         break;
       case PacketType.PLAYBACK_END:
         this.log.debug('[NexusStreamer] Playback End');
+        this.handlePlaybackEnd(payload);
         break;
       case PacketType.PLAYBACK_PACKET:
         // this.log.debug('[NexusStreamer] Playback Packet');

@@ -2,6 +2,7 @@ import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebr
 import { NestEndpoints } from './nest-endpoints';
 import { CameraInfo } from './camera-info';
 import querystring from 'querystring';
+import { EventEmitter } from 'events';
 
 const handleError = function (log: Logging, error: any, message: string): void {
   if (error.response) {
@@ -16,7 +17,11 @@ const handleError = function (log: Logging, error: any, message: string): void {
   }
 };
 
-export class NestCam {
+export const enum NestCamEvents {
+  CAMERA_STATE_CHANGED = 'camera-change',
+}
+
+export class NestCam extends EventEmitter {
   private readonly config: PlatformConfig;
   private readonly log: Logging;
   private endpoints: NestEndpoints;
@@ -30,6 +35,7 @@ export class NestCam {
   private alertCooldown = 180000;
 
   constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
+    super();
     this.hap = hap;
     this.log = log;
     this.config = config;
@@ -78,6 +84,7 @@ export class NestCam {
     const service = this.accessory.getService('Streaming');
     if (await this.setProperty('streaming.enabled', enabled, service)) {
       this.info.properties['streaming.enabled'] = enabled;
+      this.emit(NestCamEvents.CAMERA_STATE_CHANGED, enabled);
     }
   }
 
