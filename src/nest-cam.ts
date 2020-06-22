@@ -12,6 +12,12 @@ const handleError = function (log: Logging, error: any, message: string): void {
     } else {
       log.error(`${message}: ${status}`);
     }
+  } else if (error.code) {
+    if (error.code === 'ECONNRESET') {
+      log.debug(`${message}: ${error.code}`);
+    } else {
+      log.error(`${message}: ${error.code}`);
+    }
   } else {
     log.error(error);
   }

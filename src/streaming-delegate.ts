@@ -19,7 +19,7 @@ import {
 } from 'homebridge';
 import ip from 'ip';
 import { NexusStreamer } from './streamer';
-import { NestCam, NestCamEvents } from './nest-cam';
+import { NestCam } from './nest-cam';
 import { NestEndpoints } from './nest-endpoints';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
 import { readFile } from 'fs';
