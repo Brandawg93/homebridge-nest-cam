@@ -119,25 +119,21 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const sessionId: StreamSessionIdentifier = request.sessionID;
     const targetAddress = request.targetAddress;
 
-    //video stuff
+    //video setup
     const video = request.video;
-    const videoPort = video.port;
-
-    const videoCryptoSuite = video.srtpCryptoSuite; // could be used to support multiple crypto suite (or support no suite for debugging)
+    const videoPort = await getPort({ port: video.port });
+    const videoCryptoSuite = video.srtpCryptoSuite;
     const videoSrtpKey = video.srtp_key;
     const videoSrtpSalt = video.srtp_salt;
-
     const videoSSRC = this.hap.CameraController.generateSynchronisationSource();
 
-    //audio stuff
+    //audio setup
     const audio = request.audio;
-    const audioPort = audio.port;
+    const audioPort = await getPort({ port: audio.port });
     const returnAudioPort = await getPort();
-
-    const audioCryptoSuite = video.srtpCryptoSuite; // could be used to support multiple crypto suite (or support no suite for debugging)
+    const audioCryptoSuite = video.srtpCryptoSuite;
     const audioSrtpKey = audio.srtp_key;
     const audioSrtpSalt = audio.srtp_salt;
-
     const audioSSRC = this.hap.CameraController.generateSynchronisationSource();
 
     const sessionInfo: SessionInfo = {

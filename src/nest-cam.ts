@@ -19,6 +19,10 @@ const handleError = function (log: Logging, error: any, message: string): void {
 
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',
+  CHIME_STATE_CHANGED = 'chime-change',
+  AUDIO_STATE_CHANGED = 'audio-change',
+  DOORBELL_RANG = 'doorbell-rang',
+  MOTION_DETECTED = 'motion-detected',
 }
 
 export class NestCam extends EventEmitter {
@@ -92,6 +96,7 @@ export class NestCam extends EventEmitter {
     const service = this.accessory.getService('Chime');
     if (await this.setProperty('doorbell.indoor_chime.enabled', enabled, service)) {
       this.info.properties['doorbell.indoor_chime.enabled'] = enabled;
+      this.emit(NestCamEvents.CHIME_STATE_CHANGED, enabled);
     }
   }
 
@@ -99,6 +104,7 @@ export class NestCam extends EventEmitter {
     const service = this.accessory.getService('Audio');
     if (await this.setProperty('audio.enabled', enabled, service)) {
       this.info.properties['audio.enabled'] = enabled;
+      this.emit(NestCamEvents.AUDIO_STATE_CHANGED, enabled);
     }
   }
 
@@ -163,6 +169,7 @@ export class NestCam extends EventEmitter {
     const service = this.accessory.getService(this.hap.Service.MotionSensor);
     if (service) {
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
+      this.emit(NestCamEvents.MOTION_DETECTED, state);
     }
   }
 
@@ -183,6 +190,7 @@ export class NestCam extends EventEmitter {
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
       );
+      this.emit(NestCamEvents.DOORBELL_RANG, true);
     }
 
     const switchService = this.accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
