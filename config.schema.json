@@ -81,6 +81,11 @@
           "type": "boolean",
           "default": true
         },
+        "audioSwitch": {
+          "title": "Audio Switch",
+          "type": "boolean",
+          "default": true
+        },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
           "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",

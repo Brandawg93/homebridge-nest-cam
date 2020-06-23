@@ -65,6 +65,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private doorbellSwitch = true;
   private streamingSwitch = true;
   private chimeSwitch = true;
+  private audioSwitch = true;
   private structures: Array<string> = [];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -98,6 +99,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const chimeSwitch = options?.chimeSwitch;
     if (typeof chimeSwitch !== 'undefined') {
       this.chimeSwitch = chimeSwitch;
+    }
+    const audioSwitch = options?.audioSwitch;
+    if (typeof audioSwitch !== 'undefined') {
+      this.audioSwitch = audioSwitch;
     }
     const structures = options?.structures;
     if (typeof structures !== 'undefined') {
@@ -264,7 +269,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (audioSwitch) {
       accessory.removeService(audioSwitch);
     }
-    if (camera.info.capabilities.includes('audio.microphone')) {
+    if (camera.info.capabilities.includes('audio.microphone') && this.audioSwitch) {
       accessory
         .addService(new hap.Service.Switch('Audio', 'audio'))
         .setCharacteristic(hap.Characteristic.On, camera.info.properties['audio.enabled'])
