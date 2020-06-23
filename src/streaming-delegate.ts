@@ -21,6 +21,7 @@ import ip from 'ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints } from './nest-endpoints';
+import { RtpSplitter } from './rtp-utils';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
@@ -40,6 +41,8 @@ type SessionInfo = {
 
   audioPort: number;
   returnAudioPort: number;
+  twoWayAudioPort: number;
+  rtpSplitter: RtpSplitter;
   audioCryptoSuite: SRTPCryptoSuites;
   audioSRTP: Buffer;
   audioSSRC: number;
@@ -122,7 +125,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
     //video setup
     const video = request.video;
-    const videoPort = await getPort({ port: video.port });
+    const videoPort = video.port;
     const returnVideoPort = await getPort();
     const videoCryptoSuite = video.srtpCryptoSuite;
     const videoSrtpKey = video.srtp_key;
@@ -131,8 +134,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
     //audio setup
     const audio = request.audio;
-    const audioPort = await getPort({ port: audio.port });
+    const audioPort = audio.port;
     const returnAudioPort = await getPort();
+    const twoWayAudioPort = await getPort();
+    const audioServerPort = await getPort();
     const audioCryptoSuite = video.srtpCryptoSuite;
     const audioSrtpKey = audio.srtp_key;
     const audioSrtpSalt = audio.srtp_salt;
@@ -149,6 +154,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
       audioPort: audioPort,
       returnAudioPort: returnAudioPort,
+      twoWayAudioPort: twoWayAudioPort,
+      rtpSplitter: new RtpSplitter(audioServerPort, returnAudioPort, twoWayAudioPort),
       audioCryptoSuite: audioCryptoSuite,
       audioSRTP: Buffer.concat([audioSrtpKey, audioSrtpSalt]),
       audioSSRC: audioSSRC,
@@ -165,7 +172,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         srtp_salt: videoSrtpSalt,
       },
       audio: {
-        port: returnAudioPort,
+        port: audioServerPort,
         ssrc: audioSSRC,
 
         srtp_key: audioSrtpKey,
@@ -180,6 +187,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private getVideoCommand(info: VideoInfo, sessionId: string): Array<string> {
     const sessionInfo = this.pendingSessions[sessionId];
     const videoPort = sessionInfo.videoPort;
+    const returnVideoPort = sessionInfo.returnVideoPort;
     const videoSsrc = sessionInfo.videoSSRC;
     const videoSRTP = sessionInfo.videoSRTP.toString('base64');
     const address = sessionInfo.address;
@@ -236,7 +244,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'AES_CM_128_HMAC_SHA1_80',
       '-srtp_out_params',
       videoSRTP,
-      `srtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${videoPort}&pkt_size=${mtu}`,
+      `srtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${returnVideoPort}&pkt_size=${mtu}`,
     ]);
 
     return command;
@@ -246,6 +254,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const sessionInfo = this.pendingSessions[sessionId];
     const address = sessionInfo.address;
     const audioPort = sessionInfo.audioPort;
+    const returnAudioPort = sessionInfo.returnAudioPort;
     const audioSsrc = sessionInfo.audioSSRC;
     const audioSRTP = sessionInfo.audioSRTP.toString('base64');
 
@@ -282,7 +291,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'AES_CM_128_HMAC_SHA1_80',
       '-srtp_out_params',
       audioSRTP,
-      `srtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${audioPort}&pkt_size=188`,
+      `srtp://${address}:${audioPort}?rtcpport=${audioPort}&localrtcpport=${returnAudioPort}&pkt_size=188`,
     ];
   }
 
@@ -329,7 +338,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         const address = sessionInfo.address;
         const audioSRTP = sessionInfo.audioSRTP.toString('base64');
-        const returnAudioPort = sessionInfo.returnAudioPort;
+        const twoWayAudioPort = sessionInfo.twoWayAudioPort;
 
         const videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
 
@@ -381,8 +390,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
               const sdpReturnAudio = [
                 'v=0',
+                'o=- 0 0 IN IP4 127.0.0.1',
+                's=Talk',
                 `c=IN IP4 ${address}`,
-                `m=audio ${returnAudioPort} RTP/AVP 110`,
+                't=0 0',
+                'a=tool:libavformat 58.38.100',
+                `m=audio ${twoWayAudioPort} RTP/AVP 110`,
+                'b=AS:24',
                 'a=rtpmap:110 MPEG4-GENERIC/16000/1',
                 'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
                 `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
@@ -479,6 +493,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const streamer = this.ongoingStreams[sessionId];
         streamer.stopPlayback();
       }
+
+      const sessionInfo = this.pendingSessions[sessionId];
+      sessionInfo.rtpSplitter.close();
 
       delete this.pendingSessions[sessionId];
       delete this.ongoingSessions[sessionId];

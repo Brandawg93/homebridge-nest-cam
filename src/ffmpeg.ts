@@ -79,9 +79,7 @@ export class FfmpegProcess {
         log.debug(message + ` (${title} Stream stopped gracefully.)`);
       } else {
         log.error(message + ' (error)');
-        if (callback) {
-          delegate.stopStream(sessionId);
-        }
+        delegate.stopStream(sessionId);
         if (!started && callback) {
           callback(new Error(message));
         } else if (controller) {
