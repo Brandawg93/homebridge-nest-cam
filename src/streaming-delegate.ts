@@ -33,6 +33,7 @@ type SessionInfo = {
   address: string; // address of the HAP controller
 
   videoPort: number;
+  returnVideoPort: number;
   videoCryptoSuite: SRTPCryptoSuites; // should be saved if multiple suites are supported
   videoSRTP: Buffer; // key and salt concatenated
   videoSSRC: number; // rtp synchronisation source
@@ -122,6 +123,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     //video setup
     const video = request.video;
     const videoPort = await getPort({ port: video.port });
+    const returnVideoPort = await getPort();
     const videoCryptoSuite = video.srtpCryptoSuite;
     const videoSrtpKey = video.srtp_key;
     const videoSrtpSalt = video.srtp_salt;
@@ -140,6 +142,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       address: targetAddress,
 
       videoPort: videoPort,
+      returnVideoPort: returnVideoPort,
       videoCryptoSuite: videoCryptoSuite,
       videoSRTP: Buffer.concat([videoSrtpKey, videoSrtpSalt]),
       videoSSRC: videoSSRC,
@@ -155,7 +158,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const response: PrepareStreamResponse = {
       address: currentAddress,
       video: {
-        port: videoPort,
+        port: returnVideoPort,
         ssrc: videoSSRC,
 
         srtp_key: videoSrtpKey,
@@ -253,6 +256,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     return [
       '-c:a',
       'libfdk_aac',
+      '-probesize',
+      '100000',
       '-i',
       'pipe:',
       '-c:a',
@@ -291,6 +296,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'sdp',
       '-c:a',
       'libfdk_aac',
+      '-probesize',
+      '100000',
       '-i',
       'pipe:0',
       '-map',
