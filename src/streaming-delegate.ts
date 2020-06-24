@@ -107,7 +107,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       if (error.response) {
         const status = parseInt(error.response.status);
         const message = 'Error fetching snapshot';
-        if (status >= 500) {
+        if (status >= 500 || status === 404) {
           this.log.debug(`${message}: ${status}`);
         } else {
           this.log.error(`${message}: ${status}`);
