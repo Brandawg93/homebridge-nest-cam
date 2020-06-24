@@ -191,6 +191,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const videoSsrc = sessionInfo.videoSSRC;
     const videoSRTP = sessionInfo.videoSRTP.toString('base64');
     const address = sessionInfo.address;
+    const fps = info.fps;
 
     const videoPayloadType = info.pt;
     const mtu = info.mtu; // maximum transmission unit
@@ -200,8 +201,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'h264',
       '-use_wallclock_as_timestamps',
       '1',
-      '-probesize',
-      '100000',
+      '-r',
+      `${fps}`,
       '-i',
       'pipe:',
       '-c:v',
@@ -218,8 +219,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       command = [
         '-loop',
         '1',
-        '-probesize',
-        '100000',
         '-i',
         join(__dirname, `../images/offline.jpg`),
         '-c:v',
@@ -265,8 +264,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     return [
       '-c:a',
       'libfdk_aac',
-      '-probesize',
-      '100000',
       '-i',
       'pipe:',
       '-c:a',

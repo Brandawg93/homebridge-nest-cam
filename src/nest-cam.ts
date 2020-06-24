@@ -7,7 +7,7 @@ import { EventEmitter } from 'events';
 const handleError = function (log: Logging, error: any, message: string): void {
   if (error.response) {
     const status = parseInt(error.response.status);
-    if (status >= 500) {
+    if (status >= 500 || status === 404) {
       log.debug(`${message}: ${status}`);
     } else {
       log.error(`${message}: ${status}`);
