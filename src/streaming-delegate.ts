@@ -20,7 +20,7 @@ import {
 import ip from 'ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
-import { NestEndpoints } from './nest-endpoints';
+import { NestEndpoints, handleError } from './nest-endpoints';
 import { RtpSplitter } from './rtp-utils';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
 import { readFile } from 'fs';
@@ -104,17 +104,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       );
       callback(void 0, snapshot);
     } catch (error) {
-      if (error.response) {
-        const status = parseInt(error.response.status);
-        const message = 'Error fetching snapshot';
-        if (status >= 500 || status === 404) {
-          this.log.debug(`${message}: ${status}`);
-        } else {
-          this.log.error(`${message}: ${status}`);
-        }
-      } else {
-        this.log.error(error);
-      }
+      handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
       callback(error);
     }
   }

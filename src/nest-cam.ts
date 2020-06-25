@@ -1,27 +1,8 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { NestEndpoints } from './nest-endpoints';
+import { NestEndpoints, handleError } from './nest-endpoints';
 import { CameraInfo } from './camera-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
-
-const handleError = function (log: Logging, error: any, message: string): void {
-  if (error.response) {
-    const status = parseInt(error.response.status);
-    if (status >= 500 || status === 404) {
-      log.debug(`${message}: ${status}`);
-    } else {
-      log.error(`${message}: ${status}`);
-    }
-  } else if (error.code) {
-    if (error.code === 'ECONNRESET') {
-      log.debug(`${message}: ${error.code}`);
-    } else {
-      log.error(`${message}: ${error.code}`);
-    }
-  } else {
-    log.error(error);
-  }
-};
 
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',

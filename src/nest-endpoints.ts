@@ -1,5 +1,31 @@
 import axios from 'axios';
+import { Logging } from 'homebridge';
 import { AxiosRequestConfig, Method, ResponseType } from 'axios';
+
+/**
+ * Handle an axios error
+ * @param {Logging} log     The log object to output error
+ * @param {any} error       The error thrown
+ * @param {string} message  The message to add to the log output
+ */
+export function handleError(log: Logging, error: any, message: string): void {
+  if (error.response) {
+    const status = parseInt(error.response.status);
+    if (status >= 500 || status === 404) {
+      log.debug(`${message}: ${status}`);
+    } else {
+      log.error(`${message}: ${status}`);
+    }
+  } else if (error.code) {
+    if (error.code === 'ECONNRESET') {
+      log.debug(`${message}: ${error.code}`);
+    } else {
+      log.error(`${message}: ${error.code}`);
+    }
+  } else {
+    log.error(error);
+  }
+}
 
 /**
  * Class used to communicate with Nest
