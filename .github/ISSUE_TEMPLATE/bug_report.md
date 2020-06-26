@@ -8,7 +8,13 @@ assignees: ''
 ---
 **Before Submitting an Issue**
 
-Please check the [TroubleShooting Wiki](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) before submitting an issue.
+https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting
+
+Make sure you have the latest LTS from https://nodejs.org
+and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam`
+
+Also include debug log output from startup through seeing the issue:
+`homebridge -D`
 
 **Describe the bug**
 
@@ -20,17 +26,11 @@ Steps to reproduce the behavior:
 
 **Expected behavior**
 
-**Last Working Version**
 
-Include with your bug report this version info:
+Please answer these questions before submitting this issue:
 ```
-node --version
-homebridge --version
-Your OS: 
+On what OS are you running homebridge: 
+What camera types are having issues: 
+Does this issue occur consistently or randomly: 
+If applicable, what was the last version that worked properly: 
 ```
-
-Make sure you have the latest LTS from https://nodejs.org
-and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam`
-
-Also include debug log output from startup through seeing the issue:
-`homebridge -D`
