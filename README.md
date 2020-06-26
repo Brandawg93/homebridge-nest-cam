@@ -13,7 +13,6 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 ![build](https://github.com/Brandawg93/homebridge-nest-cam/workflows/build/badge.svg)
 [![Discord](https://camo.githubusercontent.com/7494d4da7060081501319a848bbba143cbf6101a/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3433323636333333303238313232363237303f636f6c6f723d373238454435266c6f676f3d646973636f7264266c6162656c3d646973636f7264)](https://discord.gg/pc2pqmh)
 [![Downloads](https://img.shields.io/npm/dt/homebridge-nest-cam)](https://nodei.co/npm/homebridge-nest-cam/)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/df36db66217e4b96bd5994b42a6e27f2)](https://www.codacy.com/manual/Brandawg93/homebridge-nest-cam?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Brandawg93/homebridge-nest-cam&amp;utm_campaign=Badge_Grade)
 
 [![npm (tag)](https://img.shields.io/npm/v/homebridge-nest-cam/latest)](https://www.npmjs.com/package/homebridge-nest-cam/v/latest)
 [![npm (tag)](https://img.shields.io/npm/v/homebridge-nest-cam/test)](https://www.npmjs.com/package/homebridge-nest-cam/v/test)
