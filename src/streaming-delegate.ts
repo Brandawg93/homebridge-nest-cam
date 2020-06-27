@@ -292,8 +292,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'sdp',
       '-c:a',
       'libfdk_aac',
-      '-probesize',
-      '100000',
       '-i',
       'pipe:0',
       '-map',
