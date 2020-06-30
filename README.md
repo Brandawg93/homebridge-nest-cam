@@ -64,6 +64,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 
 | Name              | Description                                                         | Type             |
 |-------------------|---------------------------------------------------------------------|------------------|
+| streamQuality     | The quality of the stream from LOW to HIGH                          | number (1-3)     |
 | alertCheckRate    | How often to check for alerts                                       | number (seconds) |
 | alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |
 | motionDetection   | enable/disable the motion sensor                                    | boolean          |

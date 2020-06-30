@@ -405,6 +405,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             this.camera.info,
             this.config.access_token,
             this.log,
+            this.config,
             ffmpegVideo,
             ffmpegAudio,
             ffmpegReturnAudio,

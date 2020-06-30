@@ -1,4 +1,4 @@
-import { Logging } from 'homebridge';
+import { Logging, PlatformConfig } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { FfmpegProcess } from './ffmpeg';
@@ -22,6 +22,7 @@ export class NexusStreamer {
   private ffmpegReturnAudio: FfmpegProcess | undefined;
   private authorized = false;
   private readonly log: Logging;
+  private readonly config: PlatformConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
   private host = '';
@@ -38,11 +39,13 @@ export class NexusStreamer {
     cameraInfo: CameraInfo,
     accessToken: string,
     log: Logging,
+    config: PlatformConfig,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,
   ) {
     this.log = log;
+    this.config = config;
     this.ffmpegVideo = ffmpegVideo;
     this.ffmpegAudio = ffmpegAudio;
     this.ffmpegReturnAudio = ffmpegReturnAudio;
@@ -221,17 +224,44 @@ export class NexusStreamer {
   startPlayback(): void {
     this.started = true;
     // Attempt to use camera's stream profile or use default
-    // const cameraProfile = this.cameraInfo.properties['streaming.cameraprofile'] as keyof typeof StreamProfile;
-    // const primaryProfile = StreamProfile[cameraProfile] || StreamProfile.VIDEO_H264_2MBIT_L40;
-    // const otherProfiles = [];
-    // this.cameraInfo.capabilities.forEach((element) => {
-    //   if (element.startsWith('streaming.cameraprofile')) {
-    //     const profile = element.replace('streaming.cameraprofile.', '') as keyof typeof StreamProfile;
-    //     otherProfiles.push(StreamProfile[profile]);
-    //   }
-    // });
-    const primaryProfile = StreamProfile.VIDEO_H264_530KBIT_L31;
-    const otherProfiles = [StreamProfile.VIDEO_H264_530KBIT_L31, StreamProfile.VIDEO_H264_100KBIT_L30];
+    let primaryProfile = StreamProfile.VIDEO_H264_2MBIT_L40;
+    const otherProfiles: Array<StreamProfile> = [];
+    this.cameraInfo.capabilities.forEach((element) => {
+      if (element.startsWith('streaming.cameraprofile')) {
+        const profile = element.replace('streaming.cameraprofile.', '') as keyof typeof StreamProfile;
+        otherProfiles.push(StreamProfile[profile]);
+      }
+    });
+
+    let index = -1;
+    switch (this.config.options.streamQuality) {
+      case 1:
+        this.log.debug('Using LOW quality stream.');
+        primaryProfile = StreamProfile.VIDEO_H264_100KBIT_L30;
+        index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
+        if (index > -1) {
+          otherProfiles.splice(index, 1);
+        }
+        index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_530KBIT_L31, 0);
+        if (index > -1) {
+          otherProfiles.splice(index, 1);
+        }
+        break;
+      case 2:
+        this.log.debug('Using MEDIUM quality stream.');
+        primaryProfile = StreamProfile.VIDEO_H264_530KBIT_L31;
+        index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
+        if (index > -1) {
+          otherProfiles.splice(index, 1);
+        }
+        break;
+      case 3:
+        this.log.debug('Using HIGH quality stream.');
+        break;
+      default:
+        this.log.debug('Using HIGH quality stream.');
+        break;
+    }
     this.cameraInfo.properties['audio.enabled'] && this.ffmpegAudio && otherProfiles.push(StreamProfile.AUDIO_AAC);
     const request = {
       session_id: this.sessionID,

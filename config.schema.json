@@ -40,6 +40,14 @@
       "expandable": true,
       "type": "object",
       "properties": {
+        "streamQuality": {
+          "title": "Stream Quality",
+          "description": "The quality of the stream from LOW to HIGH. (Higher quality means better picture but slower stream)",
+          "type": "integer",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 3
+        },
         "alertCheckRate": {
           "title": "Alert Check Rate",
           "description": "How often to check for alerts? (seconds)",
