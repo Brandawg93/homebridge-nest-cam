@@ -7,11 +7,11 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/stale@v1.1.0
+    - uses: actions/stale@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: 'This issue is stale because it has been open 14 days with no activity. Remove stale label or comment or this will be closed in 3 days'
         stale-issue-label: 'no-issue-activity'
-        exempt-issue-labels: 'awaiting-approval,work-in-progress,wontfix,enhancement'
+        exempt-issue-labels: 'wontfix,enhancement'
         days-before-stale: 14
         days-before-close: 3
