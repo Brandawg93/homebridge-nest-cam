@@ -47,18 +47,17 @@
     "ip": "^1.1.5",
     "pbf": "^3.2.1",
     "get-port": "^5.1.1",
-    "execa": "^4.0.2",
-    "puppeteer": "^5.0.0",
-    "puppeteer-extra": "^3.1.9",
-    "puppeteer-extra-plugin-stealth": "2.4.5",
-    "puppeteer-extra-plugin-anonymize-ua": "^2.2.8"
+    "execa": "^4.0.3",
+    "puppeteer": "^3.3.0",
+    "puppeteer-extra": "^3.1.11",
+    "puppeteer-extra-plugin-stealth": "2.4.6"
   },
   "devDependencies": {
     "@types/ip": "^1.1.0",
     "@types/jest": "^26.0.0",
     "@types/node": "14.0.19",
     "@types/pbf": "^3.0.2",
-    "@types/puppeteer": "^3.0.0",
+    "@types/puppeteer": "^3.0.1",
     "@typescript-eslint/eslint-plugin": "^2.31.0",
     "@typescript-eslint/parser": "^2.31.0",
     "eslint": "^6.8.0",
