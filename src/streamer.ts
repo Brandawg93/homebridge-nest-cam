@@ -170,7 +170,7 @@ export class NexusStreamer {
       requestBuffer.writeUInt16BE(buffer.length, 1);
       requestBuffer = Buffer.concat([requestBuffer, Buffer.from(buffer)]);
     }
-    if (!this.socket.destroyed) {
+    if (!this.socket.destroyed && !this.socket.writableEnded) {
       this.socket.write(requestBuffer);
     }
   }
@@ -331,14 +331,14 @@ export class NexusStreamer {
       // H264 NAL Units require 0001 added to beginning
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
       const stdin = this.ffmpegVideo.getStdin();
-      if (stdin && !stdin?.destroyed) {
-        stdin.write(Buffer.concat([startCode, Buffer.from(packet.payload)]));
+      if (!stdin?.destroyed && !stdin?.writableEnded) {
+        stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]));
       }
     }
     if (packet.channel_id === this.audioChannelID) {
       const stdin = this.ffmpegAudio?.getStdin();
-      if (stdin && !stdin?.destroyed) {
-        stdin.write(Buffer.from(packet.payload));
+      if (!stdin?.destroyed && !stdin?.writableEnded) {
+        stdin?.write(Buffer.from(packet.payload));
       }
     }
   }
