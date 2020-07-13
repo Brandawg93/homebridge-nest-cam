@@ -56,7 +56,7 @@ export class NestEndpoints {
    * @param {string} endpoint     The endpoint to send the request
    * @param {Method} method       Usually 'GET' or 'POST'
    * @param {ResponseType} type   The type of return object (Usually 'json')
-   * @param {any} body            The body of the request or null if a 'GET'
+   * @param {any} data            The body of the request or null if a 'GET'
    */
   async sendRequest(
     accessToken: string | undefined,

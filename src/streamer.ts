@@ -117,6 +117,10 @@ export class NexusStreamer {
     });
   }
 
+  /**
+   * Send messages that were attempted to be sent
+   * while the socket was still connecting
+   */
   private processPendingMessages(): void {
     if (this.pendingMessages) {
       const messages = this.pendingMessages;
@@ -177,10 +181,17 @@ export class NexusStreamer {
 
   // Ping
 
+  /**
+   * Send a ping message to keep stream alive
+   */
   private sendPingMessage(): void {
     this.sendMessage(1, Buffer.alloc(0));
   }
 
+  /**
+   * Stop sending the ping message
+   * @param {NodeJS.Timeout} pingInterval The interval object
+   */
   private unschedulePingMessage(pingInterval: NodeJS.Timeout): void {
     clearInterval(pingInterval);
   }
@@ -211,6 +222,9 @@ export class NexusStreamer {
     this.sendMessage(PacketType.HELLO, buffer);
   }
 
+  /**
+   * Update the socket authentication with the new access token
+   */
   private updateAuthentication(): void {
     const token = {
       olive_token: this.accessToken,
@@ -221,6 +235,9 @@ export class NexusStreamer {
     this.sendMessage(PacketType.AUTHORIZE_REQUEST, tokenBuffer);
   }
 
+  /**
+   * Request that playback start with specific params
+   */
   startPlayback(): void {
     this.started = true;
     // Attempt to use camera's stream profile or use default
@@ -274,6 +291,9 @@ export class NexusStreamer {
     this.sendMessage(PacketType.START_PLAYBACK, buffer);
   }
 
+  /**
+   * Tell the socket to close gracefully
+   */
   private sendStopPlayback(): void {
     const request = {
       session_id: this.sessionID,
@@ -284,6 +304,10 @@ export class NexusStreamer {
     this.sendMessage(PacketType.STOP_PLAYBACK, buffer);
   }
 
+  /**
+   * Send return audio to the socket
+   * @param {Buffer} payload The audio data
+   */
   private sendAudioPayload(payload: Buffer): void {
     const request = {
       payload: payload,
@@ -298,6 +322,10 @@ export class NexusStreamer {
     this.sendMessage(PacketType.AUDIO_PAYLOAD, buffer);
   }
 
+  /**
+   * Handle the socket requesting a redirection to a new host
+   * @param {Pbf} payload The redirect data
+   */
   private handleRedirect(payload: Pbf): void {
     const packet = Redirect.read(payload);
     if (packet.new_host) {
@@ -308,6 +336,10 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Get stream ready for playback via socket info
+   * @param {Pbf} payload The playback data
+   */
   private handlePlaybackBegin(payload: Pbf): void {
     const packet = PlaybackBegin.read(payload);
 
@@ -325,6 +357,10 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Sends playback packet from Nest to Homekit
+   * @param {Pbf} payload The stream data
+   */
   private handlePlaybackPacket(payload: Pbf): void {
     const packet = PlaybackPacket.read(payload);
     if (packet.channel_id === this.videoChannelID) {
@@ -343,6 +379,10 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Handle if the stream ended in error
+   * @param {Pbf} payload The playback end data
+   */
   private handlePlaybackEnd(payload: Pbf): void {
     const packet = PlaybackEnd.read(payload);
     if (packet.reason === PlaybackEnd.Reason.ERROR_TIME_NOT_AVAILABLE && !this.started) {
@@ -352,6 +392,10 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Handle socket errors
+   * @param {Pbf} payload The error data
+   */
   private handleNexusError(payload: Pbf): void {
     const packet = Error.read(payload);
     if (packet.code === ErrorCode.ERROR_AUTHORIZATION_FAILED) {
@@ -363,6 +407,11 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Handle nexus packets
+   * @param {number} type The type of packet
+   * @param {Pbf} payload The packet data
+   */
   private handleNexusPacket(type: number, payload: Pbf): void {
     switch (type) {
       case PacketType.PING:
@@ -410,6 +459,10 @@ export class NexusStreamer {
     }
   }
 
+  /**
+   * Handle raw data from the socket
+   * @param {Buffer} data The raw data
+   */
   private handleNexusData(data: Buffer): void {
     if (this.pendingBuffer === void 0) {
       this.pendingBuffer = data;
