@@ -10,12 +10,13 @@
   },
   "scripts": {
     "clean": "rimraf ./dist ./coverage",
-    "build": "rimraf ./dist ./coverage && tsc",
+    "minify": "minify dist -d dist",
+    "build": "rimraf ./dist ./coverage && tsc && npm run minify",
     "packlist": "npm pack --dry-run && rm *.tgz",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "test": "jest --coverage",
     "watch:tests": "jest --watch",
-    "lint": "eslint **/*.ts --fix",
+    "lint": "eslint ./src/**.ts --fix",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean"
@@ -49,26 +50,27 @@
     "get-port": "^5.1.1",
     "execa": "^4.0.3",
     "puppeteer": "^3.3.0",
-    "puppeteer-extra": "^3.1.11",
+    "puppeteer-extra": "^3.1.12",
     "puppeteer-extra-plugin-stealth": "2.4.6"
   },
   "devDependencies": {
     "@types/ip": "^1.1.0",
-    "@types/jest": "^26.0.0",
+    "@types/jest": "^26.0.4",
     "@types/node": "14.0.22",
     "@types/pbf": "^3.0.2",
     "@types/puppeteer": "^3.0.1",
-    "@typescript-eslint/eslint-plugin": "^2.31.0",
-    "@typescript-eslint/parser": "^2.31.0",
-    "eslint": "^6.8.0",
+    "@typescript-eslint/eslint-plugin": "^3.6.0",
+    "@typescript-eslint/parser": "^3.6.0",
+    "eslint": "^7.4.0",
     "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-jest": "^23.8.2",
-    "eslint-plugin-prettier": "^3.1.3",
-    "homebridge": "^1.0.4",
+    "eslint-plugin-jest": "^23.18.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "homebridge": "^1.1.1",
     "jest": "^26.0.1",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
-    "ts-jest": "^26.0.0",
-    "typescript": "^3.8.3"
+    "ts-jest": "^26.1.2",
+    "typescript": "^3.9.6",
+    "babel-minify": "0.5.1"
   }
 }

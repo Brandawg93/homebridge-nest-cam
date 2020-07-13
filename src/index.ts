@@ -16,7 +16,7 @@ import {
 } from 'homebridge';
 import { NestCam } from './nest-cam';
 import { CameraInfo, ModelTypes } from './camera-info';
-import { NestEndpoints } from './nest-endpoints';
+import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
 
@@ -345,8 +345,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       //   }
       // });
     } catch (error) {
-      this.log.error('Error fetching cameras: ');
-      this.log.error(error);
+      handleError(this.log, error, 'Error fetching cameras');
     }
   }
 
@@ -373,17 +372,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         }
       });
     } catch (error) {
-      const message = 'Error updating camera inf';
-      if (error.response) {
-        const status = parseInt(error.response.status);
-        if (status >= 500) {
-          this.log.debug(`${message}: ${status}`);
-        } else {
-          this.log.error(`${message}: ${status}`);
-        }
-      } else {
-        this.log.error(error);
-      }
+      handleError(this.log, error, 'Error updating camera info');
     }
   }
 
