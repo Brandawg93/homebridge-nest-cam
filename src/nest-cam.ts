@@ -152,9 +152,9 @@ export class NestCam extends EventEmitter {
   }
 
   private setMotion(state: boolean): void {
-    this.log.debug(`Setting ${this.accessory.displayName} Motion to ${state}`);
     const service = this.accessory.getService(this.hap.Service.MotionSensor);
     if (service) {
+      this.log.debug(`Setting ${this.accessory.displayName} Motion to ${state}`);
       service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
       this.emit(NestCamEvents.MOTION_DETECTED, state);
     }
@@ -170,9 +170,9 @@ export class NestCam extends EventEmitter {
   }
 
   private setDoorbell(): void {
-    this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
     const doorbellService = this.accessory.getService(this.hap.Service.Doorbell);
     if (doorbellService) {
+      this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
       doorbellService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
