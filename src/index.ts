@@ -27,53 +27,6 @@ let Accessory: typeof PlatformAccessory;
 const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
 
-const setupConnection = async function (config: PlatformConfig, log: Logging): Promise<boolean> {
-  if (!config.googleAuth) {
-    log.error('You did not specify your Google account credentials, googleAuth, in config.json');
-    return false;
-  }
-
-  if (config.googleAuth && (!config.googleAuth.issueToken || !config.googleAuth.cookies || !config.googleAuth.apiKey)) {
-    log.error('You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions');
-    return false;
-  }
-
-  config.fieldTest = config.googleAuth.issueToken.includes('home.ft.nest.com');
-  log.debug(`Setting Field Test to ${config.fieldTest}`);
-  const conn = new Connection(config, log);
-  return await conn.auth();
-};
-
-const setAlertInterval = async function (camera: NestCam, interval: number): Promise<void> {
-  setInterval(async function () {
-    camera.checkAlerts();
-  }, interval);
-};
-
-const createSwitch = function (
-  name: string,
-  sw: Service | undefined,
-  canCreate: boolean,
-  accessory: PlatformAccessory,
-  camera: NestCam,
-  _key: keyof Properties,
-  log: Logging,
-  cb: (value: CharacteristicValue) => void,
-) {
-  sw && accessory.removeService(sw);
-  if (canCreate) {
-    accessory
-      .addService(new hap.Service.Switch(name, name.toLowerCase()))
-      .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
-      .getCharacteristic(hap.Characteristic.On)
-      .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        cb(value);
-        log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
-        callback();
-      });
-  }
-};
-
 class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
@@ -133,6 +86,70 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
   }
 
+  private async setupConnection(): Promise<boolean> {
+    if (!this.config.googleAuth) {
+      this.log.error('You did not specify your Google account credentials, googleAuth, in config.json');
+      return false;
+    }
+
+    if (
+      this.config.googleAuth &&
+      (!this.config.googleAuth.issueToken || !this.config.googleAuth.cookies || !this.config.googleAuth.apiKey)
+    ) {
+      this.log.error(
+        'You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions',
+      );
+      return false;
+    }
+
+    this.config.fieldTest = this.config.googleAuth.issueToken.includes('home.ft.nest.com');
+    this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
+    const conn = new Connection(this.config, this.log);
+    return await conn.auth();
+  }
+
+  private createSwitchService(
+    name: string,
+    canCreate: boolean,
+    accessory: PlatformAccessory,
+    camera: NestCam,
+    _key: keyof Properties,
+    cb: (value: CharacteristicValue) => void,
+  ) {
+    const service = accessory.getService(name);
+    service && accessory.removeService(service);
+    if (canCreate) {
+      accessory
+        .addService(new hap.Service.Switch(name, name.toLowerCase()))
+        .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
+        .getCharacteristic(hap.Characteristic.On)
+        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+          cb(value);
+          this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
+          callback();
+        });
+    }
+  }
+
+  private updateSwitchService(name: string, accessory: PlatformAccessory, camera: NestCam, _key: keyof Properties) {
+    const service = accessory.getService(name);
+    service && service.updateCharacteristic(hap.Characteristic.On, camera.info.properties[_key]);
+  }
+
+  private createAlertService(
+    service: Service | undefined,
+    canCreate: boolean,
+    accessory: PlatformAccessory,
+    camera: NestCam,
+  ) {
+    const alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
+    service && accessory.removeService(service);
+    if (canCreate) {
+      service && accessory.addService(service);
+      camera.startAlertChecks(alertInterval);
+    }
+  }
+
   configureAccessory(accessory: PlatformAccessory): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
@@ -184,16 +201,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     accessory.configureController(cameraController);
 
-    const alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
     // Configure services
-    const motion = accessory.getService(hap.Service.MotionSensor);
-    const doorbell = accessory.getService(hap.Service.Doorbell);
     const microphone = accessory.getService(hap.Service.Microphone);
     const speaker = accessory.getService(hap.Service.Speaker);
     const doorbellSwitch = accessory.getService('DoorbellSwitch');
-    const enabledSwitch = accessory.getService('Streaming');
-    const chimeSwitch = accessory.getService('Chime');
-    const audioSwitch = accessory.getService('Audio');
 
     // Microphone configuration
     microphone && accessory.removeService(microphone);
@@ -217,20 +228,20 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Motion configuration
-    motion && accessory.removeService(motion);
-    if (camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection) {
-      accessory.addService(hap.Service.MotionSensor);
-      setAlertInterval(camera, alertInterval);
-    }
+    this.createAlertService(
+      accessory.getService(hap.Service.MotionSensor),
+      camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+      accessory,
+      camera,
+    );
 
     // Doorbell configuration
-    doorbell && accessory.removeService(doorbell);
-    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
-      accessory.addService(hap.Service.Doorbell);
-      if (!this.motionDetection) {
-        setAlertInterval(camera, alertInterval);
-      }
-    }
+    this.createAlertService(
+      accessory.getService(hap.Service.Doorbell),
+      camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts,
+      accessory,
+      camera,
+    );
 
     // Add doorbell switch
     doorbellSwitch && accessory.removeService(doorbellSwitch);
@@ -244,42 +255,36 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Streaming configuration
-    createSwitch(
+    this.createSwitchService(
       'Streaming',
-      enabledSwitch,
       camera.info.capabilities.includes('streaming.start-stop') && this.streamingSwitch,
       accessory,
       camera,
       'streaming.enabled',
-      this.log,
       async (value) => {
         await camera.toggleActive(value as boolean);
       },
     );
 
     // Chime configuration
-    createSwitch(
+    this.createSwitchService(
       'Chime',
-      chimeSwitch,
       camera.info.capabilities.includes('indoor_chime') && this.chimeSwitch,
       accessory,
       camera,
       'doorbell.indoor_chime.enabled',
-      this.log,
       async (value) => {
         await camera.toggleChime(value as boolean);
       },
     );
 
     // Audio switch configuration
-    createSwitch(
+    this.createSwitchService(
       'Audio',
-      audioSwitch,
       camera.info.capabilities.includes('audio.microphone') && this.audioSwitch,
       accessory,
       camera,
       'audio.enabled',
-      this.log,
       async (value) => {
         await camera.toggleAudio(value as boolean);
       },
@@ -290,16 +295,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   /**
-   * Add fetched cameras from nest to Homebridge
+   * Get info on all cameras
    */
-  async addCameras(): Promise<void> {
-    // Nest needs to be reauthenticated about every hour
-    const config = this.config;
-    const log = this.log;
-    setInterval(async function () {
-      await setupConnection(config, log);
-    }, 3480000); // 58 minutes
-
+  private async getCameras(): Promise<Array<CameraInfo>> {
+    let cameras: Array<CameraInfo> = [];
     try {
       const response = await this.endpoints.sendRequest(
         this.config.access_token,
@@ -307,87 +306,97 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         '/api/cameras.get_owned_and_member_of_with_properties',
         'GET',
       );
-      let cameras = response.items;
+      cameras = response.items;
       if (this.structures.length > 0) {
         cameras = cameras.filter((info: CameraInfo) => this.structures.includes(info.nest_structure_name));
       }
-      cameras.forEach((cameraInfo: CameraInfo) => {
-        const uuid = hap.uuid.generate(cameraInfo.uuid);
-        const accessory = new Accessory(cameraInfo.name, uuid);
-        cameraInfo.homebridge_uuid = uuid;
-        accessory.context.cameraInfo = cameraInfo;
-
-        const model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : 'Unknown';
-        const accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
-        if (accessoryInformation) {
-          accessoryInformation.setCharacteristic(hap.Characteristic.Manufacturer, 'Nest');
-          accessoryInformation.setCharacteristic(hap.Characteristic.Model, model);
-          accessoryInformation.setCharacteristic(hap.Characteristic.SerialNumber, cameraInfo.serial_number);
-          accessoryInformation.setCharacteristic(
-            hap.Characteristic.FirmwareRevision,
-            cameraInfo.combined_software_version,
-          );
-        }
-
-        // Only add new cameras that are not cached
-        if (!this.accessories.find((x: PlatformAccessory) => x.UUID === uuid)) {
-          this.configureAccessory(accessory); // abusing the configureAccessory here
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        }
-      });
-
-      // Remove cameras that were not in previous call
-      // this.accessories.forEach((accessory: PlatformAccessory) => {
-      //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
-      //     accessory.context.removed = true;
-      //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      //     const index = this.accessories.indexOf(accessory);
-      //     if (index > -1) {
-      //       this.accessories.splice(index, 1);
-      //       this.cameras.slice(index, 1);
-      //     }
-      //   }
-      // });
     } catch (error) {
       handleError(this.log, error, 'Error fetching cameras');
     }
+    return cameras;
+  }
+
+  /**
+   * Add fetched cameras from nest to Homebridge
+   */
+  async addCameras(): Promise<void> {
+    const cameras = await this.getCameras();
+    cameras.forEach((cameraInfo: CameraInfo) => {
+      const uuid = hap.uuid.generate(cameraInfo.uuid);
+      const accessory = new Accessory(cameraInfo.name, uuid);
+      cameraInfo.homebridge_uuid = uuid;
+      accessory.context.cameraInfo = cameraInfo;
+
+      const model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : 'Unknown';
+      const accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
+      if (accessoryInformation) {
+        accessoryInformation.setCharacteristic(hap.Characteristic.Manufacturer, 'Nest');
+        accessoryInformation.setCharacteristic(hap.Characteristic.Model, model);
+        accessoryInformation.setCharacteristic(hap.Characteristic.SerialNumber, cameraInfo.serial_number);
+        accessoryInformation.setCharacteristic(
+          hap.Characteristic.FirmwareRevision,
+          cameraInfo.combined_software_version,
+        );
+      }
+
+      // Only add new cameras that are not cached
+      if (!this.accessories.find((x: PlatformAccessory) => x.UUID === uuid)) {
+        this.configureAccessory(accessory); // abusing the configureAccessory here
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
+    });
+
+    // Remove cameras that were not in previous call
+    // this.accessories.forEach((accessory: PlatformAccessory) => {
+    //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
+    //     accessory.context.removed = true;
+    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    //     const index = this.accessories.indexOf(accessory);
+    //     if (index > -1) {
+    //       this.accessories.splice(index, 1);
+    //       this.cameras.slice(index, 1);
+    //     }
+    //   }
+    // });
   }
 
   async updateCameras(): Promise<void> {
-    try {
-      const response = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        `/api/cameras.get_owned_and_member_of_with_properties`,
-        'GET',
-      );
-      response.items.forEach((info: CameraInfo) => {
-        const camera = this.cameras.find((x: NestCam) => x.info.uuid === info.uuid);
-        const uuid = hap.uuid.generate(info.uuid);
-        const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
-        if (camera && accessory) {
-          this.log.debug(`Updating info for ${info.name}`);
-          camera.info = info;
-          camera.info.homebridge_uuid = uuid;
-          const service = accessory.getService(hap.Service.Switch);
-          if (service) {
-            service.updateCharacteristic(hap.Characteristic.On, camera.info.is_streaming_enabled);
-          }
-        }
-      });
-    } catch (error) {
-      handleError(this.log, error, 'Error updating camera info');
-    }
+    const cameras = await this.getCameras();
+    cameras.forEach((info: CameraInfo) => {
+      const camera = this.cameras.find((x: NestCam) => x.info.uuid === info.uuid);
+      const uuid = hap.uuid.generate(info.uuid);
+      const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
+      if (camera && accessory) {
+        this.log.debug(`Updating info for ${info.name}`);
+        camera.info = info;
+        camera.info.homebridge_uuid = uuid;
+        // Update streaming
+        this.updateSwitchService('Streaming', accessory, camera, 'streaming.enabled');
+
+        // Update Chime
+        this.updateSwitchService('Chime', accessory, camera, 'doorbell.indoor_chime.enabled');
+
+        // Audio switch configuration
+        this.updateSwitchService('Audio', accessory, camera, 'audio.enabled');
+      }
+    });
   }
 
   async didFinishLaunching(): Promise<void> {
-    const connected = await setupConnection(this.config, this.log);
+    const self = this;
+    const connected = await this.setupConnection();
+
     if (connected) {
+      // Nest needs to be reauthenticated about every hour
+      setInterval(async function () {
+        await self.setupConnection();
+      }, 3480000); // 58 minutes
+
       const fieldTest = this.config.googleAuth.issueToken.includes('home.ft.nest.com');
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.updateCameras();
-      const self = this;
+      // Camera info needs to be updated every minute
       setInterval(async function () {
         await self.updateCameras();
       }, 60000);

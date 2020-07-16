@@ -4,6 +4,13 @@ import { CameraInfo, Properties } from './camera-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
+type OnlyBooleans<T> = Pick<
+  T,
+  {
+    [K in keyof T]: T[K] extends boolean ? K : never;
+  }[keyof T]
+>;
+
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',
   CHIME_STATE_CHANGED = 'chime-change',
@@ -24,6 +31,7 @@ export class NestCam extends EventEmitter {
   private doorbellRang = false;
   private alertTypes: Array<string> = [];
   private alertCooldown = 180000;
+  private alertInterval: NodeJS.Timeout | undefined;
 
   constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     super();
@@ -37,11 +45,12 @@ export class NestCam extends EventEmitter {
     this.endpoints = new NestEndpoints(config.fieldTest || false);
   }
 
-  private async setProperty(
-    key: keyof Properties,
-    value: string | number | boolean,
+  private async setBooleanProperty(
+    key: keyof OnlyBooleans<Properties>,
+    value: boolean,
     service: Service | undefined,
-  ): Promise<boolean> {
+    event?: NestCamEvents,
+  ): Promise<void> {
     const query = querystring.stringify({
       [key]: value,
       uuid: this.info.uuid,
@@ -62,40 +71,46 @@ export class NestCam extends EventEmitter {
       } else {
         if (service) {
           service.updateCharacteristic(this.hap.Characteristic.On, value);
-          return true;
+          this.info.properties[key] = value;
+          event && this.emit(event);
         }
       }
     } catch (error) {
       handleError(this.log, error, `Error setting property for ${this.info.name}`);
     }
-    return false;
   }
 
   async toggleActive(enabled: boolean): Promise<void> {
     const service = this.accessory.getService('Streaming');
-    if (await this.setProperty('streaming.enabled', enabled, service)) {
-      this.info.properties['streaming.enabled'] = enabled;
-      this.emit(NestCamEvents.CAMERA_STATE_CHANGED, enabled);
-    }
+    await this.setBooleanProperty('streaming.enabled', enabled, service, NestCamEvents.CAMERA_STATE_CHANGED);
   }
 
   async toggleChime(enabled: boolean): Promise<void> {
     const service = this.accessory.getService('Chime');
-    if (await this.setProperty('doorbell.indoor_chime.enabled', enabled, service)) {
-      this.info.properties['doorbell.indoor_chime.enabled'] = enabled;
-      this.emit(NestCamEvents.CHIME_STATE_CHANGED, enabled);
-    }
+    await this.setBooleanProperty('doorbell.indoor_chime.enabled', enabled, service, NestCamEvents.CHIME_STATE_CHANGED);
   }
 
   async toggleAudio(enabled: boolean): Promise<void> {
     const service = this.accessory.getService('Audio');
-    if (await this.setProperty('audio.enabled', enabled, service)) {
-      this.info.properties['audio.enabled'] = enabled;
-      this.emit(NestCamEvents.AUDIO_STATE_CHANGED, enabled);
+    await this.setBooleanProperty('audio.enabled', enabled, service, NestCamEvents.AUDIO_STATE_CHANGED);
+  }
+
+  startAlertChecks(interval: number) {
+    if (!this.alertInterval) {
+      const self = this;
+      this.alertInterval = setInterval(async function () {
+        self.checkAlerts();
+      }, interval);
     }
   }
 
-  async checkAlerts(): Promise<void> {
+  stopAlertChecks() {
+    if (this.alertInterval) {
+      clearInterval(this.alertInterval);
+    }
+  }
+
+  private async checkAlerts(): Promise<void> {
     this.log.debug(`Checking for alerts on ${this.accessory.displayName}`);
     try {
       const currDate = new Date();
