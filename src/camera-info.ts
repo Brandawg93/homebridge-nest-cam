@@ -14,7 +14,7 @@ export const ModelTypes = [
   'Nest Hello',
 ];
 
-interface Properties {
+export interface Properties {
   'adaptive_bandwidth.enabled': boolean;
   'alarms.streaming.enabled': boolean;
   'audio.enabled': boolean;

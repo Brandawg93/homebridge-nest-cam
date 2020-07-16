@@ -1,6 +1,6 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { NestEndpoints, handleError } from './nest-endpoints';
-import { CameraInfo } from './camera-info';
+import { CameraInfo, Properties } from './camera-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -38,7 +38,7 @@ export class NestCam extends EventEmitter {
   }
 
   private async setProperty(
-    key: string,
+    key: keyof Properties,
     value: string | number | boolean,
     service: Service | undefined,
   ): Promise<boolean> {

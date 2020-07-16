@@ -10,12 +10,13 @@ import {
   DynamicPlatformPlugin,
   HAP,
   Logging,
+  Service,
   PlatformAccessory,
   PlatformAccessoryEvent,
   PlatformConfig,
 } from 'homebridge';
 import { NestCam } from './nest-cam';
-import { CameraInfo, ModelTypes } from './camera-info';
+import { CameraInfo, ModelTypes, Properties } from './camera-info';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
@@ -43,14 +44,34 @@ const setupConnection = async function (config: PlatformConfig, log: Logging): P
   return await conn.auth();
 };
 
-const setAlertInterval = async function (
-  camera: NestCam,
-  accessory: PlatformAccessory,
-  interval: number,
-): Promise<void> {
+const setAlertInterval = async function (camera: NestCam, interval: number): Promise<void> {
   setInterval(async function () {
     camera.checkAlerts();
   }, interval);
+};
+
+const createSwitch = function (
+  name: string,
+  sw: Service | undefined,
+  canCreate: boolean,
+  accessory: PlatformAccessory,
+  camera: NestCam,
+  _key: keyof Properties,
+  log: Logging,
+  cb: (value: CharacteristicValue) => void,
+) {
+  sw && accessory.removeService(sw);
+  if (canCreate) {
+    accessory
+      .addService(new hap.Service.Switch(name, name.toLowerCase()))
+      .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
+      .getCharacteristic(hap.Characteristic.On)
+      .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+        cb(value);
+        log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
+        callback();
+      });
+  }
 };
 
 class NestCamPlatform implements DynamicPlatformPlugin {
@@ -175,12 +196,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const audioSwitch = accessory.getService('Audio');
 
     // Microphone configuration
-    if (microphone) {
-      accessory.removeService(microphone);
-    }
-    if (speaker) {
-      accessory.removeService(speaker);
-    }
+    microphone && accessory.removeService(microphone);
+    speaker && accessory.removeService(speaker);
+
     // Add microphone service
     if (camera.info.capabilities.includes('audio.microphone')) {
       accessory
@@ -199,31 +217,23 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Motion configuration
-    if (motion) {
-      accessory.removeService(motion);
-    }
-    // Add motion service
+    motion && accessory.removeService(motion);
     if (camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection) {
       accessory.addService(hap.Service.MotionSensor);
-      setAlertInterval(camera, accessory, alertInterval);
+      setAlertInterval(camera, alertInterval);
     }
 
     // Doorbell configuration
-    if (doorbell) {
-      accessory.removeService(doorbell);
-    }
-    // Add doorbell service
+    doorbell && accessory.removeService(doorbell);
     if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts) {
       accessory.addService(hap.Service.Doorbell);
       if (!this.motionDetection) {
-        setAlertInterval(camera, accessory, alertInterval);
+        setAlertInterval(camera, alertInterval);
       }
     }
 
     // Add doorbell switch
-    if (doorbellSwitch) {
-      accessory.removeService(doorbellSwitch);
-    }
+    doorbellSwitch && accessory.removeService(doorbellSwitch);
     if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts && this.doorbellSwitch) {
       accessory
         .addService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch')
@@ -234,52 +244,46 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Streaming configuration
-    if (enabledSwitch) {
-      accessory.removeService(enabledSwitch);
-    }
-    if (this.streamingSwitch) {
-      accessory
-        .addService(new hap.Service.Switch('Streaming', 'streaming'))
-        .setCharacteristic(hap.Characteristic.On, camera.info.properties['streaming.enabled'])
-        .getCharacteristic(hap.Characteristic.On)
-        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleActive(value as boolean);
-          this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
-          callback();
-        });
-    }
+    createSwitch(
+      'Streaming',
+      enabledSwitch,
+      camera.info.capabilities.includes('streaming.start-stop') && this.streamingSwitch,
+      accessory,
+      camera,
+      'streaming.enabled',
+      this.log,
+      async (value) => {
+        await camera.toggleActive(value as boolean);
+      },
+    );
 
     // Chime configuration
-    if (chimeSwitch) {
-      accessory.removeService(chimeSwitch);
-    }
-    if (camera.info.capabilities.includes('indoor_chime') && this.chimeSwitch) {
-      accessory
-        .addService(new hap.Service.Switch('Chime', 'chime'))
-        .setCharacteristic(hap.Characteristic.On, camera.info.properties['doorbell.indoor_chime.enabled'])
-        .getCharacteristic(hap.Characteristic.On)
-        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleChime(value as boolean);
-          this.log.info(`Setting ${accessory.displayName} chime to ${value ? 'on' : 'off'}`);
-          callback();
-        });
-    }
+    createSwitch(
+      'Chime',
+      chimeSwitch,
+      camera.info.capabilities.includes('indoor_chime') && this.chimeSwitch,
+      accessory,
+      camera,
+      'doorbell.indoor_chime.enabled',
+      this.log,
+      async (value) => {
+        await camera.toggleChime(value as boolean);
+      },
+    );
 
     // Audio switch configuration
-    if (audioSwitch) {
-      accessory.removeService(audioSwitch);
-    }
-    if (camera.info.capabilities.includes('audio.microphone') && this.audioSwitch) {
-      accessory
-        .addService(new hap.Service.Switch('Audio', 'audio'))
-        .setCharacteristic(hap.Characteristic.On, camera.info.properties['audio.enabled'])
-        .getCharacteristic(hap.Characteristic.On)
-        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          await camera.toggleAudio(value as boolean);
-          this.log.info(`Setting ${accessory.displayName} audio to ${value ? 'on' : 'off'}`);
-          callback();
-        });
-    }
+    createSwitch(
+      'Audio',
+      audioSwitch,
+      camera.info.capabilities.includes('audio.microphone') && this.audioSwitch,
+      accessory,
+      camera,
+      'audio.enabled',
+      this.log,
+      async (value) => {
+        await camera.toggleAudio(value as boolean);
+      },
+    );
 
     this.cameras.push(camera);
     this.accessories.push(accessory);
