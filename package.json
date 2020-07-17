@@ -16,14 +16,14 @@
   "scripts": {
     "clean": "rimraf ./dist ./coverage",
     "minify": "minify dist -d dist",
-    "build": "rimraf ./dist ./coverage && tsc && npm run minify",
+    "build": "rimraf ./dist ./coverage && tsc",
     "packlist": "npm pack --dry-run && rm *.tgz",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "test": "jest --coverage",
     "watch:tests": "jest --watch",
     "lint": "eslint ./src/**.ts --fix",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run lint",
+    "prepublishOnly": "npm run lint && npm run minify",
     "postpublish": "npm run clean"
   },
   "keywords": [
@@ -53,13 +53,11 @@
   "dependencies": {
     "axios": "^0.19.2",
     "ffmpeg-for-homebridge": "^0.0.6",
-    "ip": "^1.1.5",
     "pbf": "^3.2.1",
     "get-port": "^5.1.1",
     "execa": "^4.0.3"
   },
   "devDependencies": {
-    "@types/ip": "^1.1.0",
     "@types/jest": "^26.0.4",
     "@types/node": "^14.0.22",
     "@types/pbf": "^3.0.2",

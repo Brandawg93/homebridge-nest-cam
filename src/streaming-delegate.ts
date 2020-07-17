@@ -17,11 +17,11 @@ import {
   VideoInfo,
   AudioInfo,
 } from 'homebridge';
-import ip from 'ip';
+import { getAddresses } from './util/ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints, handleError } from './nest-endpoints';
-import { RtpSplitter } from './rtp-utils';
+import { RtpSplitter } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
@@ -151,27 +151,31 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       audioSSRC: audioSSRC,
     };
 
-    const currentAddress = ip.address('public', request.addressVersion); // ipAddress version must match
-    const response: PrepareStreamResponse = {
-      address: currentAddress,
-      video: {
-        port: returnVideoPort,
-        ssrc: videoSSRC,
+    const addresses = getAddresses(request.addressVersion);
+    if (addresses.length > 0) {
+      const response: PrepareStreamResponse = {
+        address: addresses[0],
+        video: {
+          port: returnVideoPort,
+          ssrc: videoSSRC,
 
-        srtp_key: videoSrtpKey,
-        srtp_salt: videoSrtpSalt,
-      },
-      audio: {
-        port: audioServerPort,
-        ssrc: audioSSRC,
+          srtp_key: videoSrtpKey,
+          srtp_salt: videoSrtpSalt,
+        },
+        audio: {
+          port: audioServerPort,
+          ssrc: audioSSRC,
 
-        srtp_key: audioSrtpKey,
-        srtp_salt: audioSrtpSalt,
-      },
-    };
-
-    this.pendingSessions[sessionId] = sessionInfo;
-    callback(void 0, response);
+          srtp_key: audioSrtpKey,
+          srtp_salt: audioSrtpSalt,
+        },
+      };
+      this.pendingSessions[sessionId] = sessionInfo;
+      callback(void 0, response);
+    } else {
+      this.log.error('No valid IP address was found.');
+      callback(new Error('Invalid IP'));
+    }
   }
 
   private getVideoCommand(info: VideoInfo, sessionId: string): Array<string> {
