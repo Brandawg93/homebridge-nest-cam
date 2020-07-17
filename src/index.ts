@@ -142,11 +142,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     accessory: PlatformAccessory,
     camera: NestCam,
   ) {
-    const alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
     service && accessory.removeService(service);
     if (canCreate) {
       service && accessory.addService(service);
-      camera.startAlertChecks(alertInterval);
+      camera.startAlertChecks();
     }
   }
 

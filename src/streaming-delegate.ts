@@ -67,7 +67,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.hap = hap;
     this.log = log;
     this.config = config;
-    this.endpoints = new NestEndpoints(config.options?.fieldTest || false);
+    this.endpoints = new NestEndpoints(config.options?.fieldTest);
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
     this.ffmpegCodec = config.ffmpegCodec || 'libx264';

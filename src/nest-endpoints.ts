@@ -20,7 +20,7 @@ export function handleError(log: Logging, error: any, message: string): void {
     }
   } else if (error.code) {
     const errMsg = `${message}: ${error.code}`;
-    if (error.code === 'ECONNRESET') {
+    if (error.code === 'ECONNRESET' || error.code === 'EAI_AGAIN') {
       log.debug(`${errMsg}\n${addendum}`);
     } else {
       log.error(`${errMsg}\n${addendum}`);

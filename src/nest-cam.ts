@@ -31,7 +31,10 @@ export class NestCam extends EventEmitter {
   private doorbellRang = false;
   private alertTypes: Array<string> = [];
   private alertCooldown = 180000;
-  private alertInterval: NodeJS.Timeout | undefined;
+  private alertInterval = 10000;
+  private alertTimeout: NodeJS.Timeout | undefined;
+  private alertFailures = 0;
+  private alertsSend = true;
 
   constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     super();
@@ -42,7 +45,8 @@ export class NestCam extends EventEmitter {
     this.info = info;
     this.alertTypes = config.options?.alertTypes || [];
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
-    this.endpoints = new NestEndpoints(config.fieldTest || false);
+    this.alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
+    this.endpoints = new NestEndpoints(config.fieldTest);
   }
 
   private async setBooleanProperty(
@@ -95,22 +99,25 @@ export class NestCam extends EventEmitter {
     await this.setBooleanProperty('audio.enabled', enabled, service, NestCamEvents.AUDIO_STATE_CHANGED);
   }
 
-  startAlertChecks(interval: number) {
-    if (!this.alertInterval) {
+  startAlertChecks() {
+    if (!this.alertTimeout) {
       const self = this;
-      this.alertInterval = setInterval(async function () {
+      this.alertTimeout = setInterval(async function () {
         self.checkAlerts();
-      }, interval);
+      }, this.alertInterval);
     }
   }
 
   stopAlertChecks() {
-    if (this.alertInterval) {
-      clearInterval(this.alertInterval);
+    if (this.alertTimeout) {
+      clearInterval(this.alertTimeout);
     }
   }
 
   private async checkAlerts(): Promise<void> {
+    if (!this.alertsSend) {
+      return;
+    }
     this.log.debug(`Checking for alerts on ${this.accessory.displayName}`);
     try {
       const currDate = new Date();
@@ -127,6 +134,7 @@ export class NestCam extends EventEmitter {
           `/cuepoint/${this.info.uuid}/2?${query}`,
           'GET',
         );
+        this.alertFailures = 0;
         if (response.length > 0) {
           for (let i = 0; i < response.length; i++) {
             const trigger = response[i];
@@ -152,6 +160,11 @@ export class NestCam extends EventEmitter {
       }
     } catch (error) {
       handleError(this.log, error, 'Error checking alerts');
+      this.alertFailures++;
+      this.alertsSend = false;
+      setTimeout(() => {
+        this.alertsSend = true;
+      }, this.alertInterval * Math.pow(this.alertFailures, 2));
     }
   }
 
