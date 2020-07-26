@@ -1,34 +1,24 @@
 import os from 'os';
 
-export function getAddresses(family = 'ipv4'): Array<string> {
-  family = family.toLowerCase();
+export function getIpAddresses(family = 'ipv4'): Array<string> {
+  const interfaces = os.networkInterfaces(),
+    familyLower = family.toLowerCase();
 
-  const interfaces = os.networkInterfaces();
-
-  const keys = Object.keys(interfaces);
-  keys.forEach((key) => {
-    // Remove all virtual interfaces
-    if (key.startsWith('v')) {
-      delete interfaces[key];
+  return Object.entries(interfaces).reduce((addresses, [key, interfaceInfos]) => {
+    // Skip all virtual and bridge interfaces
+    if (key.startsWith('v') || key.startsWith('br')) {
+      return addresses;
     }
 
-    // Remove all bridge interfaces
-    if (key.startsWith('br')) {
-      delete interfaces[key];
-    }
-  });
+    const matchingAddresses = (interfaceInfos || []).reduce((matches, interfaceInfo) => {
+      // Remove addresses that have incorrect family or are internal
+      if (interfaceInfo.internal || interfaceInfo.family.toLowerCase() !== familyLower) {
+        return matches;
+      }
 
-  // Combine all interfaces to single list
-  const vals = Object.values(interfaces);
-  let all: Array<os.NetworkInterfaceInfo> = [];
-  vals.forEach((val) => {
-    val && (all = all.concat(val));
-  });
+      return matches.concat([interfaceInfo.address]);
+    }, [] as Array<string>);
 
-  // Remove addresses that have incorrect family or are internal
-  const addresses = all.filter((details) => {
-    const fam = details.family.toLowerCase();
-    return fam === family && !details.internal;
-  });
-  return addresses.map((x) => x.address);
+    return addresses.concat(matchingAddresses);
+  }, [] as Array<string>);
 }
