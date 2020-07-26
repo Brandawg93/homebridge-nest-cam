@@ -227,12 +227,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Motion configuration
-    this.createAlertService(
-      accessory.getService(hap.Service.MotionSensor),
-      camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-      accessory,
-      camera,
-    );
+    this.createAlertService(accessory.getService(hap.Service.MotionSensor), this.motionDetection, accessory, camera);
 
     // Doorbell configuration
     this.createAlertService(
