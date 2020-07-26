@@ -53,7 +53,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 }
 ```
 
-**Note:** If the steps below do not work, refer to the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
+**Note:** If the steps below do not work, refer to the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication). You may need to reauthenticate periodically due to your Google account settings.
 
 1. If the plugin is installed globally, run `homebridge-nest-cam login`, otherwise, *ensure that you are in the plugin's root directory* and run `node dist/login.js`. If your account has 2 factor authentication, use the `-h` flag.
 2. Login to your Nest account.
