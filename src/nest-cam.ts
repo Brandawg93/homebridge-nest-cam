@@ -36,14 +36,21 @@ export class NestCam extends EventEmitter {
   private alertFailures = 0;
   private alertsSend = true;
 
-  constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
+  constructor(
+    config: PlatformConfig,
+    info: CameraInfo,
+    accessory: PlatformAccessory,
+    alertTypes: Array<string>,
+    log: Logging,
+    hap: HAP,
+  ) {
     super();
     this.hap = hap;
     this.log = log;
     this.config = config;
     this.accessory = accessory;
     this.info = info;
-    this.alertTypes = config.options?.alertTypes || [];
+    this.alertTypes = alertTypes;
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
     this.alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
     this.endpoints = new NestEndpoints(config.fieldTest);
@@ -85,17 +92,17 @@ export class NestCam extends EventEmitter {
   }
 
   async toggleActive(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService('Streaming');
+    const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
     await this.setBooleanProperty('streaming.enabled', enabled, service, NestCamEvents.CAMERA_STATE_CHANGED);
   }
 
   async toggleChime(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService('Chime');
+    const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
     await this.setBooleanProperty('doorbell.indoor_chime.enabled', enabled, service, NestCamEvents.CHIME_STATE_CHANGED);
   }
 
   async toggleAudio(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService('Audio');
+    const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
     await this.setBooleanProperty('audio.enabled', enabled, service, NestCamEvents.AUDIO_STATE_CHANGED);
   }
 
@@ -143,18 +150,13 @@ export class NestCam extends EventEmitter {
               break;
             }
 
-            // Check the intersection between user defined alert types and received alerts
-            let intersection = trigger.types;
-            if (this.alertTypes.length > 0) {
-              intersection = this.alertTypes.filter((type) => trigger.types.includes(type));
-            }
-            if (trigger.is_important && intersection.length > 0 && !this.motionDetected) {
-              this.triggerMotion();
+            if (trigger.is_important && !this.motionDetected) {
+              this.triggerMotion(trigger.types);
               break;
             }
           }
         } else if (this.motionInProgress) {
-          self.setMotion(false);
+          self.setMotion(false, this.alertTypes);
           this.motionInProgress = false;
         }
       }
@@ -168,9 +170,9 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  triggerMotion(): void {
+  triggerMotion(types: Array<string>): void {
     const self = this;
-    this.setMotion(true);
+    this.setMotion(true, types);
     this.motionDetected = true;
     this.motionInProgress = true;
 
@@ -179,13 +181,15 @@ export class NestCam extends EventEmitter {
     }, this.alertCooldown);
   }
 
-  private setMotion(state: boolean): void {
-    const service = this.accessory.getService(this.hap.Service.MotionSensor);
-    if (service) {
-      this.log.debug(`Setting ${this.accessory.displayName} Motion to ${state}`);
-      service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
-      this.emit(NestCamEvents.MOTION_DETECTED, state);
-    }
+  private setMotion(state: boolean, types: Array<string>): void {
+    types.forEach((type) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} ${type}`);
+      if (service) {
+        this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
+        service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
+        this.emit(NestCamEvents.MOTION_DETECTED, state);
+      }
+    });
   }
 
   triggerDoorbell(): void {
@@ -198,9 +202,9 @@ export class NestCam extends EventEmitter {
   }
 
   private setDoorbell(): void {
-    const doorbellService = this.accessory.getService(this.hap.Service.Doorbell);
+    const doorbellService = this.accessory.getService(`${this.accessory.displayName} doorbell`);
     if (doorbellService) {
-      this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
+      this.log.debug(`Ringing ${this.accessory.displayName} doorbell`);
       doorbellService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
@@ -214,6 +218,24 @@ export class NestCam extends EventEmitter {
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
       );
+    }
+  }
+
+  async getFaces(): Promise<any> {
+    try {
+      if (!this.accessory.context.removed) {
+        const response = await this.endpoints.sendRequest(
+          this.config.access_token,
+          `https://${this.info.nexus_api_nest_domain_host}`,
+          `/faces/${this.info.nest_structure_id}`,
+          'GET',
+        );
+        if (response && response.length > 0) {
+          return response;
+        }
+      }
+    } catch (error) {
+      handleError(this.log, error, 'Error getting faces');
     }
   }
 }

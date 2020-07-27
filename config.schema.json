@@ -64,6 +64,23 @@
           "minimum": 60,
           "maximum": 300
         },
+        "alertTypes": {
+          "title": "Alert Types",
+          "description": "What type of alerts to receive",
+            "type": "array",
+            "items": {
+              "title": "Alert Type",
+              "type": "string",
+              "oneOf": [
+                { "title": "Motion", "enum": ["motion"] },
+                { "title": "Sound", "enum": ["sound"] },
+                { "title": "Person", "enum": ["person"] },
+                { "title": "Package Retrieved", "enum": ["package-retrieved"] },
+                { "title": "Package Delivered", "enum": ["package-delivered"] },
+                { "title": "Face", "enum": ["face"] }
+              ]    
+            }
+        },
         "motionDetection": {
           "title": "Motion Detection",
           "type": "boolean",

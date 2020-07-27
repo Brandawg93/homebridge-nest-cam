@@ -10,7 +10,6 @@ import {
   DynamicPlatformPlugin,
   HAP,
   Logging,
-  Service,
   PlatformAccessory,
   PlatformAccessoryEvent,
   PlatformConfig,
@@ -41,6 +40,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private chimeSwitch = true;
   private audioSwitch = true;
   private structures: Array<string> = [];
+  private alertTypes: Array<string> = ['motion', 'sound', 'person', 'package-delivered', 'package-retrieved', 'face'];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -82,6 +82,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (typeof structures !== 'undefined') {
       this.structures = structures;
     }
+    const alertTypes = options?.alertTypes;
+    if (typeof alertTypes !== 'undefined') {
+      this.alertTypes = alertTypes;
+    }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
   }
@@ -116,11 +120,13 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     _key: keyof Properties,
     cb: (value: CharacteristicValue) => void,
   ) {
-    const service = accessory.getService(name);
-    service && accessory.removeService(service);
+    const service = accessory.getService(`${accessory.displayName} ${name}`);
+    if (service) {
+      accessory.removeService(service);
+    }
     if (canCreate) {
       accessory
-        .addService(new hap.Service.Switch(name, name.toLowerCase()))
+        .addService(new hap.Service.Switch(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`))
         .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
@@ -136,20 +142,33 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     service && service.updateCharacteristic(hap.Characteristic.On, camera.info.properties[_key]);
   }
 
-  private createAlertService(
-    service: Service | undefined,
-    canCreate: boolean,
-    accessory: PlatformAccessory,
-    camera: NestCam,
-  ) {
-    service && accessory.removeService(service);
+  private createMotionService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam) {
+    const service = accessory.getService(`${accessory.displayName} ${name}`);
+    if (service) {
+      accessory.removeService(service);
+    }
     if (canCreate) {
-      service && accessory.addService(service);
+      accessory.addService(
+        new hap.Service.MotionSensor(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
+      );
       camera.startAlertChecks();
     }
   }
 
-  configureAccessory(accessory: PlatformAccessory): void {
+  private createDoorbellService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam) {
+    const service = accessory.getService(`${accessory.displayName} ${name}`);
+    if (service) {
+      accessory.removeService(service);
+    }
+    if (canCreate) {
+      accessory.addService(
+        new hap.Service.Doorbell(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
+      );
+      camera.startAlertChecks();
+    }
+  }
+
+  async configureAccessory(accessory: PlatformAccessory): Promise<void> {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
     accessory.on(PlatformAccessoryEvent.IDENTIFY, () => {
@@ -157,7 +176,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
 
     const cameraInfo: CameraInfo = accessory.context.cameraInfo;
-    const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
+    const camera = new NestCam(this.config, cameraInfo, accessory, this.alertTypes, this.log, hap);
     const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
@@ -226,17 +245,59 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         });
     }
 
+    // Remove the previous switch services
+    const oldSwitchService = accessory.getService(hap.Service.Switch);
+    if (oldSwitchService) {
+      accessory.removeService(oldSwitchService);
+    }
+    // Remove the previous motion services
+    const oldMotionService = accessory.getService(hap.Service.MotionSensor);
+    if (oldMotionService) {
+      accessory.removeService(oldMotionService);
+    }
+    // Remove the previous doorbell services
+    const oldDoorbellService = accessory.getService(hap.Service.Doorbell);
+    if (oldDoorbellService) {
+      accessory.removeService(oldDoorbellService);
+    }
+
     // Motion configuration
-    this.createAlertService(
-      accessory.getService(hap.Service.MotionSensor),
-      camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-      accessory,
-      camera,
-    );
+    if (camera.info.full_camera_enabled) {
+      if (camera.info.capabilities.includes('stranger_detection')) {
+        const useFaces = this.alertTypes.includes('face');
+        const index = this.alertTypes.indexOf('face');
+        if (index > -1) {
+          this.alertTypes.splice(index, 1);
+        }
+        if (useFaces) {
+          const faces = await camera.getFaces();
+          faces.array.forEach((face: any) => {
+            this.alertTypes.push(`face-${face.name}`);
+          });
+        }
+      } else {
+        this.alertTypes = ['motion', 'sound', 'person'];
+      }
+      this.alertTypes.forEach((type) => {
+        this.createMotionService(
+          type,
+          camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+          accessory,
+          camera,
+        );
+      });
+    } else {
+      this.createMotionService(
+        'motion',
+        camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+        accessory,
+        camera,
+      );
+    }
 
     // Doorbell configuration
-    this.createAlertService(
-      accessory.getService(hap.Service.Doorbell),
+    this.createDoorbellService(
+      'doorbell',
       camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts,
       accessory,
       camera,
