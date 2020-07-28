@@ -40,7 +40,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private chimeSwitch = true;
   private audioSwitch = true;
   private structures: Array<string> = [];
-  private alertTypes: Array<string> = ['motion', 'sound', 'person', 'package-delivered', 'package-retrieved', 'face'];
+  private alertTypes: Array<string> = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'face'];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -246,24 +246,27 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
 
     // Remove the previous switch services
-    const oldSwitchService = accessory.getService(hap.Service.Switch);
-    if (oldSwitchService) {
+    let oldSwitchService = accessory.getService(hap.Service.Switch);
+    while (oldSwitchService) {
       accessory.removeService(oldSwitchService);
+      oldSwitchService = accessory.getService(hap.Service.Switch);
     }
     // Remove the previous motion services
-    const oldMotionService = accessory.getService(hap.Service.MotionSensor);
-    if (oldMotionService) {
+    let oldMotionService = accessory.getService(hap.Service.MotionSensor);
+    while (oldMotionService) {
       accessory.removeService(oldMotionService);
+      oldMotionService = accessory.getService(hap.Service.MotionSensor);
     }
     // Remove the previous doorbell services
-    const oldDoorbellService = accessory.getService(hap.Service.Doorbell);
-    if (oldDoorbellService) {
+    let oldDoorbellService = accessory.getService(hap.Service.Doorbell);
+    while (oldDoorbellService) {
       accessory.removeService(oldDoorbellService);
+      oldDoorbellService = accessory.getService(hap.Service.Doorbell);
     }
 
     // Doorbell configuration
     this.createDoorbellService(
-      'doorbell',
+      'Doorbell',
       camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts,
       accessory,
       camera,
@@ -337,12 +340,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
               const faces = await camera.getFaces();
               if (faces) {
                 faces.forEach((face: any) => {
-                  camera.alertTypes.push(`face-${face.name}`);
+                  camera.alertTypes.push(`Face - ${face.name}`);
                 });
               }
             }
           } else {
-            camera.alertTypes = ['motion', 'sound', 'person'];
+            camera.alertTypes = ['Motion', 'Sound', 'Person'];
           }
           camera.alertTypes.forEach((type) => {
             this.createMotionService(
@@ -354,7 +357,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
           });
         } else {
           this.createMotionService(
-            'motion',
+            'Motion',
             camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
             accessory,
             camera,

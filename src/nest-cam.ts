@@ -11,6 +11,19 @@ type OnlyBooleans<T> = Pick<
   }[keyof T]
 >;
 
+const sanitizeString = (str: string): string => {
+  if (str.includes('package')) {
+    // Package
+    return str.replace('-', ' ').replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
+  } else if (str.includes('face')) {
+    // Face
+    return str.replace('-', ' - ').replace('face', 'Face');
+  } else {
+    // Motion, Person, Sound
+    return str.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
+  }
+};
+
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',
   CHIME_STATE_CHANGED = 'chime-change',
@@ -183,6 +196,7 @@ export class NestCam extends EventEmitter {
 
   private setMotion(state: boolean, types: Array<string>): void {
     types.forEach((type) => {
+      type = sanitizeString(type);
       const service = this.accessory.getService(`${this.accessory.displayName} ${type}`);
       if (service) {
         this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
@@ -202,9 +216,9 @@ export class NestCam extends EventEmitter {
   }
 
   private setDoorbell(): void {
-    const doorbellService = this.accessory.getService(`${this.accessory.displayName} doorbell`);
+    const doorbellService = this.accessory.getService(`${this.accessory.displayName} Doorbell`);
     if (doorbellService) {
-      this.log.debug(`Ringing ${this.accessory.displayName} doorbell`);
+      this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
       doorbellService.updateCharacteristic(
         this.hap.Characteristic.ProgrammableSwitchEvent,
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
