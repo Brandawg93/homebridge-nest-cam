@@ -67,14 +67,15 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | streamQuality     | The quality of the stream from LOW to HIGH                          | number (1-3)     |
 | alertCheckRate    | How often to check for alerts                                       | number (seconds) |
 | alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |
-| motionDetection   | enable/disable the motion sensor                                    | boolean          |
-| doorbellAlerts    | enable/disable doorbell ring notifications                          | boolean          |
-| doorbellSwitch    | enable/disable doorbell automation switch                           | boolean          |
-| streamingSwitch   | enable/disable the ability to turn the camera on or off             | boolean          |
-| chimeSwitch       | enable/disable the ability to turn the doorbell chime on or off     | boolean          |
-| audioSwitch       | enable/disable the ability to turn the camera audio on or off       | boolean          |
-| pathToFfmpeg      | specify the path to a custom FFmpeg binary                          | string           |
-| structures        | specify the structure names of which structures' cameras to see     | array            |
+| alertTypes        | What type of alerts to receive                                      | array            |
+| motionDetection   | Enable/disable the motion sensor                                    | boolean          |
+| doorbellAlerts    | Enable/disable doorbell ring notifications                          | boolean          |
+| doorbellSwitch    | Enable/disable doorbell automation switch                           | boolean          |
+| streamingSwitch   | Enable/disable the ability to turn the camera on or off             | boolean          |
+| chimeSwitch       | Enable/disable the ability to turn the doorbell chime on or off     | boolean          |
+| audioSwitch       | Enable/disable the ability to turn the camera audio on or off       | boolean          |
+| pathToFfmpeg      | Specify the path to a custom FFmpeg binary                          | string           |
+| structures        | Specify the structure names of which structures' cameras to see     | array            |
 
 ## Features
 - View cameras within homekit.

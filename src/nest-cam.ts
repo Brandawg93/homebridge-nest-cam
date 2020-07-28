@@ -29,7 +29,7 @@ export class NestCam extends EventEmitter {
   private motionDetected = false;
   private motionInProgress = false;
   private doorbellRang = false;
-  private alertTypes: Array<string> = [];
+  public alertTypes: Array<string> = [];
   private alertCooldown = 180000;
   private alertInterval = 10000;
   private alertTimeout: NodeJS.Timeout | undefined;
@@ -227,7 +227,7 @@ export class NestCam extends EventEmitter {
         const response = await this.endpoints.sendRequest(
           this.config.access_token,
           `https://${this.info.nexus_api_nest_domain_host}`,
-          `/faces/${this.info.nest_structure_id}`,
+          `/faces/${this.info.nest_structure_id.replace('structure.', '')}`,
           'GET',
         );
         if (response && response.length > 0) {

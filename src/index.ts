@@ -168,7 +168,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async configureAccessory(accessory: PlatformAccessory): Promise<void> {
+  configureAccessory(accessory: PlatformAccessory): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
     accessory.on(PlatformAccessoryEvent.IDENTIFY, () => {
@@ -261,40 +261,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       accessory.removeService(oldDoorbellService);
     }
 
-    // Motion configuration
-    if (camera.info.full_camera_enabled) {
-      if (camera.info.capabilities.includes('stranger_detection')) {
-        const useFaces = this.alertTypes.includes('face');
-        const index = this.alertTypes.indexOf('face');
-        if (index > -1) {
-          this.alertTypes.splice(index, 1);
-        }
-        if (useFaces) {
-          const faces = await camera.getFaces();
-          faces.array.forEach((face: any) => {
-            this.alertTypes.push(`face-${face.name}`);
-          });
-        }
-      } else {
-        this.alertTypes = ['motion', 'sound', 'person'];
-      }
-      this.alertTypes.forEach((type) => {
-        this.createMotionService(
-          type,
-          camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-          accessory,
-          camera,
-        );
-      });
-    } else {
-      this.createMotionService(
-        'motion',
-        camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-        accessory,
-        camera,
-      );
-    }
-
     // Doorbell configuration
     this.createDoorbellService(
       'doorbell',
@@ -352,6 +318,50 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     this.cameras.push(camera);
     this.accessories.push(accessory);
+  }
+
+  private async setupMotionServices(): Promise<void> {
+    this.cameras.forEach(async (camera) => {
+      const uuid = hap.uuid.generate(camera.info.uuid);
+      const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
+      if (accessory) {
+        // Motion configuration
+        if (camera.info.full_camera_enabled) {
+          if (camera.info.capabilities.includes('stranger_detection')) {
+            const useFaces = camera.alertTypes.includes('face');
+            const index = camera.alertTypes.indexOf('face');
+            if (index > -1) {
+              camera.alertTypes.splice(index, 1);
+            }
+            if (useFaces) {
+              const faces = await camera.getFaces();
+              if (faces) {
+                faces.forEach((face: any) => {
+                  camera.alertTypes.push(`face-${face.name}`);
+                });
+              }
+            }
+          } else {
+            camera.alertTypes = ['motion', 'sound', 'person'];
+          }
+          camera.alertTypes.forEach((type) => {
+            this.createMotionService(
+              type,
+              camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+              accessory,
+              camera,
+            );
+          });
+        } else {
+          this.createMotionService(
+            'motion',
+            camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+            accessory,
+            camera,
+          );
+        }
+      }
+    });
   }
 
   /**
@@ -455,6 +465,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const fieldTest = this.config.googleAuth.issueToken.includes('home.ft.nest.com');
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
+      await this.setupMotionServices();
       await this.updateCameras();
       // Camera info needs to be updated every minute
       setInterval(async function () {
