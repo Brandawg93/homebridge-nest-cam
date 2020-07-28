@@ -12,6 +12,13 @@ export async function login(email?: string, password?: string): Promise<void> {
   puppeteer.use(pluginStealth());
 
   const headless = !process.argv.includes('-h');
+  const path = (): string => {
+    if (process.argv.includes('-p')) {
+      const index = process.argv.indexOf('-p');
+      return process.argv[index + 1];
+    }
+    return '';
+  };
   const prompt = (query: string, hidden = false): Promise<string> =>
     new Promise((resolve, reject) => {
       const rl = readline.createInterface({
@@ -47,7 +54,12 @@ export async function login(email?: string, password?: string): Promise<void> {
     });
 
   try {
-    const browser = await puppeteer.launch({ headless: headless });
+    const options: any = { headless: headless };
+    const executablePath = path();
+    if (executablePath) {
+      options.executablePath = path();
+    }
+    const browser = await puppeteer.launch(options);
     console.log('Opening chromium browser...');
     const page = await browser.newPage();
     const pages = await browser.pages();

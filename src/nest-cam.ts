@@ -221,7 +221,7 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  async getFaces(): Promise<any> {
+  async getFaces(): Promise<Array<any>> {
     try {
       if (!this.accessory.context.removed) {
         const response = await this.endpoints.sendRequest(
@@ -237,5 +237,6 @@ export class NestCam extends EventEmitter {
     } catch (error) {
       handleError(this.log, error, 'Error getting faces');
     }
+    return [];
   }
 }
