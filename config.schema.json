@@ -72,12 +72,12 @@
               "title": "Alert Type",
               "type": "string",
               "oneOf": [
-                { "title": "Motion", "enum": ["motion"] },
-                { "title": "Sound", "enum": ["sound"] },
-                { "title": "Person", "enum": ["person"] },
-                { "title": "Package Retrieved", "enum": ["package-retrieved"] },
-                { "title": "Package Delivered", "enum": ["package-delivered"] },
-                { "title": "Face", "enum": ["face"] }
+                { "title": "Motion", "enum": ["Motion"] },
+                { "title": "Sound", "enum": ["Sound"] },
+                { "title": "Person", "enum": ["Person"] },
+                { "title": "Package Retrieved", "enum": ["Package Retrieved"] },
+                { "title": "Package Delivered", "enum": ["Package Delivered"] },
+                { "title": "Face", "enum": ["Face"] }
               ]    
             }
         },

@@ -40,7 +40,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private chimeSwitch = true;
   private audioSwitch = true;
   private structures: Array<string> = [];
-  private alertTypes: Array<string> = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'face'];
+  private alertTypes: Array<string> = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face'];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -331,8 +331,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         // Motion configuration
         if (camera.info.full_camera_enabled) {
           if (camera.info.capabilities.includes('stranger_detection')) {
-            const useFaces = camera.alertTypes.includes('face');
-            const index = camera.alertTypes.indexOf('face');
+            const useFaces = camera.alertTypes.includes('Face');
+            const index = camera.alertTypes.indexOf('Face');
             if (index > -1) {
               camera.alertTypes.splice(index, 1);
             }
