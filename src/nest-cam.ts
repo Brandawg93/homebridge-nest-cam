@@ -158,6 +158,11 @@ export class NestCam extends EventEmitter {
         if (response.length > 0) {
           for (let i = 0; i < response.length; i++) {
             const trigger = response[i];
+            // Add face to alert if name is not empty
+            if (trigger.face_name) {
+              trigger.types?.push(`face-${trigger.face_name}`);
+            }
+
             if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
               this.triggerDoorbell();
               break;
