@@ -53,7 +53,7 @@
           "description": "How often to check for alerts? (seconds)",
           "type": "integer",
           "default": 10,
-          "minimum": 10,
+          "minimum": 2,
           "maximum": 60
         },
         "alertCooldownRate": {
