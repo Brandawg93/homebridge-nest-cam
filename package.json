@@ -79,6 +79,6 @@
   "optionalDependencies": {
     "puppeteer": "^5.2.1",
     "puppeteer-extra": "^3.1.12",
-    "puppeteer-extra-plugin-stealth": "2.4.14"
+    "puppeteer-extra-plugin-stealth": "^2.4.14"
   }
 }

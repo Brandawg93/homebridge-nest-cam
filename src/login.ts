@@ -1,3 +1,4 @@
+import Browser from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
@@ -11,6 +12,7 @@ export async function login(email?: string, password?: string): Promise<void> {
 
   puppeteer.use(pluginStealth());
 
+  let browser: Browser.Browser;
   const headless = !process.argv.includes('-h');
   const path = (): string => {
     if (process.argv.includes('-p')) {
@@ -59,11 +61,24 @@ export async function login(email?: string, password?: string): Promise<void> {
     if (executablePath) {
       options.executablePath = path();
     }
-    const browser = await puppeteer.launch(options);
+    browser = await puppeteer.launch(options);
+  } catch (err) {
+    console.error(
+      'Unable to open chromium brower. Install chromium manually and specify its path using the "-p" flag.',
+    );
+    return;
+  }
+
+  try {
     console.log('Opening chromium browser...');
     const page = await browser.newPage();
     const pages = await browser.pages();
     pages[0].close();
+    await page.evaluateOnNewDocument(() => {
+      const newProto = Object.getPrototypeOf(navigator);
+      delete newProto.webdriver;
+      Object.setPrototypeOf(navigator, newProto);
+    });
     await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
     if (headless) {
       await page.waitForSelector('button[data-test="google-button-login"]');
