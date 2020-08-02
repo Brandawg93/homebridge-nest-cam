@@ -251,7 +251,7 @@ export class NexusStreamer {
     });
 
     let index = -1;
-    switch (this.config.options.streamQuality) {
+    switch (this.config.options?.streamQuality || 3) {
       case 1:
         this.log.debug('Using LOW quality stream.');
         primaryProfile = StreamProfile.VIDEO_H264_100KBIT_L30;
