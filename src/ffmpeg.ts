@@ -82,7 +82,11 @@ export class FfmpegProcess {
       if (code == null || code === 255) {
         log.debug(message + ` (${title} Stream stopped gracefully.)`);
       } else {
-        log.error(message + ' (error)');
+        if (title.toLowerCase().includes('return')) {
+          log.debug(message + ' (error)');
+        } else {
+          log.error(message + ' (error)');
+        }
         if (callback) {
           if (!started) {
             callback(new Error(message));
