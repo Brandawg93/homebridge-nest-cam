@@ -329,7 +329,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
       if (accessory) {
         // Motion configuration
-        if (camera.info.full_camera_enabled) {
+        if (camera.info.properties['cvr.allowed']) {
           if (camera.info.capabilities.includes('stranger_detection')) {
             const useFaces = camera.alertTypes.includes('Face');
             const index = camera.alertTypes.indexOf('Face');

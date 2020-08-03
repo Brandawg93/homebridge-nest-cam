@@ -169,7 +169,11 @@ export class NestCam extends EventEmitter {
             }
 
             if (trigger.is_important && !this.motionDetected) {
-              this.triggerMotion(trigger.types);
+              if (this.info.properties['cvr.allowed']) {
+                this.triggerMotion(trigger.types);
+              } else {
+                this.triggerMotion(['Motion']);
+              }
               break;
             }
           }
