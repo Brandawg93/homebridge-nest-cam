@@ -72,7 +72,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | alertCheckRate    | How often to check for alerts                                       | number (seconds) |
 | alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |
 | alertTypes        | What type of alerts to receive                                      | array            |
-| motionDetection   | Enable/disable the motion sensor                                    | boolean          |
+| motionDetection   | Enable/disable the motion sensors                                   | boolean          |
 | doorbellAlerts    | Enable/disable doorbell ring notifications                          | boolean          |
 | doorbellSwitch    | Enable/disable doorbell automation switch                           | boolean          |
 | streamingSwitch   | Enable/disable the ability to turn the camera on or off             | boolean          |
@@ -84,6 +84,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 ## Features
 - View cameras within homekit.
 - Receive notifications and set routines for motion or when the doorbell is rang.
+- Receive notifications for specific motion events.
 - Listen and talk back to people on equiped cameras.
 - Enable/disable the indoor chime on Hello doorbells.
 
