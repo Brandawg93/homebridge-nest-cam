@@ -15,7 +15,9 @@ import {
   PlatformConfig,
 } from 'homebridge';
 import { NestCam } from './nest-cam';
-import { CameraInfo, ModelTypes, Properties } from './camera-info';
+import { NestStructure } from './nest-structure';
+import { CameraInfo, ModelTypes, Properties } from './models/camera-info';
+import { Face } from './models/structure-info';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
@@ -33,6 +35,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
+  private readonly nestStructures: Record<string, NestStructure> = {};
   private motionDetection = true;
   private doorbellAlerts = true;
   private doorbellSwitch = true;
@@ -142,13 +145,18 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     service && service.updateCharacteristic(hap.Characteristic.On, camera.info.properties[_key]);
   }
 
-  private createMotionService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam) {
-    const service = accessory.getService(`${accessory.displayName} ${name}`);
+  private createMotionService(
+    name: string,
+    canCreate: boolean,
+    accessory: PlatformAccessory | undefined,
+    camera: NestCam,
+  ) {
+    const service = accessory?.getService(`${accessory.displayName} ${name}`);
     if (service) {
-      accessory.removeService(service);
+      accessory?.removeService(service);
     }
     if (canCreate) {
-      accessory.addService(
+      accessory?.addService(
         new hap.Service.MotionSensor(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
       );
       camera.startAlertChecks();
@@ -327,43 +335,40 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     this.cameras.forEach(async (camera) => {
       const uuid = hap.uuid.generate(camera.info.uuid);
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
-      if (accessory) {
-        // Motion configuration
-        if (camera.info.full_camera_enabled) {
-          if (camera.info.capabilities.includes('stranger_detection')) {
-            const useFaces = camera.alertTypes.includes('Face');
-            const index = camera.alertTypes.indexOf('Face');
-            if (index > -1) {
-              camera.alertTypes.splice(index, 1);
-            }
-            if (useFaces) {
-              const faces = await camera.getFaces();
-              if (faces) {
-                faces.forEach((face: any) => {
-                  camera.alertTypes.push(`Face - ${face.name}`);
-                });
-              }
-            }
-          } else {
-            camera.alertTypes = ['Motion', 'Sound', 'Person'];
-          }
-          camera.alertTypes.forEach((type) => {
-            this.createMotionService(
-              type,
-              camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-              accessory,
-              camera,
-            );
-          });
-        } else {
-          this.createMotionService(
-            'Motion',
-            camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
-            accessory,
-            camera,
-          );
+      // Motion configuration
+      if (camera.info.capabilities.includes('stranger_detection')) {
+        const useFaces = camera.alertTypes.includes('Face');
+        const index = camera.alertTypes.indexOf('Face');
+        if (index > -1) {
+          camera.alertTypes.splice(index, 1);
         }
+        if (useFaces) {
+          const structureId = camera.info.nest_structure_id.replace('structure.', '');
+          let structure = this.nestStructures[structureId];
+          if (!structure) {
+            structure = new NestStructure(camera.info, this.config, this.log);
+            this.nestStructures[structureId] = structure;
+          }
+          const faces = await structure.getFaces();
+          if (faces) {
+            faces.forEach((face: Face) => {
+              camera.alertTypes.push(`Face - ${face.name}`);
+            });
+          }
+        }
+      } else {
+        // Remove 'Package Delivered', 'Package Retrieved', 'Face'
+        const remove = ['Package Delivered', 'Package Retrieved', 'Face'];
+        camera.alertTypes = camera.alertTypes.filter((x) => !remove.includes(x));
       }
+      camera.alertTypes.forEach((type) => {
+        this.createMotionService(
+          type,
+          camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+          accessory,
+          camera,
+        );
+      });
     });
   }
 

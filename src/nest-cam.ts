@@ -1,6 +1,6 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { NestEndpoints, handleError } from './nest-endpoints';
-import { CameraInfo, Properties } from './camera-info';
+import { CameraInfo, Properties } from './models/camera-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -45,7 +45,7 @@ export class NestCam extends EventEmitter {
   public alertTypes: Array<string> = [];
   private alertCooldown = 180000;
   private alertInterval = 10000;
-  private alertTimeout: NodeJS.Timeout | undefined;
+  private alertTimeout: NodeJS.Timeout | undefined | number;
   private alertFailures = 0;
   private alertsSend = true;
 
@@ -129,12 +129,12 @@ export class NestCam extends EventEmitter {
   }
 
   stopAlertChecks() {
-    if (this.alertTimeout) {
+    if (this.alertTimeout && typeof this.alertTimeout == 'number') {
       clearInterval(this.alertTimeout);
     }
   }
 
-  private async checkAlerts(): Promise<void> {
+  public async checkAlerts(): Promise<void> {
     if (!this.alertsSend) {
       return;
     }
@@ -169,7 +169,11 @@ export class NestCam extends EventEmitter {
             }
 
             if (trigger.is_important && !this.motionDetected) {
-              this.triggerMotion(trigger.types);
+              if (trigger.types && trigger.types.length > 0) {
+                this.triggerMotion(trigger.types);
+              } else {
+                this.triggerMotion(['Motion']);
+              }
               break;
             }
           }
@@ -238,24 +242,5 @@ export class NestCam extends EventEmitter {
         this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
       );
     }
-  }
-
-  async getFaces(): Promise<Array<any>> {
-    try {
-      if (!this.accessory.context.removed) {
-        const response = await this.endpoints.sendRequest(
-          this.config.access_token,
-          `https://${this.info.nexus_api_nest_domain_host}`,
-          `/faces/${this.info.nest_structure_id.replace('structure.', '')}`,
-          'GET',
-        );
-        if (response && response.length > 0) {
-          return response;
-        }
-      }
-    } catch (error) {
-      handleError(this.log, error, 'Error getting faces');
-    }
-    return [];
   }
 }
