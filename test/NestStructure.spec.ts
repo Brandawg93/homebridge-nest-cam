@@ -1,12 +1,11 @@
 import { Logging, PlatformConfig, HAP } from 'homebridge';
-import { PlatformAccessory } from 'homebridge/lib/platformAccessory';
 import { Logger } from 'homebridge/lib/logger';
-import { NestCam } from '../src/nest-cam';
+import { Face } from '../src/models/structure-info';
+import { NestStructure } from '../src/nest-structure';
 import { CameraInfo } from '../src/models/camera-info';
 import { Connection } from '../src/nest-connection';
 import { NestEndpoints } from '../src/nest-endpoints';
 
-let hap: HAP;
 const log: Logging = Logger.withPrefix('[test]');
 
 const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
@@ -21,7 +20,7 @@ const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
   return camera;
 };
 
-test('checkAlerts works as expected', async () => {
+test('getFaces works as expected', async () => {
   expect.assertions(1);
   const config: PlatformConfig = {
     platform: 'test',
@@ -38,10 +37,8 @@ test('checkAlerts works as expected', async () => {
   const connected = await connection.auth();
   if (connected) {
     const cameraInfo = await getCamera(config);
-    const uuid = '00000000-0000-0000-0000-000000000000';
-    const accessory: PlatformAccessory = new PlatformAccessory('test', uuid);
-    const camera = new NestCam(config, cameraInfo, accessory, [], log, hap);
-    return expect(camera.checkAlerts()).resolves.toBeUndefined();
+    const structure = new NestStructure(cameraInfo, config, log);
+    return expect(structure.getFaces()).resolves.toHaveLength(0);
   } else {
     throw new Error('Could not connect');
   }
