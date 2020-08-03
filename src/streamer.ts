@@ -3,7 +3,7 @@ import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { FfmpegProcess } from './ffmpeg';
 import { NestEndpoints } from './nest-endpoints';
-import { CameraInfo } from './camera-info';
+import { CameraInfo } from './models/camera-info';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
 import { Redirect } from './protos/Redirect';
