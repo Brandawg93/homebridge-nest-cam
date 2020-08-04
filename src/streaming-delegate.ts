@@ -22,7 +22,7 @@ import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { RtpSplitter } from './util/rtp';
-import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec } from './ffmpeg';
+import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec, getDefaultEncoder } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
@@ -53,7 +53,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private readonly log: Logging;
   private readonly config: PlatformConfig;
   private customFfmpeg = '';
-  private ffmpegCodec: string;
+  private videoProcessor: string;
   private camera: NestCam;
   private endpoints: NestEndpoints;
   controller?: CameraController;
@@ -70,7 +70,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.endpoints = new NestEndpoints(config.options?.fieldTest);
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
-    this.ffmpegCodec = config.ffmpegCodec || 'libx264';
+    this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
   }
 
   private async getOfflineImage(callback: SnapshotRequestCallback): Promise<void> {
@@ -178,7 +178,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     }
   }
 
-  private getVideoCommand(info: VideoInfo, sessionId: string): Array<string> {
+  private async getVideoCommand(info: VideoInfo, sessionId: string): Promise<Array<string>> {
+    const ffmpegCodec = this.config.ffmpegCodec || (await getDefaultEncoder(this.videoProcessor));
     const sessionInfo = this.pendingSessions[sessionId];
     const videoPort = sessionInfo.videoPort;
     const returnVideoPort = sessionInfo.returnVideoPort;
@@ -200,12 +201,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '-i',
       'pipe:',
       '-c:v',
-      this.ffmpegCodec,
+      ffmpegCodec,
       '-pix_fmt',
       'yuv420p',
     ];
 
-    if (this.ffmpegCodec === 'libx264') {
+    if (ffmpegCodec === 'libx264') {
       command.splice(10, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
     }
 
@@ -216,12 +217,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         '-i',
         join(__dirname, `../images/offline.jpg`),
         '-c:v',
-        this.ffmpegCodec,
+        ffmpegCodec,
         '-pix_fmt',
         'yuv420p',
       ];
 
-      if (this.ffmpegCodec === 'libx264') {
+      if (ffmpegCodec === 'libx264') {
         command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
       }
     }
@@ -329,14 +330,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const audioSRTP = sessionInfo.audioSRTP.toString('base64');
         const twoWayAudioPort = sessionInfo.twoWayAudioPort;
 
-        const videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
-
-        if (!(await isFfmpegInstalled(videoProcessor))) {
+        if (!(await isFfmpegInstalled(this.videoProcessor))) {
           this.log.error('FFMPEG is not installed. Please install it before using this plugin.');
           break;
         }
 
-        const videoffmpegCommand = this.getVideoCommand(video, sessionId);
+        const videoffmpegCommand = await this.getVideoCommand(video, sessionId);
         const ffmpegVideo = new FfmpegProcess(
           'VIDEO',
           videoffmpegCommand,
@@ -351,7 +350,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         let ffmpegAudio: FfmpegProcess | undefined;
         let ffmpegReturnAudio: FfmpegProcess | undefined;
         if (this.camera.info.properties['audio.enabled'] && this.camera.info.properties['streaming.enabled']) {
-          if (await doesFfmpegSupportCodec('libfdk_aac', videoProcessor)) {
+          if (await doesFfmpegSupportCodec('libfdk_aac', this.videoProcessor)) {
             const audioffmpegCommand = this.getAudioCommand(audio, sessionId);
             ffmpegAudio = new FfmpegProcess(
               'AUDIO',
@@ -364,7 +363,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
               this.customFfmpeg,
             );
 
-            if (await doesFfmpegSupportCodec('libspeex', videoProcessor)) {
+            if (await doesFfmpegSupportCodec('libspeex', this.videoProcessor)) {
               const returnAudioffmpegCommand = this.getReturnAudioCommand(audio);
               ffmpegReturnAudio = new FfmpegProcess(
                 'RETURN AUDIO',

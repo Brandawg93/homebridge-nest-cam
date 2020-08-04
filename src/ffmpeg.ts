@@ -11,6 +11,17 @@ export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string):
   return output.stdout.includes(codec);
 }
 
+export async function getDefaultEncoder(ffmpegPath: string): Promise<string> {
+  const output = await execa(ffmpegPath, ['-codecs']);
+  const validEncoders = ['h264_omx', 'h264_videotoolbox'];
+  validEncoders.forEach((encoder) => {
+    if (output.stdout.includes(encoder)) {
+      return encoder;
+    }
+  });
+  return 'libx264';
+}
+
 export async function isFfmpegInstalled(ffmpegPath: string): Promise<boolean> {
   try {
     await execa(ffmpegPath, ['-codecs']);
