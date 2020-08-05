@@ -42,31 +42,28 @@ export class NestCam extends EventEmitter {
   private motionDetected = false;
   private motionInProgress = false;
   private doorbellRang = false;
-  public alertTypes: Array<string> = [];
+  private alertTypes = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face'];
   private alertCooldown = 180000;
   private alertInterval = 10000;
   private alertTimeout: NodeJS.Timeout | undefined | number;
   private alertFailures = 0;
   private alertsSend = true;
 
-  constructor(
-    config: PlatformConfig,
-    info: CameraInfo,
-    accessory: PlatformAccessory,
-    alertTypes: Array<string>,
-    log: Logging,
-    hap: HAP,
-  ) {
+  constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     super();
     this.hap = hap;
     this.log = log;
     this.config = config;
     this.accessory = accessory;
     this.info = info;
-    this.alertTypes = alertTypes;
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
     this.alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
     this.endpoints = new NestEndpoints(config.fieldTest);
+
+    const alertTypes = config.options?.alertTypes;
+    if (typeof alertTypes !== 'undefined') {
+      this.alertTypes = alertTypes.slice();
+    }
   }
 
   private async setBooleanProperty(
@@ -101,6 +98,16 @@ export class NestCam extends EventEmitter {
       }
     } catch (error) {
       handleError(this.log, error, `Error setting property for ${this.info.name}`);
+    }
+  }
+
+  getAlertTypes(): Array<string> {
+    if (this.info.capabilities.includes('stranger_detection')) {
+      return this.alertTypes;
+    } else {
+      // Remove 'Package Delivered', 'Package Retrieved', 'Face'
+      const remove = ['Package Delivered', 'Package Retrieved', 'Face'];
+      return this.alertTypes.filter((x) => !remove.includes(x));
     }
   }
 

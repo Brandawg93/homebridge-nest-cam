@@ -43,7 +43,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private chimeSwitch = true;
   private audioSwitch = true;
   private structures: Array<string> = [];
-  private alertTypes: Array<string> = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face'];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -84,10 +83,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const structures = options?.structures;
     if (typeof structures !== 'undefined') {
       this.structures = structures;
-    }
-    const alertTypes = options?.alertTypes;
-    if (typeof alertTypes !== 'undefined') {
-      this.alertTypes = alertTypes;
     }
 
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
@@ -184,7 +179,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
 
     const cameraInfo: CameraInfo = accessory.context.cameraInfo;
-    const camera = new NestCam(this.config, cameraInfo, accessory, this.alertTypes, this.log, hap);
+    const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
     const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
@@ -336,32 +331,28 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const uuid = hap.uuid.generate(camera.info.uuid);
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
       // Motion configuration
-      if (camera.info.capabilities.includes('stranger_detection')) {
-        const useFaces = camera.alertTypes.includes('Face');
-        const index = camera.alertTypes.indexOf('Face');
-        if (index > -1) {
-          camera.alertTypes.splice(index, 1);
-        }
-        if (useFaces) {
-          const structureId = camera.info.nest_structure_id.replace('structure.', '');
-          let structure = this.nestStructures[structureId];
-          if (!structure) {
-            structure = new NestStructure(camera.info, this.config, this.log);
-            this.nestStructures[structureId] = structure;
-          }
-          const faces = await structure.getFaces();
-          if (faces) {
-            faces.forEach((face: Face) => {
-              camera.alertTypes.push(`Face - ${face.name}`);
-            });
-          }
-        }
-      } else {
-        // Remove 'Package Delivered', 'Package Retrieved', 'Face'
-        const remove = ['Package Delivered', 'Package Retrieved', 'Face'];
-        camera.alertTypes = camera.alertTypes.filter((x) => !remove.includes(x));
+      const alertTypes = camera.getAlertTypes();
+      const useFaces = alertTypes.includes('Face');
+      const index = alertTypes.indexOf('Face');
+      if (index > -1) {
+        alertTypes.splice(index, 1);
       }
-      camera.alertTypes.forEach((type) => {
+      if (useFaces) {
+        const structureId = camera.info.nest_structure_id.replace('structure.', '');
+        let structure = this.nestStructures[structureId];
+        if (!structure) {
+          structure = new NestStructure(camera.info, this.config, this.log);
+          this.nestStructures[structureId] = structure;
+        }
+        const faces = await structure.getFaces();
+        if (faces) {
+          faces.forEach((face: Face) => {
+            alertTypes.push(`Face - ${face.name}`);
+          });
+        }
+      }
+
+      alertTypes.forEach((type) => {
         this.createMotionService(
           type,
           camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
