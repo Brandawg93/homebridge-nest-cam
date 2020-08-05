@@ -72,6 +72,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | alertCheckRate    | How often to check for alerts                                       | number (seconds) |
 | alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |
 | alertTypes        | What type of alerts to receive                                      | array            |
+| importantOnly     | Only send notifications on events considered important              | boolean          |
 | motionDetection   | Enable/disable the motion sensors                                   | boolean          |
 | doorbellAlerts    | Enable/disable doorbell ring notifications                          | boolean          |
 | doorbellSwitch    | Enable/disable doorbell automation switch                           | boolean          |
