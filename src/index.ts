@@ -22,6 +22,15 @@ import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
 
+class Options {
+  motionDetection = true;
+  doorbellAlerts = true;
+  doorbellSwitch = true;
+  streamingSwitch = true;
+  chimeSwitch = true;
+  audioSwitch = true;
+}
+
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
 
@@ -32,67 +41,48 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
   private config: PlatformConfig;
+  private options: Options;
   private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
   private readonly nestStructures: Record<string, NestStructure> = {};
-  private motionDetection = true;
-  private doorbellAlerts = true;
-  private doorbellSwitch = true;
-  private streamingSwitch = true;
-  private chimeSwitch = true;
-  private audioSwitch = true;
   private structures: Array<string> = [];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
     this.api = api;
     this.config = config;
+    this.options = new Options();
 
     // Need a config or plugin will not start
     if (!config) {
       return;
     }
 
-    // Set up the config if options are not set
-    const options = config.options;
-    const motionDetection = options?.motionDetection;
-    if (typeof motionDetection !== 'undefined') {
-      log.debug(`Using motionDetection from config: ${motionDetection}`);
-      this.motionDetection = motionDetection;
-    }
-    const doorbellAlerts = options?.doorbellAlerts;
-    if (typeof doorbellAlerts !== 'undefined') {
-      log.debug(`Using doorbellAlerts from config: ${doorbellAlerts}`);
-      this.doorbellAlerts = doorbellAlerts;
-    }
-    const doorbellSwitch = options?.doorbellSwitch;
-    if (typeof doorbellSwitch !== 'undefined') {
-      log.debug(`Using doorbellSwitch from config: ${doorbellSwitch}`);
-      this.doorbellSwitch = doorbellSwitch;
-    }
-    const streamingSwitch = options?.streamingSwitch;
-    if (typeof streamingSwitch !== 'undefined') {
-      log.debug(`Using streamingSwitch from config: ${streamingSwitch}`);
-      this.streamingSwitch = streamingSwitch;
-    }
-    const chimeSwitch = options?.chimeSwitch;
-    if (typeof chimeSwitch !== 'undefined') {
-      log.debug(`Using chimeSwitch from config: ${chimeSwitch}`);
-      this.chimeSwitch = chimeSwitch;
-    }
-    const audioSwitch = options?.audioSwitch;
-    if (typeof audioSwitch !== 'undefined') {
-      log.debug(`Using audioSwitch from config: ${audioSwitch}`);
-      this.audioSwitch = audioSwitch;
-    }
-    const structures = options?.structures;
-    if (typeof structures !== 'undefined') {
-      log.debug(`Using structures from config: ${structures}`);
-      this.structures = structures;
-    }
-
+    this.initDefaultOptions();
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
+  }
+
+  private initDefaultOptions(): void {
+    // Setup boolean options
+    Object.keys(this.options).forEach((opt) => {
+      const key = opt as keyof Options;
+      const configVal = this.config.options[key];
+      if (typeof configVal === 'undefined') {
+        this.options[key] = true;
+        this.log.debug(`Defaulting ${key} to true`);
+      } else {
+        this.log.debug(`Using ${key} from config: ${configVal}`);
+      }
+    });
+
+    const structures = this.config.options?.structures;
+    if (typeof structures !== 'undefined') {
+      this.log.debug(`Using structures from config: ${structures}`);
+      this.structures = structures;
+    } else {
+      this.log.debug('Defaulting structures to []');
+    }
   }
 
   private async setupConnection(): Promise<boolean> {
@@ -124,7 +114,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     camera: NestCam,
     _key: keyof Properties,
     cb: (value: CharacteristicValue) => void,
-  ) {
+  ): void {
     const service = accessory.getService(`${accessory.displayName} ${name}`);
     if (service) {
       this.log.debug(`Existing switch found for ${accessory.displayName} ${name}. Removing...`);
@@ -144,7 +134,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private updateSwitchService(name: string, accessory: PlatformAccessory, camera: NestCam, _key: keyof Properties) {
+  private updateSwitchService(
+    name: string,
+    accessory: PlatformAccessory,
+    camera: NestCam,
+    _key: keyof Properties,
+  ): void {
     const service = accessory.getService(name);
     service && service.updateCharacteristic(hap.Characteristic.On, camera.info.properties[_key]);
   }
@@ -154,7 +149,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     canCreate: boolean,
     accessory: PlatformAccessory | undefined,
     camera: NestCam,
-  ) {
+  ): void {
     const service = accessory?.getService(`${accessory.displayName} ${name}`);
     if (service) {
       this.log.debug(`Existing motion sensor found for ${accessory?.displayName} ${name}. Removing...`);
@@ -169,7 +164,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private createDoorbellService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam) {
+  private createDoorbellService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam): void {
     const service = accessory.getService(`${accessory.displayName} ${name}`);
     if (service) {
       accessory.removeService(service);
@@ -281,14 +276,18 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Doorbell configuration
     this.createDoorbellService(
       'Doorbell',
-      camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts,
+      camera.info.capabilities.includes('indoor_chime') && this.options.doorbellAlerts,
       accessory,
       camera,
     );
 
     // Add doorbell switch
     doorbellSwitch && accessory.removeService(doorbellSwitch);
-    if (camera.info.capabilities.includes('indoor_chime') && this.doorbellAlerts && this.doorbellSwitch) {
+    if (
+      camera.info.capabilities.includes('indoor_chime') &&
+      this.options.doorbellAlerts &&
+      this.options.doorbellSwitch
+    ) {
       accessory
         .addService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch')
         .getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent)
@@ -300,7 +299,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Streaming configuration
     this.createSwitchService(
       'Streaming',
-      camera.info.capabilities.includes('streaming.start-stop') && this.streamingSwitch,
+      camera.info.capabilities.includes('streaming.start-stop') && this.options.streamingSwitch,
       accessory,
       camera,
       'streaming.enabled',
@@ -312,7 +311,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Chime configuration
     this.createSwitchService(
       'Chime',
-      camera.info.capabilities.includes('indoor_chime') && this.chimeSwitch,
+      camera.info.capabilities.includes('indoor_chime') && this.options.chimeSwitch,
       accessory,
       camera,
       'doorbell.indoor_chime.enabled',
@@ -324,7 +323,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Audio switch configuration
     this.createSwitchService(
       'Audio',
-      camera.info.capabilities.includes('audio.microphone') && this.audioSwitch,
+      camera.info.capabilities.includes('audio.microphone') && this.options.audioSwitch,
       accessory,
       camera,
       'audio.enabled',
@@ -368,7 +367,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       alertTypes.forEach((type) => {
         this.createMotionService(
           type,
-          camera.info.capabilities.includes('detectors.on_camera') && this.motionDetection,
+          camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection,
           accessory,
           camera,
         );
