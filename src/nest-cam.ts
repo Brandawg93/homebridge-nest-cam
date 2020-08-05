@@ -1,6 +1,7 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { CameraInfo, Properties } from './models/camera-info';
+import { MotionEvent } from './models/event-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -63,10 +64,12 @@ export class NestCam extends EventEmitter {
 
     const alertTypes = config.options?.alertTypes;
     if (typeof alertTypes !== 'undefined') {
+      log.debug(`Using alertTypes from config: ${alertTypes}`);
       this.alertTypes = alertTypes.slice();
     }
     const importantOnly = config.options?.importantOnly;
     if (typeof importantOnly !== 'undefined') {
+      log.debug(`Using importantOnly from config: ${importantOnly}`);
       this.importantOnly = importantOnly;
     }
   }
@@ -108,6 +111,7 @@ export class NestCam extends EventEmitter {
 
   getAlertTypes(): Array<string> {
     if (this.info.capabilities.includes('stranger_detection')) {
+      this.log.debug(`${this.info.name} has stranger_detection`);
       return this.alertTypes;
     } else {
       // Remove 'Package Delivered', 'Package Retrieved', 'Face'
@@ -160,7 +164,7 @@ export class NestCam extends EventEmitter {
       });
       if (!this.accessory.context.removed) {
         const self = this;
-        const response = await this.endpoints.sendRequest(
+        const response: Array<MotionEvent> = await this.endpoints.sendRequest(
           this.config.access_token,
           `https://${this.info.nexus_api_nest_domain_host}`,
           `/cuepoint/${this.info.uuid}/2?${query}`,
@@ -172,6 +176,7 @@ export class NestCam extends EventEmitter {
             const trigger = response[i];
             // Add face to alert if name is not empty
             if (trigger.face_name) {
+              this.log.debug(`Found face for ${trigger.face_name} in event`);
               trigger.types?.push(`face-${trigger.face_name}`);
             }
 
@@ -218,6 +223,7 @@ export class NestCam extends EventEmitter {
 
     setTimeout(async function () {
       self.motionDetected = false;
+      self.log.debug('Cooldown has ended');
     }, this.alertCooldown);
   }
 

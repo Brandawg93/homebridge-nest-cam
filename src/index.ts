@@ -58,30 +58,37 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const options = config.options;
     const motionDetection = options?.motionDetection;
     if (typeof motionDetection !== 'undefined') {
+      log.debug(`Using motionDetection from config: ${motionDetection}`);
       this.motionDetection = motionDetection;
     }
     const doorbellAlerts = options?.doorbellAlerts;
     if (typeof doorbellAlerts !== 'undefined') {
+      log.debug(`Using doorbellAlerts from config: ${doorbellAlerts}`);
       this.doorbellAlerts = doorbellAlerts;
     }
     const doorbellSwitch = options?.doorbellSwitch;
     if (typeof doorbellSwitch !== 'undefined') {
+      log.debug(`Using doorbellSwitch from config: ${doorbellSwitch}`);
       this.doorbellSwitch = doorbellSwitch;
     }
     const streamingSwitch = options?.streamingSwitch;
     if (typeof streamingSwitch !== 'undefined') {
+      log.debug(`Using streamingSwitch from config: ${streamingSwitch}`);
       this.streamingSwitch = streamingSwitch;
     }
     const chimeSwitch = options?.chimeSwitch;
     if (typeof chimeSwitch !== 'undefined') {
+      log.debug(`Using chimeSwitch from config: ${chimeSwitch}`);
       this.chimeSwitch = chimeSwitch;
     }
     const audioSwitch = options?.audioSwitch;
     if (typeof audioSwitch !== 'undefined') {
+      log.debug(`Using audioSwitch from config: ${audioSwitch}`);
       this.audioSwitch = audioSwitch;
     }
     const structures = options?.structures;
     if (typeof structures !== 'undefined') {
+      log.debug(`Using structures from config: ${structures}`);
       this.structures = structures;
     }
 
@@ -120,9 +127,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   ) {
     const service = accessory.getService(`${accessory.displayName} ${name}`);
     if (service) {
+      this.log.debug(`Existing switch found for ${accessory.displayName} ${name}. Removing...`);
       accessory.removeService(service);
     }
     if (canCreate) {
+      this.log.debug(`Creating switch for ${accessory.displayName} ${name}.`);
       accessory
         .addService(new hap.Service.Switch(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`))
         .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
@@ -148,9 +157,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   ) {
     const service = accessory?.getService(`${accessory.displayName} ${name}`);
     if (service) {
+      this.log.debug(`Existing motion sensor found for ${accessory?.displayName} ${name}. Removing...`);
       accessory?.removeService(service);
     }
     if (canCreate) {
+      this.log.debug(`Creating motion sensor for ${accessory?.displayName} ${name}.`);
       accessory?.addService(
         new hap.Service.MotionSensor(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
       );
@@ -341,12 +352,14 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         const structureId = camera.info.nest_structure_id.replace('structure.', '');
         let structure = this.nestStructures[structureId];
         if (!structure) {
+          this.log.debug(`Creating new structure: ${structureId}`);
           structure = new NestStructure(camera.info, this.config, this.log);
           this.nestStructures[structureId] = structure;
         }
         const faces = await structure.getFaces();
         if (faces) {
           faces.forEach((face: Face) => {
+            this.log.debug(`Found face ${face.name} for ${structureId}`);
             alertTypes.push(`Face - ${face.name}`);
           });
         }
@@ -377,6 +390,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       );
       cameras = response.items;
       if (this.structures.length > 0) {
+        this.log.debug('Filtering cameras by structures');
         cameras = cameras.filter((info: CameraInfo) => this.structures.includes(info.nest_structure_name));
       }
     } catch (error) {
@@ -410,6 +424,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
       // Only add new cameras that are not cached
       if (!this.accessories.find((x: PlatformAccessory) => x.UUID === uuid)) {
+        this.log.debug(`New camera found: ${cameraInfo.name}`);
         this.configureAccessory(accessory); // abusing the configureAccessory here
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
@@ -458,6 +473,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     if (connected) {
       // Nest needs to be reauthenticated about every hour
       setInterval(async function () {
+        self.log.debug('Reauthenticating with config credentials');
         await self.setupConnection();
       }, 3480000); // 58 minutes
 
