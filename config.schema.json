@@ -81,6 +81,12 @@
               ]    
             }
         },
+        "importantOnly": {
+          "title": "Important Events Only",
+          "description": "Only send notifications on events considered important?",
+          "type": "boolean",
+          "default": true
+        },
         "motionDetection": {
           "title": "Motion Detection",
           "type": "boolean",

@@ -42,6 +42,7 @@ export class NestCam extends EventEmitter {
   private motionDetected = false;
   private motionInProgress = false;
   private doorbellRang = false;
+  private importantOnly = true;
   private alertTypes = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face'];
   private alertCooldown = 180000;
   private alertInterval = 10000;
@@ -63,6 +64,10 @@ export class NestCam extends EventEmitter {
     const alertTypes = config.options?.alertTypes;
     if (typeof alertTypes !== 'undefined') {
       this.alertTypes = alertTypes.slice();
+    }
+    const importantOnly = config.options?.importantOnly;
+    if (typeof importantOnly !== 'undefined') {
+      this.importantOnly = importantOnly;
     }
   }
 
@@ -170,12 +175,18 @@ export class NestCam extends EventEmitter {
               trigger.types?.push(`face-${trigger.face_name}`);
             }
 
-            if (trigger.is_important && trigger.types.includes('doorbell') && !this.doorbellRang) {
+            // Check importantOnly flag
+            let important = true;
+            if (this.importantOnly) {
+              important = trigger.is_important;
+            }
+
+            if (important && trigger.types.includes('doorbell') && !this.doorbellRang) {
               this.triggerDoorbell();
               break;
             }
 
-            if (trigger.is_important && !this.motionDetected) {
+            if (important && !this.motionDetected) {
               if (trigger.types && trigger.types.length > 0) {
                 this.triggerMotion(trigger.types);
               } else {
