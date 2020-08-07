@@ -215,6 +215,27 @@ export class NestCam extends EventEmitter {
     }
   }
 
+  async updateData(): Promise<CameraInfo> {
+    const query = querystring.stringify({
+      uuid: this.info.uuid,
+    });
+
+    try {
+      const response: any = await this.endpoints.sendRequest(
+        this.config.access_token,
+        this.endpoints.CAMERA_API_HOSTNAME,
+        `/api/cameras.get_with_properties?${query}`,
+        'GET',
+      );
+
+      this.info = response.items[0];
+    } catch (error) {
+      handleError(this.log, error, `Error updating ${this.info.name} camera`);
+    }
+
+    return this.info;
+  }
+
   triggerMotion(types: Array<string>): void {
     const self = this;
     this.setMotion(true, types);

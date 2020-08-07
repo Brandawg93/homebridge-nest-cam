@@ -5,6 +5,7 @@ import {
   AudioStreamingSamplerate,
   CameraControllerOptions,
   CharacteristicEventTypes,
+  CharacteristicGetCallback,
   CharacteristicSetCallback,
   CharacteristicValue,
   DynamicPlatformPlugin,
@@ -115,33 +116,32 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     _key: keyof Properties,
     cb: (value: CharacteristicValue) => void,
   ): void {
-    const service = accessory.getService(`${accessory.displayName} ${name}`);
-    if (service) {
+    const oldService = accessory.getService(`${accessory.displayName} ${name}`);
+    if (oldService) {
       this.log.debug(`Existing switch found for ${accessory.displayName} ${name}. Removing...`);
-      accessory.removeService(service);
+      accessory.removeService(oldService);
     }
     if (canCreate) {
       this.log.debug(`Creating switch for ${accessory.displayName} ${name}.`);
-      accessory
-        .addService(new hap.Service.Switch(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`))
+
+      const service = new hap.Service.Switch(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`);
+      service
         .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
         .getCharacteristic(hap.Characteristic.On)
         .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
           cb(value);
           this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
           callback();
+        })
+        .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
+          const info = await camera.updateData();
+          const value = info.properties[_key];
+          this.log.info(`Updating info for ${accessory.displayName} ${name}: ${value}`);
+          callback(null, value);
         });
-    }
-  }
 
-  private updateSwitchService(
-    name: string,
-    accessory: PlatformAccessory,
-    camera: NestCam,
-    _key: keyof Properties,
-  ): void {
-    const service = accessory.getService(name);
-    service && service.updateCharacteristic(hap.Characteristic.On, camera.info.properties[_key]);
+      accessory.addService(service);
+    }
   }
 
   private createMotionService(
@@ -443,28 +443,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // });
   }
 
-  async updateCameras(): Promise<void> {
-    const cameras = await this.getCameras();
-    cameras.forEach((info: CameraInfo) => {
-      const camera = this.cameras.find((x: NestCam) => x.info.uuid === info.uuid);
-      const uuid = hap.uuid.generate(info.uuid);
-      const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
-      if (camera && accessory) {
-        this.log.debug(`Updating info for ${info.name}`);
-        camera.info = info;
-        camera.info.homebridge_uuid = uuid;
-        // Update streaming
-        this.updateSwitchService('Streaming', accessory, camera, 'streaming.enabled');
-
-        // Update Chime
-        this.updateSwitchService('Chime', accessory, camera, 'doorbell.indoor_chime.enabled');
-
-        // Audio switch configuration
-        this.updateSwitchService('Audio', accessory, camera, 'audio.enabled');
-      }
-    });
-  }
-
   async didFinishLaunching(): Promise<void> {
     const self = this;
     const connected = await this.setupConnection();
@@ -480,11 +458,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.setupMotionServices();
-      await this.updateCameras();
-      // Camera info needs to be updated every minute
-      setInterval(async function () {
-        await self.updateCameras();
-      }, 60000);
     }
   }
 }
