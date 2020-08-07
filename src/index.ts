@@ -136,7 +136,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
           const info = await camera.updateData();
           const value = info.properties[_key];
-          this.log.info(`Updating info for ${accessory.displayName} ${name}: ${value}`);
+          this.log.debug(`Updating info for ${accessory.displayName} ${name}`);
           callback(null, value);
         });
 
