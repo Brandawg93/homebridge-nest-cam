@@ -228,7 +228,10 @@ export class NestCam extends EventEmitter {
         'GET',
       );
 
-      this.info = response.items[0];
+      const info = response.items[0];
+      if (info) {
+        this.info = info;
+      }
     } catch (error) {
       handleError(this.log, error, `Error updating ${this.info.name} camera`);
     }
