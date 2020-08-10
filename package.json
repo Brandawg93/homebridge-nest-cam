@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "4.4.1",
+  "version": "4.4.2",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -61,6 +61,7 @@
     "cli.sh"
   ],
   "dependencies": {
+    "systeminformation": "^4.26.10",
     "axios": "^0.19.2",
     "ffmpeg-for-homebridge": "^0.0.7",
     "pbf": "^3.2.1",

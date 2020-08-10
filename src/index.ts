@@ -73,6 +73,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         this.options[key] = true;
         this.log.debug(`Defaulting ${key} to true`);
       } else {
+        this.options[key] = configVal;
         this.log.debug(`Using ${key} from config: ${configVal}`);
       }
     });

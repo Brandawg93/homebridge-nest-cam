@@ -1,24 +1,12 @@
 import os from 'os';
+import { networkInterfaceDefault } from 'systeminformation';
 
-export function getIpAddresses(family = 'ipv4'): Array<string> {
+export async function getDefaultIpAddress(): Promise<string | undefined> {
   const interfaces = os.networkInterfaces(),
-    familyLower = family.toLowerCase();
+    defaultInterfaceName = await networkInterfaceDefault(),
+    defaultInterface = interfaces[defaultInterfaceName],
+    externalInfo = defaultInterface?.filter((info) => !info.internal),
+    addressInfo = externalInfo?.find((info) => info.family === 'IPv4') || externalInfo?.[0];
 
-  return Object.entries(interfaces).reduce((addresses, [key, interfaceInfos]) => {
-    // Skip all virtual and bridge interfaces
-    if (key.startsWith('v') || key.startsWith('br')) {
-      return addresses;
-    }
-
-    const matchingAddresses = (interfaceInfos || []).reduce((matches, interfaceInfo) => {
-      // Remove addresses that have incorrect family or are internal
-      if (interfaceInfo.internal || interfaceInfo.family.toLowerCase() !== familyLower) {
-        return matches;
-      }
-
-      return matches.concat([interfaceInfo.address]);
-    }, [] as Array<string>);
-
-    return addresses.concat(matchingAddresses);
-  }, [] as Array<string>);
+  return addressInfo?.address;
 }

@@ -59,7 +59,13 @@ export class NestCam extends EventEmitter {
     this.accessory = accessory;
     this.info = info;
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
-    this.alertInterval = (this.config.options?.alertCheckRate || 10) * 1000;
+    if (this.alertCooldown > 300000) {
+      this.alertCooldown = 300000;
+    }
+    this.alertInterval = (config.options?.alertCheckRate || 10) * 1000;
+    if (this.alertInterval > 60000) {
+      this.alertInterval = 60000;
+    }
     this.endpoints = new NestEndpoints(config.fieldTest);
 
     const alertTypes = config.options?.alertTypes;
@@ -207,7 +213,9 @@ export class NestCam extends EventEmitter {
       }
     } catch (error) {
       handleError(this.log, error, 'Error checking alerts');
-      this.alertFailures++;
+      if (this.alertFailures < 10) {
+        this.alertFailures++;
+      }
       this.alertsSend = false;
       setTimeout(() => {
         this.alertsSend = true;

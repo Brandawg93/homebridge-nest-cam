@@ -17,7 +17,7 @@ import {
   VideoInfo,
   AudioInfo,
 } from 'homebridge';
-import { getIpAddresses } from './util/ip';
+import { getDefaultIpAddress } from './util/ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints, handleError } from './nest-endpoints';
@@ -151,10 +151,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       audioSSRC: audioSSRC,
     };
 
-    const addresses = getIpAddresses(request.addressVersion);
-    if (addresses.length > 0) {
+    const address = await getDefaultIpAddress();
+    if (address) {
       const response: PrepareStreamResponse = {
-        address: addresses[0],
+        address: address,
         video: {
           port: returnVideoPort,
           ssrc: videoSSRC,
