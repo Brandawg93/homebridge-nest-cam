@@ -149,7 +149,7 @@ export async function login(email?: string, password?: string): Promise<void> {
 
       // Auth didn't work
       if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
-        console.log('Could not generate authentication object.');
+        console.log('Could not generate "googleAuth" object.');
         browser.close();
       }
 
