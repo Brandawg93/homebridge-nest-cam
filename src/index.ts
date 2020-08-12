@@ -14,6 +14,8 @@ import {
   PlatformAccessory,
   PlatformAccessoryEvent,
   PlatformConfig,
+  Service,
+  WithUUID,
 } from 'homebridge';
 import { NestCam } from './nest-cam';
 import { NestStructure } from './nest-structure';
@@ -34,6 +36,7 @@ class Options {
 
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
+type ServiceType = WithUUID<typeof Service>;
 
 const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
@@ -109,76 +112,53 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     return await conn.auth();
   }
 
+  private createService(accessory: PlatformAccessory, serviceType: ServiceType, name?: string): Service {
+    const existingService = name
+      ? accessory.getServiceById(serviceType, `${accessory.displayName} ${name}`)
+      : accessory.getService(serviceType);
+
+    const service =
+      existingService ||
+      (name
+        ? accessory.addService(serviceType, `${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`)
+        : accessory.addService(serviceType, accessory.displayName));
+    return service;
+  }
+
   private createSwitchService(
     name: string,
-    canCreate: boolean,
     accessory: PlatformAccessory,
+    serviceType: ServiceType,
     camera: NestCam,
     _key: keyof Properties,
     cb: (value: CharacteristicValue) => void,
   ): void {
-    const oldService = accessory.getService(`${accessory.displayName} ${name}`);
-    if (oldService) {
-      this.log.debug(`Existing switch found for ${accessory.displayName} ${name}. Removing...`);
-      accessory.removeService(oldService);
-    }
-    if (canCreate) {
-      this.log.debug(`Creating switch for ${accessory.displayName} ${name}.`);
-
-      const service = new hap.Service.Switch(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`);
-      service
-        .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
-        .getCharacteristic(hap.Characteristic.On)
-        .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-          cb(value);
-          this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
-          callback();
-        })
-        .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
-          const info = await camera.updateData();
-          const value = info.properties[_key];
-          if (typeof value !== 'undefined') {
-            this.log.debug(`Updating info for ${accessory.displayName} ${name}`);
-            callback(null, value);
-          } else {
-            callback(new Error(), undefined);
-          }
-        });
-
-      accessory.addService(service);
-    }
+    const service = this.createService(accessory, serviceType, name);
+    this.log.debug(`Creating switch for ${accessory.displayName} ${name}.`);
+    service
+      .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
+      .getCharacteristic(hap.Characteristic.On)
+      .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+        cb(value);
+        this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
+        callback();
+      })
+      .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
+        const info = await camera.updateData();
+        const value = info.properties[_key];
+        if (typeof value !== 'undefined') {
+          this.log.debug(`Updating info for ${accessory.displayName} ${name}`);
+          callback(null, value);
+        } else {
+          callback(new Error(), undefined);
+        }
+      });
   }
 
-  private createMotionService(
-    name: string,
-    canCreate: boolean,
-    accessory: PlatformAccessory | undefined,
-    camera: NestCam,
-  ): void {
-    const service = accessory?.getService(`${accessory.displayName} ${name}`);
-    if (service) {
-      this.log.debug(`Existing motion sensor found for ${accessory?.displayName} ${name}. Removing...`);
-      accessory?.removeService(service);
-    }
-    if (canCreate) {
-      this.log.debug(`Creating motion sensor for ${accessory?.displayName} ${name}.`);
-      accessory?.addService(
-        new hap.Service.MotionSensor(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
-      );
-      camera.startAlertChecks();
-    }
-  }
-
-  private createDoorbellService(name: string, canCreate: boolean, accessory: PlatformAccessory, camera: NestCam): void {
-    const service = accessory.getService(`${accessory.displayName} ${name}`);
-    if (service) {
+  private removePreviousServices(accessory: PlatformAccessory, service: Service | undefined) {
+    while (service) {
       accessory.removeService(service);
-    }
-    if (canCreate) {
-      accessory.addService(
-        new hap.Service.Doorbell(`${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`),
-      );
-      camera.startAlertChecks();
+      service = accessory.getService(hap.Service.MotionSensor);
     }
   }
 
@@ -234,108 +214,80 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     accessory.configureController(cameraController);
 
     // Configure services
-    const microphone = accessory.getService(hap.Service.Microphone);
-    const speaker = accessory.getService(hap.Service.Speaker);
-    const doorbellSwitch = accessory.getService('DoorbellSwitch');
+
+    // Remove the previous services
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Switch));
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.MotionSensor));
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Doorbell));
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.StatelessProgrammableSwitch));
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Microphone));
+    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Speaker));
 
     // Microphone configuration
-    microphone && accessory.removeService(microphone);
-    speaker && accessory.removeService(speaker);
-
-    // Add microphone service
     if (camera.info.capabilities.includes('audio.microphone')) {
-      accessory
-        .addService(hap.Service.Microphone)
-        .getCharacteristic(hap.Characteristic.Mute)
-        .on(CharacteristicEventTypes.GET, (callback: CharacteristicSetCallback) => {
-          callback(null, false);
-        });
-
-      accessory
-        .addService(hap.Service.Speaker)
-        .getCharacteristic(hap.Characteristic.Mute)
-        .on(CharacteristicEventTypes.GET, (callback: CharacteristicSetCallback) => {
-          callback(null, false);
-        });
+      this.createService(accessory, hap.Service.Microphone);
+      this.log.debug(`Creating microphone for ${accessory.displayName}.`);
     }
 
-    // Remove the previous switch services
-    let oldSwitchService = accessory.getService(hap.Service.Switch);
-    while (oldSwitchService) {
-      accessory.removeService(oldSwitchService);
-      oldSwitchService = accessory.getService(hap.Service.Switch);
-    }
-    // Remove the previous motion services
-    let oldMotionService = accessory.getService(hap.Service.MotionSensor);
-    while (oldMotionService) {
-      accessory.removeService(oldMotionService);
-      oldMotionService = accessory.getService(hap.Service.MotionSensor);
-    }
-    // Remove the previous doorbell services
-    let oldDoorbellService = accessory.getService(hap.Service.Doorbell);
-    while (oldDoorbellService) {
-      accessory.removeService(oldDoorbellService);
-      oldDoorbellService = accessory.getService(hap.Service.Doorbell);
+    if (camera.info.capabilities.includes('audio.microphone')) {
+      this.createService(accessory, hap.Service.Speaker);
+      this.log.debug(`Creating speaker for ${accessory.displayName}.`);
     }
 
     // Doorbell configuration
-    this.createDoorbellService(
-      'Doorbell',
-      camera.info.capabilities.includes('indoor_chime') && this.options.doorbellAlerts,
-      accessory,
-      camera,
-    );
+    if (camera.info.capabilities.includes('indoor_chime') && this.options.doorbellAlerts) {
+      this.createService(accessory, hap.Service.Doorbell, 'Doorbell');
+      this.log.debug(`Creating doorbell sensor for ${accessory.displayName}.`);
+      camera.startAlertChecks();
+    }
 
     // Add doorbell switch
-    doorbellSwitch && accessory.removeService(doorbellSwitch);
     if (
       camera.info.capabilities.includes('indoor_chime') &&
       this.options.doorbellAlerts &&
       this.options.doorbellSwitch
     ) {
-      accessory
-        .addService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch')
-        .getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent)
-        .setProps({
-          maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
-        });
+      const service = this.createService(accessory, hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch');
+      this.log.debug(`Creating doorbell switch for ${accessory.displayName}.`);
+      service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
+        maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      });
     }
 
-    // Streaming configuration
-    this.createSwitchService(
-      'Streaming',
-      camera.info.capabilities.includes('streaming.start-stop') && this.options.streamingSwitch,
-      accessory,
-      camera,
-      'streaming.enabled',
-      async (value) => {
-        await camera.toggleActive(value as boolean);
-      },
-    );
+    // Streaming switch configuration
+    if (camera.info.capabilities.includes('streaming.start-stop') && this.options.streamingSwitch) {
+      this.createSwitchService(
+        'Streaming',
+        accessory,
+        hap.Service.Switch,
+        camera,
+        'streaming.enabled',
+        async (value) => {
+          await camera.toggleActive(value as boolean);
+        },
+      );
+    }
 
-    // Chime configuration
-    this.createSwitchService(
-      'Chime',
-      camera.info.capabilities.includes('indoor_chime') && this.options.chimeSwitch,
-      accessory,
-      camera,
-      'doorbell.indoor_chime.enabled',
-      async (value) => {
-        await camera.toggleChime(value as boolean);
-      },
-    );
+    // Chime switch configuration
+    if (camera.info.capabilities.includes('indoor_chime') && this.options.chimeSwitch) {
+      this.createSwitchService(
+        'Chime',
+        accessory,
+        hap.Service.Switch,
+        camera,
+        'doorbell.indoor_chime.enabled',
+        async (value) => {
+          await camera.toggleChime(value as boolean);
+        },
+      );
+    }
 
     // Audio switch configuration
-    this.createSwitchService(
-      'Audio',
-      camera.info.capabilities.includes('audio.microphone') && this.options.audioSwitch,
-      accessory,
-      camera,
-      'audio.enabled',
-      async (value) => {
+    if (camera.info.capabilities.includes('audio.microphone') && this.options.audioSwitch) {
+      this.createSwitchService('Audio', accessory, hap.Service.Switch, camera, 'audio.enabled', async (value) => {
         await camera.toggleAudio(value as boolean);
-      },
-    );
+      });
+    }
 
     this.cameras.push(camera);
     this.accessories.push(accessory);
@@ -345,38 +297,41 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     this.cameras.forEach(async (camera) => {
       const uuid = hap.uuid.generate(camera.info.uuid);
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
-      // Motion configuration
-      const alertTypes = camera.getAlertTypes();
-      const useFaces = alertTypes.includes('Face');
-      const index = alertTypes.indexOf('Face');
-      if (index > -1) {
-        alertTypes.splice(index, 1);
-      }
-      if (useFaces) {
-        const structureId = camera.info.nest_structure_id.replace('structure.', '');
-        let structure = this.nestStructures[structureId];
-        if (!structure) {
-          this.log.debug(`Creating new structure: ${structureId}`);
-          structure = new NestStructure(camera.info, this.config, this.log);
-          this.nestStructures[structureId] = structure;
+      if (accessory) {
+        // Motion configuration
+        const alertTypes = camera.getAlertTypes();
+        const useFaces = alertTypes.includes('Face');
+        const index = alertTypes.indexOf('Face');
+        if (index > -1) {
+          alertTypes.splice(index, 1);
         }
-        const faces = await structure.getFaces();
-        if (faces) {
-          faces.forEach((face: Face) => {
-            this.log.debug(`Found face ${face.name} for ${structureId}`);
-            alertTypes.push(`Face - ${face.name}`);
-          });
+        if (useFaces) {
+          const structureId = camera.info.nest_structure_id.replace('structure.', '');
+          let structure = this.nestStructures[structureId];
+          if (!structure) {
+            this.log.debug(`Creating new structure: ${structureId}`);
+            structure = new NestStructure(camera.info, this.config, this.log);
+            this.nestStructures[structureId] = structure;
+          }
+          const faces = await structure.getFaces();
+          if (faces) {
+            faces.forEach((face: Face) => {
+              if (face.name) {
+                this.log.debug(`Found face ${face.name} for ${structureId}`);
+                alertTypes.push(`Face - ${face.name}`);
+              }
+            });
+          }
         }
-      }
 
-      alertTypes.forEach((type) => {
-        this.createMotionService(
-          type,
-          camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection,
-          accessory,
-          camera,
-        );
-      });
+        alertTypes.forEach((type) => {
+          if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
+            this.createService(accessory, hap.Service.MotionSensor, type);
+            this.log.debug(`Creating motion sensor for ${accessory.displayName} ${type}.`);
+            camera.startAlertChecks();
+          }
+        });
+      }
     });
   }
 
@@ -410,7 +365,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const cameras = await this.getCameras();
     cameras.forEach((cameraInfo: CameraInfo) => {
       const uuid = hap.uuid.generate(cameraInfo.uuid);
-      const accessory = new Accessory(cameraInfo.name, uuid);
+      const displayName = cameraInfo.name.replace('(', '').replace(')', '');
+      const accessory = new Accessory(displayName, uuid);
       cameraInfo.homebridge_uuid = uuid;
       accessory.context.cameraInfo = cameraInfo;
 
