@@ -2,6 +2,8 @@ import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebr
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { CameraInfo, Properties, Zone } from './models/camera-info';
 import { MotionEvent } from './models/event-info';
+import { NestStructure } from './nest-structure';
+import { Face } from './models/structure-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -48,7 +50,7 @@ export class NestCam extends EventEmitter {
   private motionInProgress = false;
   private doorbellRang = false;
   private importantOnly = true;
-  private alertTypes = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face'];
+  private alertTypes = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face', 'Zone'];
   private alertCooldown = 180000;
   private alertInterval = 10000;
   private alertTimeout: NodeJS.Timeout | undefined | number;
@@ -119,9 +121,41 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  getAlertTypes(): Array<string> {
+  async getAlertTypes(): Promise<Array<string>> {
+    const useZones = this.alertTypes.includes('Zone');
+    const index = this.alertTypes.indexOf('Zone');
+    if (index > -1) {
+      this.alertTypes.splice(index, 1);
+    }
+    if (useZones) {
+      const zones = await this.getZones();
+      zones.forEach((zone) => {
+        this.log.debug(`Found zone ${zone.label} for ${this.info.name}`);
+        this.alertTypes.push(`Zone - ${zone.label}`);
+      });
+    }
+
     if (this.info.capabilities.includes('stranger_detection')) {
       this.log.debug(`${this.info.name} has stranger_detection`);
+      const useFaces = this.alertTypes.includes('Face');
+      const index = this.alertTypes.indexOf('Face');
+      if (index > -1) {
+        this.alertTypes.splice(index, 1);
+      }
+      if (useFaces) {
+        const structureId = this.info.nest_structure_id.replace('structure.', '');
+        const structure = new NestStructure(this.info, this.config, this.log);
+        const faces = await structure.getFaces();
+        if (faces) {
+          faces.forEach((face: Face) => {
+            if (face.name) {
+              this.log.debug(`Found face ${face.name} for ${structureId}`);
+              this.alertTypes.push(`Face - ${face.name}`);
+            }
+          });
+        }
+      }
+
       return this.alertTypes;
     } else {
       // Remove 'Package Delivered', 'Package Retrieved', 'Face'
@@ -300,7 +334,10 @@ export class NestCam extends EventEmitter {
   private setMotion(state: boolean, types: Array<string>): void {
     types.forEach((type) => {
       type = sanitizeString(type);
-      const service = this.accessory.getService(`${this.accessory.displayName} ${type}`);
+      const service = this.accessory.getServiceById(
+        this.hap.Service.MotionSensor,
+        `${this.accessory.displayName} ${type}`,
+      );
       if (service) {
         this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
         service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
@@ -319,7 +356,10 @@ export class NestCam extends EventEmitter {
   }
 
   private setDoorbell(): void {
-    const doorbellService = this.accessory.getService(`${this.accessory.displayName} Doorbell`);
+    const doorbellService = this.accessory.getServiceById(
+      this.hap.Service.Doorbell,
+      `${this.accessory.displayName} Doorbell`,
+    );
     if (doorbellService) {
       this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
       doorbellService.updateCharacteristic(

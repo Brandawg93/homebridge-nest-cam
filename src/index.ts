@@ -18,9 +18,7 @@ import {
   WithUUID,
 } from 'homebridge';
 import { NestCam } from './nest-cam';
-import { NestStructure } from './nest-structure';
 import { CameraInfo, ModelTypes, Properties } from './models/camera-info';
-import { Face } from './models/structure-info';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
@@ -49,7 +47,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
-  private readonly nestStructures: Record<string, NestStructure> = {};
   private structures: Array<string> = [];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -155,13 +152,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       });
   }
 
-  private removePreviousServices(accessory: PlatformAccessory, service: Service | undefined) {
-    while (service) {
-      accessory.removeService(service);
-      service = accessory.getService(hap.Service.MotionSensor);
-    }
-  }
-
   configureAccessory(accessory: PlatformAccessory): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
@@ -214,14 +204,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     accessory.configureController(cameraController);
 
     // Configure services
-
-    // Remove the previous services
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Switch));
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.MotionSensor));
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Doorbell));
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.StatelessProgrammableSwitch));
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Microphone));
-    // this.removePreviousServices(accessory, accessory.getService(hap.Service.Speaker));
 
     // Microphone configuration
     if (camera.info.capabilities.includes('audio.microphone')) {
@@ -299,37 +281,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
       if (accessory) {
         // Motion configuration
-        const alertTypes = camera.getAlertTypes();
-        const useFaces = alertTypes.includes('Face');
-        const index = alertTypes.indexOf('Face');
-        if (index > -1) {
-          alertTypes.splice(index, 1);
-        }
-        if (useFaces) {
-          const structureId = camera.info.nest_structure_id.replace('structure.', '');
-          let structure = this.nestStructures[structureId];
-          if (!structure) {
-            this.log.debug(`Creating new structure: ${structureId}`);
-            structure = new NestStructure(camera.info, this.config, this.log);
-            this.nestStructures[structureId] = structure;
-          }
-          const faces = await structure.getFaces();
-          if (faces) {
-            faces.forEach((face: Face) => {
-              if (face.name) {
-                this.log.debug(`Found face ${face.name} for ${structureId}`);
-                alertTypes.push(`Face - ${face.name}`);
-              }
-            });
-          }
-        }
-
-        const zones = await camera.getZones();
-        zones.forEach((zone) => {
-          this.log.debug(`Found zone ${zone.label} for ${accessory.displayName}`);
-          alertTypes.push(`Zone - ${zone.label}`);
-        });
-
+        const alertTypes = await camera.getAlertTypes();
         alertTypes.forEach((type) => {
           if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
             this.createService(accessory, hap.Service.MotionSensor, type);
