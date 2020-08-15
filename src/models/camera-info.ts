@@ -1,3 +1,25 @@
+export interface Zone {
+  color: number;
+  count: number;
+  created_at: string;
+  default_label: string;
+  drawColor: number;
+  hidden: boolean;
+  id: number;
+  label: string;
+  label_magma_key: string;
+  last_alerted: string;
+  last_updated: string;
+  learned_type: string;
+  mask_meta: string;
+  motion_mask: string;
+  motion_path: Array<any>;
+  nexusapi_image_uri: string;
+  order: number;
+  type: string;
+  weight: string;
+}
+
 export const ModelTypes = [
   '',
   '',

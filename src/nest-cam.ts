@@ -1,6 +1,6 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { NestEndpoints, handleError } from './nest-endpoints';
-import { CameraInfo, Properties } from './models/camera-info';
+import { CameraInfo, Properties, Zone } from './models/camera-info';
 import { MotionEvent } from './models/event-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
@@ -19,6 +19,9 @@ const sanitizeString = (str: string): string => {
   } else if (str.includes('face')) {
     // Face
     return str.replace('-', ' - ').replace('face', 'Face');
+  } else if (str.includes('zone')) {
+    // Face
+    return str.replace('-', ' - ').replace('zone', 'Zone');
   } else {
     // Motion, Person, Sound
     return str.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
@@ -39,6 +42,7 @@ export class NestCam extends EventEmitter {
   private endpoints: NestEndpoints;
   private readonly hap: HAP;
   public info: CameraInfo;
+  private zones: Array<Zone> = [];
   private accessory: PlatformAccessory;
   private motionDetected = false;
   private motionInProgress = false;
@@ -186,6 +190,15 @@ export class NestCam extends EventEmitter {
               trigger.types?.push(`face-${trigger.face_name}`);
             }
 
+            if (trigger.zone_ids.length > 0) {
+              trigger.zone_ids.forEach((zone_id) => {
+                const zone = this.zones.find((x) => x.id === zone_id);
+                if (zone) {
+                  trigger.types.push(`zone-${zone.label}`);
+                }
+              });
+            }
+
             // Check importantOnly flag
             let important = true;
             if (this.importantOnly) {
@@ -221,6 +234,31 @@ export class NestCam extends EventEmitter {
         this.alertsSend = true;
       }, this.alertInterval * Math.pow(this.alertFailures, 2));
     }
+  }
+
+  async getZones(): Promise<Array<Zone>> {
+    try {
+      const response: Array<Zone> = await this.endpoints.sendRequest(
+        this.config.access_token,
+        `https://${this.info.nexus_api_nest_domain_host}`,
+        `/cuepoint_category/${this.info.uuid}`,
+        'GET',
+      );
+
+      const validZones: Array<Zone> = [];
+      response.forEach((zone) => {
+        if (zone.label && !zone.hidden && zone.type === 'region') {
+          validZones.push(zone);
+        }
+      });
+
+      this.zones = validZones;
+      return validZones;
+    } catch (error) {
+      handleError(this.log, error, `Error getting zones for ${this.info.name} camera`);
+    }
+
+    return [];
   }
 
   async updateData(): Promise<CameraInfo> {

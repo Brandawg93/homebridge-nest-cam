@@ -324,6 +324,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
           }
         }
 
+        const zones = await camera.getZones();
+        zones.forEach((zone) => {
+          this.log.debug(`Found zone ${zone.label} for ${accessory.displayName}`);
+          alertTypes.push(`Zone - ${zone.label}`);
+        });
+
         alertTypes.forEach((type) => {
           if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
             this.createService(accessory, hap.Service.MotionSensor, type);
