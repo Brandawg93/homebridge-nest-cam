@@ -77,7 +77,8 @@
                 { "title": "Person", "enum": ["Person"] },
                 { "title": "Package Retrieved", "enum": ["Package Retrieved"] },
                 { "title": "Package Delivered", "enum": ["Package Delivered"] },
-                { "title": "Face", "enum": ["Face"] }
+                { "title": "Face", "enum": ["Face"] },
+                { "title": "Zone", "enum": ["Zone"] }
               ]    
             }
         },
