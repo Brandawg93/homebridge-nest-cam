@@ -63,9 +63,13 @@ export async function login(email?: string, password?: string): Promise<void> {
     }
     browser = await puppeteer.launch(options);
   } catch (err) {
-    console.error(
-      'Unable to open chromium browser. Install chromium manually and specify its path using the "-p" flag.',
-    );
+    if (path) {
+      console.error(`Unable to open chromium browser at path ${path}`);
+    } else {
+      console.error(
+        'Unable to open chromium browser. Install chromium manually and specify its path using the "-p" flag.',
+      );
+    }
     return;
   }
 
