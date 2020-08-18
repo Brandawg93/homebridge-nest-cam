@@ -22,6 +22,7 @@ import { CameraInfo, ModelTypes, Properties } from './models/camera-info';
 import { NestEndpoints, handleError } from './nest-endpoints';
 import { StreamingDelegate } from './streaming-delegate';
 import { Connection } from './nest-connection';
+import { ConfigSchema, Schema } from './config-schema';
 
 class Options {
   motionDetection = true;
@@ -48,6 +49,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
   private structures: Array<string> = [];
+  private schema: Schema = { structures: [] };
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -293,6 +295,40 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
   }
 
+  private cleanupAccessories(): void {
+    //Remove cached cameras filtered by structure
+    if (this.structures.length > 0) {
+      const oldCameras = this.cameras.filter(
+        (camera: NestCam) => !this.structures.includes(camera.info.nest_structure_id.replace('structure.', '')),
+      );
+      oldCameras.forEach((camera) => {
+        const uuid = hap.uuid.generate(camera.info.uuid);
+        const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
+        if (accessory) {
+          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        }
+      });
+    }
+
+    // Remove cameras that were not in previous call
+    // this.accessories.forEach((accessory: PlatformAccessory) => {
+    //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
+    //     accessory.context.removed = true;
+    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    //     const index = this.accessories.indexOf(accessory);
+    //     if (index > -1) {
+    //       this.accessories.splice(index, 1);
+    //       this.cameras.slice(index, 1);
+    //     }
+    //   }
+    // });
+  }
+
+  private async generateConfigSchema(): Promise<void> {
+    const schema = new ConfigSchema(this.schema, this.api.user.storagePath(), this.log);
+    await schema.generate();
+  }
+
   /**
    * Get info on all cameras
    */
@@ -306,9 +342,24 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         'GET',
       );
       cameras = response.items;
+
+      cameras.forEach((cameraInfo) => {
+        const exists = this.schema.structures.find(
+          (x) => x.id == cameraInfo.nest_structure_id.replace('structure.', ''),
+        );
+        if (!exists) {
+          this.schema.structures.push({
+            name: cameraInfo.nest_structure_name,
+            id: cameraInfo.nest_structure_id.replace('structure.', ''),
+          });
+        }
+      });
+
       if (this.structures.length > 0) {
         this.log.debug('Filtering cameras by structures');
-        cameras = cameras.filter((info: CameraInfo) => this.structures.includes(info.nest_structure_name));
+        cameras = cameras.filter((info: CameraInfo) =>
+          this.structures.includes(info.nest_structure_id.replace('structure.', '')),
+        );
       }
     } catch (error) {
       handleError(this.log, error, 'Error fetching cameras');
@@ -319,7 +370,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   /**
    * Add fetched cameras from nest to Homebridge
    */
-  async addCameras(): Promise<void> {
+  private async addCameras(): Promise<void> {
     const cameras = await this.getCameras();
     cameras.forEach((cameraInfo: CameraInfo) => {
       const uuid = hap.uuid.generate(cameraInfo.uuid);
@@ -347,19 +398,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     });
-
-    // Remove cameras that were not in previous call
-    // this.accessories.forEach((accessory: PlatformAccessory) => {
-    //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
-    //     accessory.context.removed = true;
-    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-    //     const index = this.accessories.indexOf(accessory);
-    //     if (index > -1) {
-    //       this.accessories.splice(index, 1);
-    //       this.cameras.slice(index, 1);
-    //     }
-    //   }
-    // });
   }
 
   async didFinishLaunching(): Promise<void> {
@@ -377,6 +415,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.setupMotionServices();
+      await this.generateConfigSchema();
+      this.cleanupAccessories();
     }
   }
 }
