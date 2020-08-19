@@ -20,12 +20,6 @@
           "type": "string",
           "default": "",
           "required": true
-        },
-        "apiKey": {
-          "title": "API Key",
-          "type": "string",
-          "default": "",
-          "required": true
         }
       }
     },
