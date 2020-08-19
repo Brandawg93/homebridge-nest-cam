@@ -18,12 +18,8 @@ const sanitizeString = (str: string): string => {
   if (str.includes('package')) {
     // Package
     return str.replace('-', ' ').replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
-  } else if (str.includes('face')) {
-    // Face
-    return str.replace('-', ' - ').replace('face', 'Face');
-  } else if (str.includes('zone')) {
-    // Face
-    return str.replace('-', ' - ').replace('zone', 'Zone');
+  } else if (str.startsWith('Face') || str.startsWith('Zone')) {
+    return str;
   } else {
     // Motion, Person, Sound
     return str.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
@@ -216,19 +212,24 @@ export class NestCam extends EventEmitter {
         );
         this.alertFailures = 0;
         if (response.length > 0) {
-          for (let i = 0; i < response.length; i++) {
-            const trigger = response[i];
+          response.forEach((trigger) => {
             // Add face to alert if name is not empty
             if (trigger.face_name) {
               this.log.debug(`Found face for ${trigger.face_name} in event`);
-              trigger.types?.push(`face-${trigger.face_name}`);
+              trigger.types?.push(`Face - ${trigger.face_name}`);
+
+              //If there is a face, there is a person
+              if (!trigger.types?.includes('person')) {
+                trigger.types?.push('person');
+              }
             }
 
             if (trigger.zone_ids.length > 0) {
               trigger.zone_ids.forEach((zone_id) => {
                 const zone = this.zones.find((x) => x.id === zone_id);
                 if (zone) {
-                  trigger.types.push(`zone-${zone.label}`);
+                  this.log.debug(`Found zone for ${zone.label} in event`);
+                  trigger.types.push(`Zone - ${zone.label}`);
                 }
               });
             }
@@ -241,7 +242,6 @@ export class NestCam extends EventEmitter {
 
             if (important && trigger.types.includes('doorbell') && !this.doorbellRang) {
               this.triggerDoorbell();
-              break;
             }
 
             if (important && !this.motionDetected) {
@@ -250,9 +250,8 @@ export class NestCam extends EventEmitter {
               } else {
                 this.triggerMotion(['Motion']);
               }
-              break;
             }
-          }
+          });
         } else if (this.motionInProgress) {
           self.setMotion(false, this.alertTypes);
           this.motionInProgress = false;
