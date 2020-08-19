@@ -7,7 +7,6 @@ export async function login(email?: string, password?: string): Promise<void> {
   let clientId = '';
   let loginHint = '';
   let cookies = '';
-  let apiKey = '';
   let domain = '';
 
   puppeteer.use(pluginStealth());
@@ -135,16 +134,14 @@ export async function login(email?: string, password?: string): Promise<void> {
 
       // Getting apiKey
       if (url.includes('issue_jwt') && headers['x-goog-api-key']) {
-        apiKey = headers['x-goog-api-key'];
         domain = encodeURIComponent(headers['referer'].slice(0, -1));
       }
 
       // Build googleAuth object
-      if (apiKey && clientId && loginHint && cookies) {
+      if (clientId && loginHint && cookies) {
         const auth = {
           issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
           cookies: cookies,
-          apiKey: apiKey,
         };
         // console.log('Add the following to your config.json:\n');
         console.log('"googleAuth":', JSON.stringify(auth, null, 4));

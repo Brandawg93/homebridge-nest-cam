@@ -38,7 +38,9 @@ export class Connection {
     //Only doing google auth from now on
     const issueToken = this.config.googleAuth.issueToken.replace('Request URL: ', '');
     const cookies = this.config.googleAuth.cookies.replace('cookie: ', '');
-    const apiKey = this.config.googleAuth.apiKey.replace('x-goog-api-key: ', '');
+    const apiKey =
+      this.config.googleAuth.apiKey?.replace('x-goog-api-key: ', '') ||
+      (this.config.fieldTest ? 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U' : 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4');
 
     this.log.debug('Authenticating via Google.');
     let result;

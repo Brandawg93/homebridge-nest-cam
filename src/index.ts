@@ -95,13 +95,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       return false;
     }
 
-    if (
-      this.config.googleAuth &&
-      (!this.config.googleAuth.issueToken || !this.config.googleAuth.cookies || !this.config.googleAuth.apiKey)
-    ) {
-      this.log.error(
-        'You must provide issueToken, cookies and apiKey in config.json. Please see README.md for instructions',
-      );
+    if (this.config.googleAuth && (!this.config.googleAuth.issueToken || !this.config.googleAuth.cookies)) {
+      this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
       return false;
     }
 
