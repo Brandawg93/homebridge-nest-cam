@@ -43,13 +43,12 @@ export class NestCam extends EventEmitter {
   private zones: Array<Zone> = [];
   private accessory: PlatformAccessory;
   private motionDetected = false;
-  private motionInProgress = false;
   private doorbellRang = false;
   private importantOnly = true;
   private alertTypes = ['Motion', 'Sound', 'Person', 'Package Delivered', 'Package Retrieved', 'Face', 'Zone'];
   private alertCooldown = 180000;
   private alertInterval = 10000;
-  private alertTimeout: NodeJS.Timeout | undefined | number;
+  private alertTimeout: NodeJS.Timeout | undefined;
   private alertFailures = 0;
   private alertsSend = true;
 
@@ -163,6 +162,11 @@ export class NestCam extends EventEmitter {
   async toggleActive(enabled: boolean): Promise<void> {
     const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
     await this.setBooleanProperty('streaming.enabled', enabled, service, NestCamEvents.CAMERA_STATE_CHANGED);
+    if (enabled) {
+      this.startAlertChecks();
+    } else {
+      this.stopAlertChecks();
+    }
   }
 
   async toggleChime(enabled: boolean): Promise<void> {
@@ -176,17 +180,21 @@ export class NestCam extends EventEmitter {
   }
 
   startAlertChecks() {
-    if (!this.alertTimeout) {
+    if (!this.alertTimeout && this.info.properties['streaming.enabled']) {
       const self = this;
       this.alertTimeout = setInterval(async function () {
         self.checkAlerts();
       }, this.alertInterval);
+    } else if (!this.info.properties['streaming.enabled']) {
+      this.setMotion(false, this.alertTypes);
     }
   }
 
   stopAlertChecks() {
-    if (this.alertTimeout && typeof this.alertTimeout == 'number') {
+    if (this.alertTimeout) {
       clearInterval(this.alertTimeout);
+      this.alertTimeout = void 0;
+      this.setMotion(false, this.alertTypes);
     }
   }
 
@@ -252,9 +260,8 @@ export class NestCam extends EventEmitter {
               }
             }
           });
-        } else if (this.motionInProgress) {
+        } else {
           self.setMotion(false, this.alertTypes);
-          this.motionInProgress = false;
         }
       }
     } catch (error) {
@@ -322,7 +329,6 @@ export class NestCam extends EventEmitter {
     const self = this;
     this.setMotion(true, types);
     this.motionDetected = true;
-    this.motionInProgress = true;
 
     setTimeout(async function () {
       self.motionDetected = false;
