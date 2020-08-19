@@ -80,7 +80,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 | chimeSwitch       | Enable/disable the ability to turn the doorbell chime on or off     | boolean          |
 | audioSwitch       | Enable/disable the ability to turn the camera audio on or off       | boolean          |
 | pathToFfmpeg      | Specify the path to a custom FFmpeg binary                          | string           |
-| structures        | Specify the structure names of which structures' cameras to see     | array            |
+| structures        | Specify the structure ID of which structures' cameras to see        | array            |
 
 ## Features
 - View cameras within homekit.
