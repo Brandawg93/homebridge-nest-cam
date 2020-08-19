@@ -47,8 +47,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     },
     "googleAuth": {
         "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
-        "cookies": "SMSV=ADHTe...",
-        "apiKey": "AIzaS..."
+        "cookies": "SMSV=ADHTe..."
     }
 }
 ```
