@@ -295,6 +295,16 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
   }
 
+  private removeAccessory(accessory: PlatformAccessory): void {
+    accessory.context.removed = true;
+    this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    const index = this.accessories.indexOf(accessory);
+    if (index > -1) {
+      this.accessories.splice(index, 1);
+      this.cameras.slice(index, 1);
+    }
+  }
+
   private cleanupAccessories(): void {
     //Remove cached cameras filtered by structure
     if (this.structures.length > 0) {
@@ -305,7 +315,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         const uuid = hap.uuid.generate(camera.info.uuid);
         const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
         if (accessory) {
-          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          this.removeAccessory(accessory);
         }
       });
     }
@@ -313,13 +323,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Remove cameras that were not in previous call
     // this.accessories.forEach((accessory: PlatformAccessory) => {
     //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
-    //     accessory.context.removed = true;
-    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-    //     const index = this.accessories.indexOf(accessory);
-    //     if (index > -1) {
-    //       this.accessories.splice(index, 1);
-    //       this.cameras.slice(index, 1);
-    //     }
+    //     this.removeAccessory(accessory);
     //   }
     // });
   }
