@@ -2,8 +2,9 @@ import Browser from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
+import { HomebridgeUI } from './uix';
 
-export async function login(email?: string, password?: string): Promise<void> {
+export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
   let clientId = '';
   let loginHint = '';
   let cookies = '';
@@ -20,8 +21,26 @@ export async function login(email?: string, password?: string): Promise<void> {
     }
     return '';
   };
-  const prompt = (query: string, hidden = false): Promise<string> =>
-    new Promise((resolve, reject) => {
+  const prompt = (key: 'username' | 'password' | 'totp', query: string, hidden = false): Promise<string> =>
+    new Promise(async (resolve, reject) => {
+      // handle uix prompts
+      if (uix) {
+        switch (key) {
+          case 'username': {
+            return resolve(await uix.getUsername());
+          }
+          case 'password': {
+            return resolve(await uix.getPassword());
+          }
+          case 'totp': {
+            return resolve(await uix.getTotp());
+          }
+          default: {
+            return reject(Error(`Unhandled Prompt Key: ${key}`));
+          }
+        }
+      }
+
       const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -89,28 +108,49 @@ export async function login(email?: string, password?: string): Promise<void> {
       await page.click('button[data-test="google-button-login"]');
 
       await page.waitForSelector('#identifierId');
-      let badInput = true;
-      while (badInput) {
+      let badUsername = true;
+      while (badUsername) {
         if (!email) {
-          email = await prompt('Email or phone: ');
+          email = await prompt('username', 'Email or phone: ');
         }
         await page.type('#identifierId', email);
         await page.waitFor(1000);
         await page.keyboard.press('Enter');
         await page.waitFor(1000);
-        badInput = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
-        if (badInput) {
+        badUsername = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
+        if (badUsername) {
+          email = undefined;
           console.log('Incorrect email or phone. Please try again.');
           await page.click('#identifierId', { clickCount: 3 });
         }
       }
-      if (!password) {
-        password = await prompt('Enter your password: ', true);
+
+      let badPassword = true;
+
+      while (badPassword) {
+        if (!password) {
+          password = await prompt('password', 'Enter your password: ', true);
+        }
+
+        console.log('Logging in...');
+
+        await page.waitFor(500);
+        await page.type('input[type="password"]', password);
+        await page.waitFor(1000);
+        await page.keyboard.press('Enter');
+        await page.waitFor(1000);
+        badPassword = await page.evaluate(
+          () => document.querySelector('input[type="password"][aria-invalid="true"]') !== null,
+        );
+
+        if (badPassword) {
+          password = undefined;
+          console.log('Invalid password. Please try again.');
+          await page.click('input[type="password"]', { clickCount: 3 });
+        }
       }
+
       console.log('Finishing up...');
-      await page.type('input[type="password"]', password);
-      await page.waitFor(1000);
-      await page.keyboard.press('Enter');
     }
 
     await page.setRequestInterception(true);
@@ -144,13 +184,22 @@ export async function login(email?: string, password?: string): Promise<void> {
           cookies: cookies,
         };
         // console.log('Add the following to your config.json:\n');
-        console.log('"googleAuth":', JSON.stringify(auth, null, 4));
+
+        if (uix) {
+          uix.setCredentials(auth);
+        } else {
+          console.log('"googleAuth":', JSON.stringify(auth, null, 4));
+        }
         browser.close();
       }
 
       // Auth didn't work
       if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
-        console.log('Could not generate "googleAuth" object.');
+        if (uix) {
+          uix.loginFailed('Could not generate "googleAuth" object.');
+        } else {
+          console.log('Could not generate "googleAuth" object.');
+        }
         browser.close();
       }
 
@@ -161,16 +210,47 @@ export async function login(email?: string, password?: string): Promise<void> {
       // Building issueToken
       if (response.url().includes('consent?')) {
         const headers = response.headers();
-        const queries = headers.location.split('&');
-        loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+        if (headers.location) {
+          const queries = headers.location.split('&');
+          loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+        }
       }
     });
+
+    // the two factor catch is after the page interceptors intentionally
+    try {
+      await page.waitForSelector('input[name=totpPin]', { timeout: 5000 });
+      console.log('2-step Verification Required');
+      await page.waitFor(1000);
+
+      let badTotpCode = true;
+
+      while (badTotpCode) {
+        const totp = await prompt(
+          'totp',
+          'Please enter the verification code from the Google Authenticator app: ',
+          true,
+        );
+        await page.type('input[name=totpPin]', totp);
+        await page.waitFor(1000);
+        await page.keyboard.press('Enter');
+        await page.waitFor(1000);
+        badTotpCode = await page.evaluate(() => document.querySelector('#totpPin[aria-invalid="true"]') !== null);
+        if (badTotpCode) {
+          await page.click('#totpPin[aria-invalid="true"]', { clickCount: 3 });
+        }
+      }
+    } catch (e) {
+      // totp is not enabled
+    }
   } catch (err) {
     console.error('Unable to retrieve credentials.');
     console.error(err);
   }
 }
 
-(async (): Promise<void> => {
-  await login();
-})();
+if (process.env.UIX_NEST_CAM_INTERACTIVE_LOGIN !== '1') {
+  (async (): Promise<void> => {
+    await login();
+  })();
+}
