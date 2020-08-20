@@ -59,8 +59,8 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 **Notes:** 
 - If the steps above do not work, refer to the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
 - You may need to reauthenticate periodically due to your Google account settings.
-- If your account has 2 factor authentication, use the `-h` flag.
-- If you are unable to open the chromium browser, install it manually and specify its path via the `-p` flag.
+- If your account has 2 factor authentication, use the `-h` flag to start the chromium browser in headful mode.
+- If you are unable to open the chromium browser, you may need to install it manually and try again.
 
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:

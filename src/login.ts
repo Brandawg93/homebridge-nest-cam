@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
 import { existsSync } from 'fs';
+import execa from 'execa';
 export async function login(email?: string, password?: string): Promise<void> {
   let clientId = '';
   let loginHint = '';
@@ -20,12 +21,22 @@ export async function login(email?: string, password?: string): Promise<void> {
     }
     return '';
   };
-  const checkPath = (): void => {
-    const currentPath = path() || Browser.executablePath();
-    if (!existsSync(currentPath)) {
+
+  const whichChromiumBrowser = async (): Promise<string> => {
+    try {
+      const output = await execa('which', ['chromium-browser']);
+      return output.stdout;
+    } catch (err) {
+      return '';
+    }
+  };
+
+  const checkPath = async (executablePath: string): Promise<void> => {
+    if (!existsSync(executablePath)) {
       throw new Error(`Chromium not installed at expected path: ${Browser.executablePath()}`);
     }
   };
+
   const prompt = (query: string, hidden = false): Promise<string> =>
     new Promise((resolve, reject) => {
       const rl = readline.createInterface({
@@ -60,23 +71,16 @@ export async function login(email?: string, password?: string): Promise<void> {
       }
     });
 
+  const currentPath = path() || (await whichChromiumBrowser()) || Browser.executablePath();
   try {
     const options: any = { headless: headless };
-    const executablePath = path();
-    if (executablePath) {
-      options.executablePath = path();
-    }
-    checkPath();
+    await checkPath(currentPath);
+    options.executablePath = currentPath;
     browser = await puppeteer.launch(options);
   } catch (err) {
-    const executablePath = path();
-    if (executablePath) {
-      console.error(`Unable to open chromium browser at path ${executablePath}`);
-    } else {
-      console.error(
-        'Unable to open chromium browser. Install chromium manually and specify its path using the "-p" flag.',
-      );
-    }
+    console.error(
+      `Unable to open chromium browser at path: ${currentPath}. You may need to install chromium manually and try again.`,
+    );
     return;
   }
 
