@@ -2,7 +2,7 @@ import Browser from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import * as readline from 'readline';
-
+import { existsSync } from 'fs';
 export async function login(email?: string, password?: string): Promise<void> {
   let clientId = '';
   let loginHint = '';
@@ -19,6 +19,12 @@ export async function login(email?: string, password?: string): Promise<void> {
       return process.argv[index + 1];
     }
     return '';
+  };
+  const checkPath = (): void => {
+    const currentPath = path() || Browser.executablePath();
+    if (!existsSync(currentPath)) {
+      throw new Error(`Chromium not installed at expected path: ${Browser.executablePath()}`);
+    }
   };
   const prompt = (query: string, hidden = false): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -60,10 +66,12 @@ export async function login(email?: string, password?: string): Promise<void> {
     if (executablePath) {
       options.executablePath = path();
     }
+    checkPath();
     browser = await puppeteer.launch(options);
   } catch (err) {
-    if (path) {
-      console.error(`Unable to open chromium browser at path ${path}`);
+    const executablePath = path();
+    if (executablePath) {
+      console.error(`Unable to open chromium browser at path ${executablePath}`);
     } else {
       console.error(
         'Unable to open chromium browser. Install chromium manually and specify its path using the "-p" flag.',
