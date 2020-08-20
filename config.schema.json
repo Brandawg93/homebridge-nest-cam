@@ -61,7 +61,7 @@
         },
         "alertTypes": {
           "title": "Alert Types",
-          "description": "What type of alerts to receive",
+          "description": "Restrict alerts to specific types",
           "type": "array",
           "items": {
             "title": "Alert Type",
