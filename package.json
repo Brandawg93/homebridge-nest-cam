@@ -35,7 +35,7 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean",
-    "install": "node dist/postinstall.js"
+    "install": "node ./dist/postinstall.js"
   },
   "keywords": [
     "homebridge",
