@@ -21,7 +21,7 @@
     }
   ],
   "bin": {
-    "homebridge-nest-cam": "./cli.sh"
+    "homebridge-nest-cam": "./cli.js"
   },
   "scripts": {
     "clean": "rimraf ./dist ./coverage",
@@ -59,7 +59,7 @@
     "dist/**/*",
     "images/offline.jpg",
     "config.schema.json",
-    "cli.sh",
+    "cli.js",
     "install.js"
   ],
   "dependencies": {

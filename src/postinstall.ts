@@ -26,11 +26,6 @@ async function main() {
     return;
   }
 
-  if (os.arch() !== 'arm' && os.arch() !== 'arm64') {
-    // we only need to run this script on arm / arm64
-    return;
-  }
-
   // try and find an existing copy of chrome / chromium
   let possiblePaths: Array<string> = [];
 

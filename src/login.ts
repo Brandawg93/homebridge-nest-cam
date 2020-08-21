@@ -139,8 +139,14 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     });
 
   try {
-    const options: any = { headless: headless };
+    const options: any = { headless: headless, args: [] };
     options.executablePath = executablePath;
+
+    // need some extra flags if running as root
+    if (process.getuid() === 0) {
+      options.args.push('--no-sandbox', '--disable-setuid-sandbox');
+    }
+
     browser = await puppeteer.launch(options);
   } catch (err) {
     console.error(
