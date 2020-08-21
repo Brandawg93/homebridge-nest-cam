@@ -187,7 +187,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
         badUsername = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
         if (badUsername) {
           email = undefined;
-          console.log('Incorrect email or phone. Please try again.');
+          console.error('Incorrect email or phone. Please try again.');
           await page.click('#identifierId', { clickCount: 3 });
         }
       }
@@ -212,7 +212,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
         if (badPassword) {
           password = undefined;
-          console.log('Invalid password. Please try again.');
+          console.error('Invalid password. Please try again.');
           await page.click('input[type="password"]', { clickCount: 3 });
         }
       }
