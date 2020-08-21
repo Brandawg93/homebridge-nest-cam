@@ -59,7 +59,8 @@
     "dist/**/*",
     "images/offline.jpg",
     "config.schema.json",
-    "cli.sh"
+    "cli.sh",
+    "install.js"
   ],
   "dependencies": {
     "axios": "^0.19.2",
