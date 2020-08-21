@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "4.7.0",
+  "version": "4.8.0",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -34,7 +34,8 @@
     "lint": "eslint './src/**/*.ts' --fix",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint",
-    "postpublish": "npm run clean"
+    "postpublish": "npm run clean",
+    "install": "node dist/postinstall.js"
   },
   "keywords": [
     "homebridge",
@@ -61,20 +62,24 @@
     "cli.sh"
   ],
   "dependencies": {
-    "systeminformation": "^4.26.10",
     "axios": "^0.19.2",
+    "execa": "^4.0.3",
     "ffmpeg-for-homebridge": "^0.0.7",
-    "pbf": "^3.2.1",
     "get-port": "^5.1.1",
-    "execa": "^4.0.3"
+    "pbf": "^3.2.1",
+    "puppeteer-core": "^5.2.1",
+    "puppeteer-extra": "^3.1.12",
+    "puppeteer-extra-plugin-stealth": "^2.4.14",
+    "systeminformation": "^4.26.10"
   },
   "devDependencies": {
     "@types/jest": "^26.0.4",
     "@types/node": "^14.0.22",
     "@types/pbf": "^3.0.2",
-    "@types/puppeteer": "^3.0.1",
+    "@types/puppeteer-core": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^3.6.0",
     "@typescript-eslint/parser": "^3.6.0",
+    "babel-minify": "^0.5.1",
     "eslint": "^7.4.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-jest": "^23.18.0",
@@ -84,12 +89,6 @@
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.1.2",
-    "typescript": "^3.9.6",
-    "babel-minify": "^0.5.1"
-  },
-  "optionalDependencies": {
-    "puppeteer": "^5.2.1",
-    "puppeteer-extra": "^3.1.12",
-    "puppeteer-extra-plugin-stealth": "^2.4.14"
+    "typescript": "^3.9.6"
   }
 }

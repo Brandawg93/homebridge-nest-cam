@@ -2,6 +2,8 @@ import { EventEmitter } from 'events';
 
 process.env.UIX_NEST_CAM_INTERACTIVE_LOGIN = '1';
 
+process.title = 'homebridge-nest-cam-link-account';
+
 export class HomebridgeUI extends EventEmitter {
   constructor() {
     super();
@@ -32,7 +34,16 @@ export class HomebridgeUI extends EventEmitter {
 
   async doLogin() {
     try {
-      const { login } = await import('./login');
+      const { login, getChromiumBrowser } = await import('./login');
+      if (!getChromiumBrowser()) {
+        this.sendToParent({
+          action: 'error',
+          payload: {
+            key: 'chromium_not_found',
+            message: 'Cannot find Chromium or Google Chrome installed on your system.',
+          },
+        });
+      }
       await login(undefined, undefined, this);
     } catch (e) {
       this.sendToParent({ action: 'error', payload: e.message });
@@ -59,7 +70,13 @@ export class HomebridgeUI extends EventEmitter {
   }
 
   async loginFailed(msg: string) {
-    await this.sendToParent({ action: 'error', payload: msg });
+    await this.sendToParent({
+      action: 'error',
+      payload: {
+        key: 'login_failed',
+        message: msg,
+      },
+    });
   }
 }
 
@@ -71,10 +88,10 @@ export class HomebridgeUI extends EventEmitter {
 // make sure the parent (ui) is still connected to avoid orphan processes
 setInterval(() => {
   if (!process.connected) {
-    process.exit();
+    process.kill(process.pid, 'SIGTERM');
   }
 }, 10000);
 
 process.on('disconnect', () => {
-  process.exit();
+  process.kill(process.pid, 'SIGTERM');
 });

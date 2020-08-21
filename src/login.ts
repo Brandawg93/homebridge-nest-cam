@@ -1,8 +1,69 @@
-import Browser from 'puppeteer';
+import Browser from 'puppeteer-core';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
+import * as os from 'os';
 import * as readline from 'readline';
+import * as path from 'path';
+import * as fs from 'fs';
 import { HomebridgeUI } from './uix';
+
+export function getChromiumBrowser(): string {
+  const userDefinedChromiumPath = process.argv.includes('-p')
+    ? process.argv[process.argv.indexOf('-p') + 1]
+    : undefined;
+
+  // user defined path overrides everything
+  if (userDefinedChromiumPath) {
+    return userDefinedChromiumPath;
+  }
+
+  // if we are on x64 then using the chromium provided by puppeteer is ok
+  if (os.arch() === 'x64') {
+    if (fs.existsSync(Browser.executablePath())) {
+      return Browser.executablePath();
+    }
+  }
+
+  // try and find an existing copy of chrome / chromium
+  let possiblePaths: Array<string> = [];
+
+  if (os.platform() === 'linux' || os.platform() === 'freebsd') {
+    const searchPaths = [
+      '/usr/local/sbin',
+      '/usr/local/bin',
+      '/usr/sbin',
+      '/usr/bin',
+      '/sbin',
+      '/bin',
+      '/opt/google/chrome',
+    ];
+
+    const binaryNames = ['chromium', 'chromium-browser', 'chrome', 'google-chrome'];
+
+    for (const searchPath of searchPaths) {
+      possiblePaths = possiblePaths.concat(binaryNames.map((x) => path.join(searchPath, x)));
+    }
+  }
+
+  if (os.platform() === 'darwin') {
+    possiblePaths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'];
+  }
+
+  if (os.platform() === 'win32') {
+    possiblePaths = [
+      path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Chrome\\Application\\chrome.exe'),
+      path.join(process.env['ProgramFiles(x86)'] || '', '\\Microsoft\\Edge\\Application\\msedge.exe'), // new edge works
+    ];
+  }
+
+  const availableBinaries = possiblePaths.filter((x) => fs.existsSync(x));
+
+  if (availableBinaries.length) {
+    return availableBinaries[0];
+  }
+
+  return '';
+}
 
 export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
   let clientId = '';
@@ -10,17 +71,21 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
   let cookies = '';
   let domain = '';
 
+  const executablePath = getChromiumBrowser();
+
+  if (!executablePath) {
+    console.error('Cannot find Chromium or Google Chrome installed on your system.');
+
+    setTimeout(() => {
+      process.exit(1);
+    }, 100);
+  }
+
   puppeteer.use(pluginStealth());
 
   let browser: Browser.Browser;
   const headless = !process.argv.includes('-h');
-  const path = (): string => {
-    if (process.argv.includes('-p')) {
-      const index = process.argv.indexOf('-p');
-      return process.argv[index + 1];
-    }
-    return '';
-  };
+
   const prompt = (key: 'username' | 'password' | 'totp', query: string, hidden = false): Promise<string> =>
     new Promise(async (resolve, reject) => {
       // handle uix prompts
@@ -75,18 +140,14 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
   try {
     const options: any = { headless: headless };
-    const executablePath = path();
-    if (executablePath) {
-      options.executablePath = path();
-    }
+    options.executablePath = executablePath;
     browser = await puppeteer.launch(options);
   } catch (err) {
-    if (path) {
-      console.error(`Unable to open chromium browser at path ${path}`);
-    } else {
-      console.error(
-        'Unable to open chromium browser. Install chromium manually and specify its path using the "-p" flag.',
-      );
+    console.error(
+      `Unable to open chromium browser at path: ${executablePath}. You may need to install chromium manually and try again.`,
+    );
+    if (uix) {
+      uix.loginFailed('Unable to open chromium ');
     }
     return;
   }
@@ -246,6 +307,12 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
   } catch (err) {
     console.error('Unable to retrieve credentials.');
     console.error(err);
+    if (uix) {
+      uix.loginFailed('An error occured while trying to get load generate token.');
+    }
+    try {
+      browser.close();
+    } catch (e) {}
   }
 }
 
