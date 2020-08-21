@@ -21,7 +21,7 @@
     }
   ],
   "bin": {
-    "homebridge-nest-cam": "cli.js"
+    "homebridge-nest-cam": "./cli.js"
   },
   "scripts": {
     "clean": "rimraf ./dist ./coverage",
