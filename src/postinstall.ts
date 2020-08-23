@@ -95,17 +95,18 @@ async function main() {
 function canUseBundledChromium() {
   switch (os.platform()) {
     case 'linux': {
-      // except on Alpine Linux
-      if (fs.existsSync('/etc/alpine-release')) {
-        return false;
-      }
-      return true;
+      // linux requires extra dependencies to be installed to run the bundled version of chrome
+      // it's safer to just install chromium using the system package manager
+      return false;
     }
     case 'win32': {
       return true;
     }
     case 'darwin': {
       return true;
+    }
+    default: {
+      return false;
     }
   }
 }
