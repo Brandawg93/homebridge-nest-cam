@@ -63,7 +63,7 @@
     "install.js"
   ],
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.20.0",
     "execa": "^4.0.3",
     "ffmpeg-for-homebridge": "^0.0.7",
     "get-port": "^5.1.1",
