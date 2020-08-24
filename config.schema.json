@@ -4,6 +4,7 @@
   "dynamicSchemaVersion": 1,
   "singular": true,
   "headerDisplay": "Instructions for setting up the config can be found on the [Github](https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson).",
+  "accountLinkingHeader": "Please supply your Google account credentials.  These will be used to generate a unique access token for your account.  Your email and password will be sent directly to Google and will not be stored anywhere.",
   "schema": {
     "googleAuth": {
       "title": "Google Authentication",

@@ -1,44 +1,111 @@
-import Browser from 'puppeteer';
+import Browser from 'puppeteer-core';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
+import * as os from 'os';
 import * as readline from 'readline';
-import { existsSync } from 'fs';
-import execa from 'execa';
-export async function login(email?: string, password?: string): Promise<void> {
+import * as path from 'path';
+import * as fs from 'fs';
+import { HomebridgeUI } from './uix';
+
+export function getChromiumBrowser(): string {
+  const userDefinedChromiumPath = process.argv.includes('-p')
+    ? process.argv[process.argv.indexOf('-p') + 1]
+    : undefined;
+
+  // user defined path overrides everything
+  if (userDefinedChromiumPath) {
+    return userDefinedChromiumPath;
+  }
+
+  // if we are on x64 then using the chromium provided by puppeteer is ok
+  if (os.arch() === 'x64') {
+    if (fs.existsSync(Browser.executablePath())) {
+      return Browser.executablePath();
+    }
+  }
+
+  // try and find an existing copy of chrome / chromium
+  let possiblePaths: Array<string> = [];
+
+  if (os.platform() === 'linux' || os.platform() === 'freebsd') {
+    const searchPaths = [
+      '/usr/local/sbin',
+      '/usr/local/bin',
+      '/usr/sbin',
+      '/usr/bin',
+      '/sbin',
+      '/bin',
+      '/opt/google/chrome',
+    ];
+
+    const binaryNames = ['chromium', 'chromium-browser', 'chrome', 'google-chrome'];
+
+    for (const searchPath of searchPaths) {
+      possiblePaths = possiblePaths.concat(binaryNames.map((x) => path.join(searchPath, x)));
+    }
+  }
+
+  if (os.platform() === 'darwin') {
+    possiblePaths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'];
+  }
+
+  if (os.platform() === 'win32') {
+    possiblePaths = [
+      path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Chrome\\Application\\chrome.exe'),
+      path.join(process.env['ProgramFiles(x86)'] || '', '\\Microsoft\\Edge\\Application\\msedge.exe'), // new edge works
+    ];
+  }
+
+  const availableBinaries = possiblePaths.filter((x) => fs.existsSync(x));
+
+  if (availableBinaries.length) {
+    return availableBinaries[0];
+  }
+
+  return '';
+}
+
+export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
   let clientId = '';
   let loginHint = '';
   let cookies = '';
   let domain = '';
 
+  const executablePath = getChromiumBrowser();
+
+  if (!executablePath) {
+    console.error('Cannot find Chromium or Google Chrome installed on your system.');
+
+    setTimeout(() => {
+      process.exit(1);
+    }, 100);
+  }
+
   puppeteer.use(pluginStealth());
 
   let browser: Browser.Browser;
   const headless = !process.argv.includes('-h');
-  const path = (): string => {
-    if (process.argv.includes('-p')) {
-      const index = process.argv.indexOf('-p');
-      return process.argv[index + 1];
-    }
-    return '';
-  };
 
-  const whichChromiumBrowser = async (): Promise<string> => {
-    try {
-      const output = await execa('which', ['chromium-browser']);
-      return output.stdout;
-    } catch (err) {
-      return '';
-    }
-  };
+  const prompt = (key: 'username' | 'password' | 'totp', query: string, hidden = false): Promise<string> =>
+    new Promise(async (resolve, reject) => {
+      // handle uix prompts
+      if (uix) {
+        switch (key) {
+          case 'username': {
+            return resolve(await uix.getUsername());
+          }
+          case 'password': {
+            return resolve(await uix.getPassword());
+          }
+          case 'totp': {
+            return resolve(await uix.getTotp());
+          }
+          default: {
+            return reject(Error(`Unhandled Prompt Key: ${key}`));
+          }
+        }
+      }
 
-  const checkPath = async (executablePath: string): Promise<void> => {
-    if (!existsSync(executablePath)) {
-      throw new Error(`Chromium not installed at expected path: ${Browser.executablePath()}`);
-    }
-  };
-
-  const prompt = (query: string, hidden = false): Promise<string> =>
-    new Promise((resolve, reject) => {
       const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -71,16 +138,24 @@ export async function login(email?: string, password?: string): Promise<void> {
       }
     });
 
-  const currentPath = path() || (await whichChromiumBrowser()) || Browser.executablePath();
   try {
-    const options: any = { headless: headless };
-    await checkPath(currentPath);
-    options.executablePath = currentPath;
+    const options: Browser.LaunchOptions = { headless: headless };
+    options.executablePath = executablePath;
+    options.args = [];
+
+    // need some extra flags if running as root
+    if (process.getuid() === 0) {
+      options.args.push('--no-sandbox', '--disable-setuid-sandbox');
+    }
+
     browser = await puppeteer.launch(options);
   } catch (err) {
     console.error(
-      `Unable to open chromium browser at path: ${currentPath}. You may need to install chromium manually and try again.`,
+      `Unable to open chromium browser at path: ${executablePath}. You may need to install chromium manually and try again.`,
     );
+    if (uix) {
+      uix.loginFailed('Unable to open chromium ');
+    }
     return;
   }
 
@@ -101,28 +176,49 @@ export async function login(email?: string, password?: string): Promise<void> {
       await page.click('button[data-test="google-button-login"]');
 
       await page.waitForSelector('#identifierId');
-      let badInput = true;
-      while (badInput) {
+      let badUsername = true;
+      while (badUsername) {
         if (!email) {
-          email = await prompt('Email or phone: ');
+          email = await prompt('username', 'Email or phone: ');
         }
         await page.type('#identifierId', email);
         await page.waitFor(1000);
         await page.keyboard.press('Enter');
         await page.waitFor(1000);
-        badInput = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
-        if (badInput) {
-          console.log('Incorrect email or phone. Please try again.');
+        badUsername = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
+        if (badUsername) {
+          email = undefined;
+          console.error('Incorrect email or phone. Please try again.');
           await page.click('#identifierId', { clickCount: 3 });
         }
       }
-      if (!password) {
-        password = await prompt('Enter your password: ', true);
+
+      let badPassword = true;
+
+      while (badPassword) {
+        if (!password) {
+          password = await prompt('password', 'Enter your password: ', true);
+        }
+
+        console.log('Logging in...');
+
+        await page.waitFor(500);
+        await page.type('input[type="password"]', password);
+        await page.waitFor(1000);
+        await page.keyboard.press('Enter');
+        await page.waitFor(1000);
+        badPassword = await page.evaluate(
+          () => document.querySelector('input[type="password"][aria-invalid="true"]') !== null,
+        );
+
+        if (badPassword) {
+          password = undefined;
+          console.error('Invalid password. Please try again.');
+          await page.click('input[type="password"]', { clickCount: 3 });
+        }
       }
+
       console.log('Finishing up...');
-      await page.type('input[type="password"]', password);
-      await page.waitFor(1000);
-      await page.keyboard.press('Enter');
     }
 
     await page.setRequestInterception(true);
@@ -156,13 +252,22 @@ export async function login(email?: string, password?: string): Promise<void> {
           cookies: cookies,
         };
         // console.log('Add the following to your config.json:\n');
-        console.log('"googleAuth":', JSON.stringify(auth, null, 4));
+
+        if (uix) {
+          uix.setCredentials(auth);
+        } else {
+          console.log('"googleAuth":', JSON.stringify(auth, null, 4));
+        }
         browser.close();
       }
 
       // Auth didn't work
       if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
-        console.log('Could not generate "googleAuth" object.');
+        if (uix) {
+          uix.loginFailed('Could not generate "googleAuth" object.');
+        } else {
+          console.log('Could not generate "googleAuth" object.');
+        }
         browser.close();
       }
 
@@ -173,16 +278,53 @@ export async function login(email?: string, password?: string): Promise<void> {
       // Building issueToken
       if (response.url().includes('consent?')) {
         const headers = response.headers();
-        const queries = headers.location.split('&');
-        loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+        if (headers.location) {
+          const queries = headers.location.split('&');
+          loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+        }
       }
     });
+
+    // the two factor catch is after the page interceptors intentionally
+    try {
+      await page.waitForSelector('input[name=totpPin]', { timeout: 5000 });
+      console.log('2-step Verification Required');
+      await page.waitFor(1000);
+
+      let badTotpCode = true;
+
+      while (badTotpCode) {
+        const totp = await prompt(
+          'totp',
+          'Please enter the verification code from the Google Authenticator app: ',
+          true,
+        );
+        await page.type('input[name=totpPin]', totp);
+        await page.waitFor(1000);
+        await page.keyboard.press('Enter');
+        await page.waitFor(1000);
+        badTotpCode = await page.evaluate(() => document.querySelector('#totpPin[aria-invalid="true"]') !== null);
+        if (badTotpCode) {
+          await page.click('#totpPin[aria-invalid="true"]', { clickCount: 3 });
+        }
+      }
+    } catch (e) {
+      // totp is not enabled
+    }
   } catch (err) {
     console.error('Unable to retrieve credentials.');
     console.error(err);
+    if (uix) {
+      uix.loginFailed('An error occured while trying to get load generate token.');
+    }
+    try {
+      browser.close();
+    } catch (e) {}
   }
 }
 
-(async (): Promise<void> => {
-  await login();
-})();
+if (process.env.UIX_NEST_CAM_INTERACTIVE_LOGIN !== '1') {
+  (async (): Promise<void> => {
+    await login();
+  })();
+}

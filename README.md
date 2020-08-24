@@ -28,13 +28,14 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 1. Install this plugin using: `npm install -g --unsafe-perm homebridge-nest-cam`
 2. Add google authentication to `config.json`
 3. Run [Homebridge](https://github.com/nfarina/homebridge)
+4. Login with [homebridge-config-ui-x](https://www.npmjs.com/package/homebridge-config-ui-x) or use the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
 
 ### FFmpeg
 By default, `libx264` is used as the h264 encoder. If you would like to use a hardware-accelerated encoder instead, refer to the [h264 Hardware Encoders Wiki](https://github.com/Brandawg93/homebridge-nest-cam/wiki/h264-Hardware-Encoders).
 
 ### Setting up the Config.json
 #### googleAuth
-Google Accounts are configured using the `"googleAuth"` object in `config.json`, which contains three fields, `"issueToken"`, `"cookies"` and `"apiKey"`, and looks like this:
+Google Accounts are configured using the `"googleAuth"` object in `config.json`, which contains two fields, `"issueToken"` and `"cookies"`. An example is shown below. These fields will be generated automatically when using [homebridge-config-ui-x](https://www.npmjs.com/package/homebridge-config-ui-x), otherwise, they can be found in your Nest account using the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
 
 ```
 {
@@ -51,16 +52,6 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
     }
 }
 ```
-
-1. If the plugin is installed globally, run `homebridge-nest-cam login`, otherwise, *ensure that you are in the plugin's root directory* and run `node dist/login.js`.
-2. Login to your Nest account.
-3. Copy the output to your `config.json`.
-
-**Notes:** 
-- If the steps above do not work, refer to the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
-- You may need to reauthenticate periodically due to your Google account settings.
-- If your account has 2 factor authentication, use the `-h` flag to start the chromium browser in headful mode.
-- If you are unable to open the chromium browser, you may need to install it manually and try again.
 
 #### options
 Extra options can be enabled/disabled depending on which switches and sensors you would like to see in the Home app. Here is the current list of available options:
