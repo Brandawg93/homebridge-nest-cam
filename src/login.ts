@@ -139,8 +139,9 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     });
 
   try {
-    const options: any = { headless: headless, args: [] };
+    const options: Browser.LaunchOptions = { headless: headless };
     options.executablePath = executablePath;
+    options.args = [];
 
     // need some extra flags if running as root
     if (process.getuid() === 0) {

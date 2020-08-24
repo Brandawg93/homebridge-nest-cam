@@ -95,9 +95,7 @@ async function main() {
 function canUseBundledChromium() {
   switch (os.platform()) {
     case 'linux': {
-      // linux requires extra dependencies to be installed to run the bundled version of chrome
-      // it's safer to just install chromium using the system package manager
-      return false;
+      return fs.existsSync('/usr/bin/apt-get');
     }
     case 'win32': {
       return true;
@@ -118,11 +116,66 @@ async function downloadBundledChromium() {
     throw new Error(`${puppeteerInstallScript} does not exist.`);
   }
 
-  return await runCommand([process.execPath, [puppeteerInstallScript]]);
+  // get bundled chrome
+  await runCommand([process.execPath, [puppeteerInstallScript]]);
+
+  // install extra deps requires on debian-based linux
+  if (os.platform() === 'linux' && fs.existsSync('/usr/bin/apt-get')) {
+    await runCommand(['apt-get', ['update']]);
+    await runCommand([
+      'apt-get',
+      [
+        '-y',
+        'install',
+        'gconf-service',
+        'libasound2',
+        'libatk1.0-0',
+        'libatk-bridge2.0-0',
+        'libc6',
+        'libcairo2',
+        'libcups2',
+        'libdbus-1-3',
+        'libexpat1',
+        'libfontconfig1',
+        'libgcc1',
+        'libgconf-2-4',
+        'libgdk-pixbuf2.0-0',
+        'libglib2.0-0',
+        'libgtk-3-0',
+        'libnspr4',
+        'libpango-1.0-0',
+        'libpangocairo-1.0-0',
+        'libstdc++6',
+        'libx11-6',
+        'libx11-xcb1',
+        'libxcb1',
+        'libxcomposite1',
+        'libxcursor1',
+        'libxdamage1',
+        'libxext6',
+        'libxfixes3',
+        'libxi6',
+        'libxrandr2',
+        'libxrender1',
+        'libxss1',
+        'libxtst6',
+        'ca-certificates',
+        'fonts-liberation',
+        'libappindicator1',
+        'libnss3',
+        'lsb-release',
+        'xdg-utils',
+        'wget',
+        'libgbm-dev',
+      ],
+    ]);
+  }
 }
 
 function runCommand(installCommand: [string, Array<string>]) {
   return new Promise((resolve, reject) => {
+    process.env.DEBIAN_FRONTEND = 'noninteractive';
+
     const command: string = installCommand[0];
     const args = installCommand[1];
 
