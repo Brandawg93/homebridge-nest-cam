@@ -74,7 +74,7 @@ async function main() {
       ];
     }
 
-    if (!installCommands.length || process.getuid() !== 0) {
+    if (!installCommands.length || os.userInfo().uid !== 0) {
       console.error('Please install Chromium to use the account linking feature.');
       return;
     }

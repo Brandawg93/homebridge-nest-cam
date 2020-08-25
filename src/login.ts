@@ -52,7 +52,7 @@ export function getChromiumBrowser(): string {
   if (os.platform() === 'win32') {
     possiblePaths = [
       path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Chrome\\Application\\chrome.exe'),
-      path.join(process.env['ProgramFiles(x86)'] || '', '\\Microsoft\\Edge\\Application\\msedge.exe'), // new edge works
+      path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Application\\chrome.exe'),
     ];
   }
 
@@ -144,7 +144,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     options.args = [];
 
     // need some extra flags if running as root
-    if (process.getuid() === 0) {
+    if (os.userInfo().uid === 0) {
       options.args.push('--no-sandbox', '--disable-setuid-sandbox');
     }
 
@@ -154,7 +154,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       `Unable to open chromium browser at path: ${executablePath}. You may need to install chromium manually and try again.`,
     );
     if (uix) {
-      uix.loginFailed('Unable to open chromium ');
+      uix.loginFailed('Unable to open chromium.');
     }
     return;
   }
