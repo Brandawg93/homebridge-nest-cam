@@ -226,7 +226,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       const headers = request.headers();
       const url = request.url();
       // Getting cookies
-      if (url.includes('CheckCookie')) {
+      if (!cookies && url.includes('CheckCookie')) {
         cookies = (await page.cookies())
           .map((cookie: any) => {
             return `${cookie.name}=${cookie.value}`;
@@ -235,23 +235,22 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
 
       // Building issueToken
-      if (url.includes('challenge?')) {
+      if (!clientId && url.includes('challenge?')) {
         const postData = request.postData().split('&');
         clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
       }
 
-      // Getting apiKey
-      if (url.includes('issue_jwt') && headers['x-goog-api-key']) {
-        domain = encodeURIComponent(headers['referer'].slice(0, -1));
+      // Getting domain
+      if (!domain && url.includes('issue_jwt')) {
+        domain = encodeURIComponent(headers['origin'] || 'https://home.nest.com');
       }
 
       // Build googleAuth object
-      if (clientId && loginHint && cookies) {
+      if (clientId && loginHint && domain && cookies) {
         const auth = {
           issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
           cookies: cookies,
         };
-        // console.log('Add the following to your config.json:\n');
 
         if (uix) {
           uix.setCredentials(auth);
@@ -276,7 +275,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
     page.on('response', async (response: any) => {
       // Building issueToken
-      if (response.url().includes('consent?')) {
+      if (!loginHint && response.url().includes('consent?')) {
         const headers = response.headers();
         if (headers.location) {
           const queries = headers.location.split('&');
