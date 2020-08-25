@@ -22,10 +22,8 @@ export class RtpSplitter {
 
     // emits on new datagram msg
     socket.on('message', function (msg) {
-      if (isRtpMessage(msg)) {
-        socket.send(msg, returnAudioPort, 'localhost');
-      } else {
-        socket.send(msg, returnAudioPort, 'localhost');
+      socket.send(msg, returnAudioPort, 'localhost');
+      if (!isRtpMessage(msg)) {
         socket.send(msg, audioRTCPPort, 'localhost');
       }
     });
