@@ -76,7 +76,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 - View cameras within homekit.
 - Receive notifications and set routines for motion or when the doorbell is rang.
 - Receive notifications for specific motion events.
-- Listen and talk back to people on equiped cameras.
+- Listen and talk back to people on equipped cameras.
 - Enable/disable the indoor chime on Hello doorbells.
 
 ## Join the Discord
