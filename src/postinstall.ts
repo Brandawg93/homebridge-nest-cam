@@ -60,7 +60,7 @@ async function main() {
       // debian / ubuntu / raspbian
       installCommands = [
         ['apt-get', ['update']],
-        ['apt-get', ['-y', 'install', 'chromium-browser']],
+        ['apt-get', ['-y', 'install', 'chromium']],
       ];
     } else if (fs.existsSync('/sbin/apk')) {
       // alpine linux (docker)
