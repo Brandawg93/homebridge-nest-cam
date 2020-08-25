@@ -27,7 +27,6 @@ test('getFaces works as expected', async () => {
     googleAuth: {
       issueToken: process.env.ISSUE_TOKEN,
       cookies: process.env.COOKIES,
-      apiKey: process.env.API_KEY,
     },
     options: {
       fieldTest: false,

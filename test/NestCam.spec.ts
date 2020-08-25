@@ -28,7 +28,6 @@ test('checkAlerts works as expected', async () => {
     googleAuth: {
       issueToken: process.env.ISSUE_TOKEN,
       cookies: process.env.COOKIES,
-      apiKey: process.env.API_KEY,
     },
     options: {
       fieldTest: false,
@@ -40,7 +39,7 @@ test('checkAlerts works as expected', async () => {
     const cameraInfo = await getCamera(config);
     const uuid = '00000000-0000-0000-0000-000000000000';
     const accessory: PlatformAccessory = new PlatformAccessory('test', uuid);
-    const camera = new NestCam(config, cameraInfo, accessory, [], log, hap);
+    const camera = new NestCam(config, cameraInfo, accessory, log, hap);
     return expect(camera.checkAlerts()).resolves.toBeUndefined();
   } else {
     throw new Error('Could not connect');
