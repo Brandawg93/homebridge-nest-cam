@@ -6,8 +6,20 @@ import * as readline from 'readline';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HomebridgeUI } from './uix';
+import execa from 'execa';
 
-export function getChromiumBrowser(): string {
+const whichChromiumBrowser = async (binary: string): Promise<string> => {
+  try {
+    const output = await execa('which', [binary]);
+    return output.stdout;
+  } catch (err) {
+    return '';
+  }
+};
+
+export async function getChromiumBrowser(): Promise<string> {
+  const platform = os.platform();
+  const binaryNames = ['chromium-browser', 'chromium', 'chrome', 'google-chrome'];
   const userDefinedChromiumPath = process.argv.includes('-p')
     ? process.argv[process.argv.indexOf('-p') + 1]
     : undefined;
@@ -15,6 +27,16 @@ export function getChromiumBrowser(): string {
   // user defined path overrides everything
   if (userDefinedChromiumPath) {
     return userDefinedChromiumPath;
+  }
+
+  // attempt to find binary with "which" command
+  if (platform === 'linux' || platform === 'freebsd' || platform === 'darwin') {
+    for (const bin of binaryNames) {
+      const whichPath = await whichChromiumBrowser(bin);
+      if (whichPath) {
+        return whichPath;
+      }
+    }
   }
 
   // if we are on x64 then using the chromium provided by puppeteer is ok
@@ -27,7 +49,7 @@ export function getChromiumBrowser(): string {
   // try and find an existing copy of chrome / chromium
   let possiblePaths: Array<string> = [];
 
-  if (os.platform() === 'linux' || os.platform() === 'freebsd') {
+  if (platform === 'linux' || platform === 'freebsd') {
     const searchPaths = [
       '/usr/local/sbin',
       '/usr/local/bin',
@@ -38,18 +60,16 @@ export function getChromiumBrowser(): string {
       '/opt/google/chrome',
     ];
 
-    const binaryNames = ['chromium', 'chromium-browser', 'chrome', 'google-chrome'];
-
     for (const searchPath of searchPaths) {
       possiblePaths = possiblePaths.concat(binaryNames.map((x) => path.join(searchPath, x)));
     }
   }
 
-  if (os.platform() === 'darwin') {
+  if (platform === 'darwin') {
     possiblePaths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'];
   }
 
-  if (os.platform() === 'win32') {
+  if (platform === 'win32') {
     possiblePaths = [
       path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Chrome\\Application\\chrome.exe'),
       path.join(process.env['ProgramFiles(x86)'] || '', '\\Google\\Application\\chrome.exe'),
@@ -71,7 +91,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
   let cookies = '';
   let domain = '';
 
-  const executablePath = getChromiumBrowser();
+  const executablePath = await getChromiumBrowser();
 
   if (!executablePath) {
     console.error('Cannot find Chromium or Google Chrome installed on your system.');

@@ -35,7 +35,7 @@ export class HomebridgeUI extends EventEmitter {
   async doLogin() {
     try {
       const { login, getChromiumBrowser } = await import('./login');
-      if (!getChromiumBrowser()) {
+      if (!(await getChromiumBrowser())) {
         this.sendToParent({
           action: 'error',
           payload: {
