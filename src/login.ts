@@ -192,7 +192,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
     if (headless) {
       await page.waitForSelector('button[data-test="google-button-login"]');
-      await page.waitFor(1000);
+      await page.waitFor(500);
       await page.click('button[data-test="google-button-login"]');
 
       await page.waitForSelector('#identifierId');
@@ -202,10 +202,16 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
           email = await prompt('username', 'Email or phone: ');
         }
         await page.type('#identifierId', email);
-        await page.waitFor(1000);
+        await page.waitFor(500);
         await page.keyboard.press('Enter');
-        await page.waitFor(1000);
-        badUsername = await page.evaluate(() => document.querySelector('#identifierId[aria-invalid="true"]') !== null);
+        await page.waitFor(500);
+        try {
+          badUsername = await page.evaluate(
+            () => document.querySelector('#identifierId[aria-invalid="true"]') !== null,
+          );
+        } catch (err) {
+          badUsername = false;
+        }
         if (badUsername) {
           email = undefined;
           console.error('Incorrect email or phone. Please try again.');
@@ -224,12 +230,17 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
         await page.waitFor(500);
         await page.type('input[type="password"]', password);
-        await page.waitFor(1000);
+        await page.waitFor(500);
         await page.keyboard.press('Enter');
-        await page.waitFor(1000);
-        badPassword = await page.evaluate(
-          () => document.querySelector('input[type="password"][aria-invalid="true"]') !== null,
-        );
+        await page.waitFor(500);
+        // If this breaks, it means the page was navigating somewhere, probably a successful login
+        try {
+          badPassword = await page.evaluate(
+            () => document.querySelector('input[type="password"][aria-invalid="true"]') !== null,
+          );
+        } catch (err) {
+          badPassword = false;
+        }
 
         if (badPassword) {
           password = undefined;
