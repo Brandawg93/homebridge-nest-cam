@@ -21,12 +21,11 @@ import { getDefaultIpAddress } from './util/ip';
 import { NexusStreamer } from './streamer';
 import { NestCam } from './nest-cam';
 import { NestEndpoints, handleError } from './nest-endpoints';
-import { RtpSplitter } from './util/rtp';
+import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec, getDefaultEncoder } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
-import getPort from 'get-port';
 
 const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
 
@@ -116,7 +115,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     //video setup
     const video = request.video;
     const videoPort = video.port;
-    const returnVideoPort = await getPort();
+    const returnVideoPort = (await reservePorts())[0];
     const videoCryptoSuite = video.srtpCryptoSuite;
     const videoSrtpKey = video.srtp_key;
     const videoSrtpSalt = video.srtp_salt;
@@ -125,9 +124,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     //audio setup
     const audio = request.audio;
     const audioPort = audio.port;
-    const returnAudioPort = await getPort();
-    const twoWayAudioPort = await getPort();
-    const audioServerPort = await getPort();
+    const returnAudioPort = (await reservePorts())[0];
+    const twoWayAudioPort = (await reservePorts({ count: 2 }))[0];
+    const audioServerPort = (await reservePorts())[0];
     const audioCryptoSuite = video.srtpCryptoSuite;
     const audioSrtpKey = audio.srtp_key;
     const audioSrtpSalt = audio.srtp_salt;
