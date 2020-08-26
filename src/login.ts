@@ -19,7 +19,7 @@ const whichChromiumBrowser = async (binary: string): Promise<string> => {
 
 export async function getChromiumBrowser(): Promise<string> {
   const platform = os.platform();
-  const binaryNames = ['chromium-browser', 'chromium', 'chrome', 'google-chrome'];
+  const binaryNames = ['chromium', 'chromium-browser', 'chrome', 'google-chrome'];
   const userDefinedChromiumPath = process.argv.includes('-p')
     ? process.argv[process.argv.indexOf('-p') + 1]
     : undefined;
@@ -27,16 +27,6 @@ export async function getChromiumBrowser(): Promise<string> {
   // user defined path overrides everything
   if (userDefinedChromiumPath) {
     return userDefinedChromiumPath;
-  }
-
-  // attempt to find binary with "which" command
-  if (platform === 'linux' || platform === 'freebsd' || platform === 'darwin') {
-    for (const bin of binaryNames) {
-      const whichPath = await whichChromiumBrowser(bin);
-      if (whichPath) {
-        return whichPath;
-      }
-    }
   }
 
   // if we are on x64 then using the chromium provided by puppeteer is ok
@@ -80,6 +70,16 @@ export async function getChromiumBrowser(): Promise<string> {
 
   if (availableBinaries.length) {
     return availableBinaries[0];
+  }
+
+  // attempt to find binary with "which" command
+  if (platform === 'linux' || platform === 'freebsd' || platform === 'darwin') {
+    for (const bin of binaryNames) {
+      const whichPath = await whichChromiumBrowser(bin);
+      if (whichPath) {
+        return whichPath;
+      }
+    }
   }
 
   return '';
