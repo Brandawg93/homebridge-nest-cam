@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as child_process from 'child_process';
+import execa from 'execa';
 import Browser from 'puppeteer-core';
 
 async function main() {
@@ -58,13 +58,32 @@ async function main() {
     let installCommands: Array<any> = [];
     if (fs.existsSync('/usr/bin/apt-get')) {
       // debian / ubuntu / raspbian
-      installCommands = [
-        ['apt-get', ['update']],
-        ['apt-get', ['-y', 'install', 'chromium']],
-      ];
+      for (const bin of binaryNames) {
+        const found = (await runCommand(['apt', ['list', bin]]))
+          .replace('Listing...', '')
+          .replace(/(\r\n|\n|\r)/gm, '');
+        if (found && found.startsWith(bin)) {
+          installCommands = [
+            ['apt-get', ['update']],
+            ['apt-get', ['-y', 'install', bin]],
+          ];
+          break;
+        }
+      }
     } else if (fs.existsSync('/sbin/apk')) {
       // alpine linux (docker)
-      installCommands = [['apk', ['add', '--no-cache', 'chromium']]];
+      for (const bin of binaryNames) {
+        const found = (await runCommand(['apk', ['search', bin]]))
+          .replace('Listing...', '')
+          .replace(/(\r\n|\n|\r)/gm, '');
+        if (found && found.startsWith(bin)) {
+          installCommands = [
+            ['apk', ['update']],
+            ['apk', ['add', '--no-cache', bin]],
+          ];
+          break;
+        }
+      }
     } else if (fs.existsSync('/usr/bin/yum')) {
       // enterprise linux / centos
       installCommands = [
@@ -81,7 +100,7 @@ async function main() {
 
     // run the install commands
     for (const command of installCommands) {
-      await runCommand(command);
+      await runCommandWithOutput(command);
     }
   } catch (e) {
     // log the error
@@ -117,12 +136,12 @@ async function downloadBundledChromium() {
   }
 
   // get bundled chrome
-  await runCommand([process.execPath, [puppeteerInstallScript]]);
+  await runCommandWithOutput([process.execPath, [puppeteerInstallScript]]);
 
   // install extra deps requires on debian-based linux
   if (os.platform() === 'linux' && fs.existsSync('/usr/bin/apt-get')) {
-    await runCommand(['apt-get', ['update']]);
-    await runCommand([
+    await runCommandWithOutput(['apt-get', ['update']]);
+    await runCommandWithOutput([
       'apt-get',
       [
         '-y',
@@ -172,25 +191,30 @@ async function downloadBundledChromium() {
   }
 }
 
-function runCommand(installCommand: [string, Array<string>]) {
-  return new Promise((resolve, reject) => {
-    process.env.DEBIAN_FRONTEND = 'noninteractive';
+async function runCommand(installCommand: [string, Array<string>]): Promise<string> {
+  process.env.DEBIAN_FRONTEND = 'noninteractive';
 
-    const command: string = installCommand[0];
-    const args = installCommand[1];
+  const command: string = installCommand[0];
+  const args = installCommand[1];
 
-    console.log('Running:', command, ...args);
+  console.log('Running:', command, ...args);
+  try {
+    const output = await execa(command, args);
+    return output.stdout;
+  } catch (err) {}
 
-    const installProcess = child_process.spawn(command, args, {
-      stdio: 'inherit',
-    });
+  return '';
+}
 
-    installProcess.on('close', (code) => {
-      if (code !== 0) {
-        return reject(code);
-      }
-      return resolve();
-    });
+async function runCommandWithOutput(installCommand: [string, Array<string>]): Promise<void> {
+  process.env.DEBIAN_FRONTEND = 'noninteractive';
+
+  const command: string = installCommand[0];
+  const args = installCommand[1];
+
+  console.log('Running:', command, ...args);
+  await execa(command, args, {
+    stdio: 'inherit',
   });
 }
 
