@@ -21,7 +21,9 @@ export class HomebridgeUI extends EventEmitter {
 
   private async sendToParent(request: { action: string; payload?: any }): Promise<any> {
     if (process.send) {
-      process.send(request);
+      process.send(request, () => {
+        // do nothing
+      });
       return new Promise((resolve) => {
         this.once(request.action, (payload: any) => {
           return resolve(payload);
