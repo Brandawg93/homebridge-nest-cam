@@ -4,7 +4,7 @@ import axios from 'axios';
 import { AxiosRequestConfig } from 'axios';
 import { Session } from './models/session-info';
 
-export class User {
+export class NestUser {
   private endpoints: NestEndpoints;
   private readonly config: PlatformConfig;
   private readonly log: Logging;
