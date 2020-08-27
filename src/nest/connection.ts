@@ -1,6 +1,6 @@
 import { Logging, PlatformConfig } from 'homebridge';
 import axios from 'axios';
-import { NestEndpoints } from './nest-endpoints';
+import { NestEndpoints } from './endpoints';
 import { AxiosRequestConfig } from 'axios';
 
 // Delay after authentication fail before retrying

@@ -18,9 +18,9 @@ import {
   AudioInfo,
 } from 'homebridge';
 import { getDefaultIpAddress } from './util/ip';
-import { NexusStreamer } from './streamer';
-import { NestCam } from './nest-cam';
-import { NestEndpoints, handleError } from './nest-endpoints';
+import { NexusStreamer } from './nest/streamer';
+import { NestCam } from './nest/cam';
+import { NestEndpoints, handleError } from './nest/endpoints';
 import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec, getDefaultEncoder } from './ffmpeg';
 import { readFile } from 'fs';

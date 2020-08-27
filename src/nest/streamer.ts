@@ -1,8 +1,8 @@
 import { Logging, PlatformConfig } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
-import { FfmpegProcess } from './ffmpeg';
-import { NestEndpoints } from './nest-endpoints';
+import { FfmpegProcess } from '../ffmpeg';
+import { NestEndpoints } from './endpoints';
 import { CameraInfo } from './models/camera-info';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';

@@ -1,5 +1,5 @@
 import { Logging, PlatformConfig } from 'homebridge';
-import { NestEndpoints, handleError } from './nest-endpoints';
+import { NestEndpoints, handleError } from './endpoints';
 import { Face } from './models/structure-info';
 import { CameraInfo } from './models/camera-info';
 

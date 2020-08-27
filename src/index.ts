@@ -1,28 +1,19 @@
 import {
   API,
   APIEvent,
-  AudioStreamingCodecType,
-  AudioStreamingSamplerate,
-  CameraControllerOptions,
-  CharacteristicEventTypes,
-  CharacteristicGetCallback,
-  CharacteristicSetCallback,
-  CharacteristicValue,
   DynamicPlatformPlugin,
   HAP,
   Logging,
   PlatformAccessory,
   PlatformAccessoryEvent,
   PlatformConfig,
-  Service,
-  WithUUID,
 } from 'homebridge';
-import { NestCam } from './nest-cam';
-import { CameraInfo, ModelTypes, Properties } from './models/camera-info';
-import { NestEndpoints, handleError } from './nest-endpoints';
-import { StreamingDelegate } from './streaming-delegate';
-import { Connection } from './nest-connection';
-import { NestUser } from './nest-user';
+import { NestCam } from './nest/cam';
+import { CameraInfo, ModelTypes } from './nest/models/camera-info';
+import { NestEndpoints, handleError } from './nest/endpoints';
+import { Connection } from './nest/connection';
+import { NestUser } from './nest/user';
+import { NestAccessory } from './accessory';
 import { ConfigSchema, Schema } from './config-schema';
 
 class Options {
@@ -36,7 +27,6 @@ class Options {
 
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
-type ServiceType = WithUUID<typeof Service>;
 
 const PLUGIN_NAME = 'homebridge-nest-cam';
 const PLATFORM_NAME = 'Nest-cam';
@@ -107,49 +97,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     return await conn.auth();
   }
 
-  private createService(accessory: PlatformAccessory, serviceType: ServiceType, name?: string): Service {
-    const existingService = name
-      ? accessory.getServiceById(serviceType, `${accessory.displayName} ${name}`)
-      : accessory.getService(serviceType);
-
-    const service =
-      existingService ||
-      (name
-        ? accessory.addService(serviceType, `${accessory.displayName} ${name}`, `${accessory.displayName} ${name}`)
-        : accessory.addService(serviceType, accessory.displayName));
-    return service;
-  }
-
-  private createSwitchService(
-    name: string,
-    accessory: PlatformAccessory,
-    serviceType: ServiceType,
-    camera: NestCam,
-    _key: keyof Properties,
-    cb: (value: CharacteristicValue) => void,
-  ): void {
-    const service = this.createService(accessory, serviceType, name);
-    this.log.debug(`Creating switch for ${accessory.displayName} ${name}.`);
-    service
-      .setCharacteristic(hap.Characteristic.On, camera.info.properties[_key])
-      .getCharacteristic(hap.Characteristic.On)
-      .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        cb(value);
-        this.log.info(`Setting ${accessory.displayName} to ${value ? 'on' : 'off'}`);
-        callback();
-      })
-      .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
-        const info = await camera.updateData();
-        const value = info.properties[_key];
-        if (typeof value !== 'undefined') {
-          this.log.debug(`Updating info for ${accessory.displayName} ${name}`);
-          callback(null, value);
-        } else {
-          callback(new Error(), undefined);
-        }
-      });
-  }
-
   configureAccessory(accessory: PlatformAccessory): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
@@ -159,64 +106,23 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     const cameraInfo: CameraInfo = accessory.context.cameraInfo;
     const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
-    const streamingDelegate = new StreamingDelegate(hap, camera, this.config, this.log);
-    const options: CameraControllerOptions = {
-      cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
-      delegate: streamingDelegate,
-      streamingOptions: {
-        supportedCryptoSuites: [hap.SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80],
-        video: {
-          resolutions: [
-            [320, 180, 30],
-            [320, 240, 15], // Apple Watch requires this configuration
-            [320, 240, 30],
-            [480, 270, 30],
-            [480, 360, 30],
-            [640, 360, 30],
-            [640, 480, 30],
-            [1280, 720, 30],
-            [1280, 960, 30],
-            [1920, 1080, 30],
-            [1600, 1200, 30],
-          ],
-          codec: {
-            profiles: [hap.H264Profile.BASELINE, hap.H264Profile.MAIN, hap.H264Profile.HIGH],
-            levels: [hap.H264Level.LEVEL3_1, hap.H264Level.LEVEL3_2, hap.H264Level.LEVEL4_0],
-          },
-        },
-        audio: {
-          twoWayAudio: camera.info.capabilities.includes('audio.microphone'),
-          codecs: [
-            {
-              type: AudioStreamingCodecType.AAC_ELD,
-              samplerate: AudioStreamingSamplerate.KHZ_16,
-            },
-          ],
-        },
-      },
-    };
-
-    const cameraController = new hap.CameraController(options);
-    streamingDelegate.controller = cameraController;
-
-    accessory.configureController(cameraController);
-
-    // Configure services
+    const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
+    nestAccessory.configureController(camera);
 
     // Microphone configuration
     if (camera.info.capabilities.includes('audio.microphone')) {
-      this.createService(accessory, hap.Service.Microphone);
+      nestAccessory.createService(hap.Service.Microphone);
       this.log.debug(`Creating microphone for ${accessory.displayName}.`);
     }
 
     if (camera.info.capabilities.includes('audio.microphone')) {
-      this.createService(accessory, hap.Service.Speaker);
+      nestAccessory.createService(hap.Service.Speaker);
       this.log.debug(`Creating speaker for ${accessory.displayName}.`);
     }
 
     // Doorbell configuration
     if (camera.info.capabilities.includes('indoor_chime') && this.options.doorbellAlerts) {
-      this.createService(accessory, hap.Service.Doorbell, 'Doorbell');
+      nestAccessory.createService(hap.Service.Doorbell, 'Doorbell');
       this.log.debug(`Creating doorbell sensor for ${accessory.displayName}.`);
       camera.startAlertChecks();
     }
@@ -227,7 +133,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.options.doorbellAlerts &&
       this.options.doorbellSwitch
     ) {
-      const service = this.createService(accessory, hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch');
+      const service = nestAccessory.createService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch');
       this.log.debug(`Creating doorbell switch for ${accessory.displayName}.`);
       service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
         maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
@@ -236,23 +142,15 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Streaming switch configuration
     if (camera.info.capabilities.includes('streaming.start-stop') && this.options.streamingSwitch) {
-      this.createSwitchService(
-        'Streaming',
-        accessory,
-        hap.Service.Switch,
-        camera,
-        'streaming.enabled',
-        async (value) => {
-          await camera.toggleActive(value as boolean);
-        },
-      );
+      nestAccessory.createSwitchService('Streaming', hap.Service.Switch, camera, 'streaming.enabled', async (value) => {
+        await camera.toggleActive(value as boolean);
+      });
     }
 
     // Chime switch configuration
     if (camera.info.capabilities.includes('indoor_chime') && this.options.chimeSwitch) {
-      this.createSwitchService(
+      nestAccessory.createSwitchService(
         'Chime',
-        accessory,
         hap.Service.Switch,
         camera,
         'doorbell.indoor_chime.enabled',
@@ -264,7 +162,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Audio switch configuration
     if (camera.info.capabilities.includes('audio.microphone') && this.options.audioSwitch) {
-      this.createSwitchService('Audio', accessory, hap.Service.Switch, camera, 'audio.enabled', async (value) => {
+      nestAccessory.createSwitchService('Audio', hap.Service.Switch, camera, 'audio.enabled', async (value) => {
         await camera.toggleAudio(value as boolean);
       });
     }
@@ -279,10 +177,11 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
       if (accessory) {
         // Motion configuration
+        const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
         const alertTypes = await camera.getAlertTypes();
         alertTypes.forEach((type) => {
           if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
-            this.createService(accessory, hap.Service.MotionSensor, type);
+            nestAccessory.createService(hap.Service.MotionSensor, type);
             this.log.debug(`Creating motion sensor for ${accessory.displayName} ${type}.`);
             camera.startAlertChecks();
           }

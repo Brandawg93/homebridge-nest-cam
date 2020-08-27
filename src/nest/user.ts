@@ -1,5 +1,5 @@
 import { Logging, PlatformConfig } from 'homebridge';
-import { NestEndpoints, handleError } from './nest-endpoints';
+import { NestEndpoints, handleError } from './endpoints';
 import axios from 'axios';
 import { AxiosRequestConfig } from 'axios';
 import { Session } from './models/session-info';

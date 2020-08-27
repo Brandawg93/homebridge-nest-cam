@@ -1,8 +1,8 @@
 import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { NestEndpoints, handleError } from './nest-endpoints';
+import { NestEndpoints, handleError } from './endpoints';
 import { CameraInfo, Properties, Zone } from './models/camera-info';
 import { MotionEvent } from './models/event-info';
-import { NestStructure } from './nest-structure';
+import { NestStructure } from './structure';
 import { Face } from './models/structure-info';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
