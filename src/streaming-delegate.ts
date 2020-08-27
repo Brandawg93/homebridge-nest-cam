@@ -125,7 +125,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const audio = request.audio;
     const audioPort = audio.port;
     const returnAudioPort = (await reservePorts())[0];
-    const twoWayAudioPort = (await reservePorts({ count: 2 }))[0];
+    const twoWayAudioPort = (await reservePorts(2))[0];
     const audioServerPort = (await reservePorts())[0];
     const audioCryptoSuite = video.srtpCryptoSuite;
     const audioSrtpKey = audio.srtp_key;
