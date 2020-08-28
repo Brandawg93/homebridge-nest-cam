@@ -1,4 +1,4 @@
-import { NestEndpoints } from '../src/nest-endpoints';
+import { NestEndpoints } from '../src/nest/endpoints';
 
 test('works as expected', () => {
   expect.assertions(1);

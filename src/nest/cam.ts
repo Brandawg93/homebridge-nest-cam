@@ -184,7 +184,7 @@ export class NestCam extends EventEmitter {
       const self = this;
       this.alertTimeout = setInterval(async function () {
         self.checkAlerts();
-      }, this.alertInterval);
+      }, this.alertInterval) as NodeJS.Timeout;
     } else if (!this.info.properties['streaming.enabled']) {
       this.setMotion(false, this.alertTypes);
     }
@@ -337,18 +337,20 @@ export class NestCam extends EventEmitter {
   }
 
   private setMotion(state: boolean, types: Array<string>): void {
-    types.forEach((type) => {
-      type = sanitizeString(type);
-      const service = this.accessory.getServiceById(
-        this.hap.Service.MotionSensor,
-        `${this.accessory.displayName} ${type}`,
-      );
-      if (service) {
-        this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
-        service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
-        this.emit(NestCamEvents.MOTION_DETECTED, state);
-      }
-    });
+    if (this.hap) {
+      types.forEach((type) => {
+        type = sanitizeString(type);
+        const service = this.accessory.getServiceById(
+          this.hap.Service.MotionSensor,
+          `${this.accessory.displayName} ${type}`,
+        );
+        if (service) {
+          this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
+          service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
+          this.emit(NestCamEvents.MOTION_DETECTED, state);
+        }
+      });
+    }
   }
 
   triggerDoorbell(): void {

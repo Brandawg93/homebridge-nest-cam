@@ -1,6 +1,6 @@
 import { Logging, PlatformConfig } from 'homebridge';
 import { Logger } from 'homebridge/lib/logger';
-import { Connection } from '../src/nest-connection';
+import { Connection } from '../src/nest/connection';
 
 test('works as expected', () => {
   const config: PlatformConfig = {

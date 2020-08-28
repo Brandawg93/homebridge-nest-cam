@@ -1,10 +1,10 @@
 import { Logging, PlatformConfig, HAP } from 'homebridge';
 import { PlatformAccessory } from 'homebridge/lib/platformAccessory';
 import { Logger } from 'homebridge/lib/logger';
-import { NestCam } from '../src/nest-cam';
-import { CameraInfo } from '../src/models/camera-info';
-import { Connection } from '../src/nest-connection';
-import { NestEndpoints } from '../src/nest-endpoints';
+import { NestCam } from '../src/nest/cam';
+import { CameraInfo } from '../src/nest/models/camera-info';
+import { Connection } from '../src/nest/connection';
+import { NestEndpoints } from '../src/nest/endpoints';
 
 let hap: HAP;
 const log: Logging = Logger.withPrefix('[test]');
