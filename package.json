@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "5.0.2",
+  "version": "5.0.3",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
