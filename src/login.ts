@@ -158,6 +158,35 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
     });
 
+  const inputData = async function (
+    identifier: string,
+    alias: 'username' | 'password' | 'totp',
+    message: string,
+    value: string | undefined,
+    page: Browser.Page,
+  ) {
+    let badInput = true;
+    while (badInput) {
+      if (!value) {
+        value = (await prompt(alias, message, alias === 'password')) || '';
+      }
+      await page.type(identifier, value);
+      await page.waitFor(500);
+      await page.keyboard.press('Enter');
+      await page.waitFor(500);
+      try {
+        badInput = await page.evaluate(() => document.querySelector(`${identifier}[aria-invalid="true"]`) !== null);
+      } catch (err) {
+        badInput = false;
+      }
+      if (badInput) {
+        value = undefined;
+        console.error(`Incorrect ${alias}. Please try again.`);
+        await page.click(identifier, { clickCount: 3 });
+      }
+    }
+  };
+
   try {
     const options: Browser.LaunchOptions = { headless: headless };
     options.executablePath = executablePath;
@@ -196,58 +225,8 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       await page.click('button[data-test="google-button-login"]');
 
       await page.waitForSelector('#identifierId');
-      let badUsername = true;
-      while (badUsername) {
-        if (!email) {
-          email = await prompt('username', 'Email or phone: ');
-        }
-        await page.type('#identifierId', email);
-        await page.waitFor(500);
-        await page.keyboard.press('Enter');
-        await page.waitFor(500);
-        try {
-          badUsername = await page.evaluate(
-            () => document.querySelector('#identifierId[aria-invalid="true"]') !== null,
-          );
-        } catch (err) {
-          badUsername = false;
-        }
-        if (badUsername) {
-          email = undefined;
-          console.error('Incorrect email or phone. Please try again.');
-          await page.click('#identifierId', { clickCount: 3 });
-        }
-      }
-
-      let badPassword = true;
-
-      while (badPassword) {
-        if (!password) {
-          password = await prompt('password', 'Enter your password: ', true);
-        }
-
-        console.log('Logging in...');
-
-        await page.waitFor(500);
-        await page.type('input[type="password"]', password);
-        await page.waitFor(500);
-        await page.keyboard.press('Enter');
-        await page.waitFor(500);
-        // If this breaks, it means the page was navigating somewhere, probably a successful login
-        try {
-          badPassword = await page.evaluate(
-            () => document.querySelector('input[type="password"][aria-invalid="true"]') !== null,
-          );
-        } catch (err) {
-          badPassword = false;
-        }
-
-        if (badPassword) {
-          password = undefined;
-          console.error('Invalid password. Please try again.');
-          await page.click('input[type="password"]', { clickCount: 3 });
-        }
-      }
+      await inputData('#identifierId', 'username', 'Email or phone: ', email, page);
+      await inputData('input[type="password"]', 'password', 'Password: ', password, page);
 
       console.log('Finishing up...');
     }
@@ -317,27 +296,16 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
     // the two factor catch is after the page interceptors intentionally
     try {
-      await page.waitForSelector('input[name=totpPin]', { timeout: 5000 });
+      await page.waitForSelector('input[name="totpPin"]', { timeout: 5000 });
       console.log('2-step Verification Required');
-      await page.waitFor(1000);
 
-      let badTotpCode = true;
-
-      while (badTotpCode) {
-        const totp = await prompt(
-          'totp',
-          'Please enter the verification code from the Google Authenticator app: ',
-          true,
-        );
-        await page.type('input[name=totpPin]', totp);
-        await page.waitFor(1000);
-        await page.keyboard.press('Enter');
-        await page.waitFor(1000);
-        badTotpCode = await page.evaluate(() => document.querySelector('#totpPin[aria-invalid="true"]') !== null);
-        if (badTotpCode) {
-          await page.click('#totpPin[aria-invalid="true"]', { clickCount: 3 });
-        }
-      }
+      await inputData(
+        'input[name="totpPin"]',
+        'totp',
+        'Please enter the verification code from the Google Authenticator app: ',
+        undefined,
+        page,
+      );
     } catch (e) {
       // totp is not enabled
     }
