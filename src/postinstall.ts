@@ -58,36 +58,32 @@ async function main() {
     let installCommands: Array<any> = [];
     if (fs.existsSync('/usr/bin/apt-get')) {
       // debian / ubuntu / raspbian
+      await runCommandWithOutput(['apt-get', ['update']]);
       for (const bin of binaryNames) {
         const found = (await runCommand(['apt', ['list', bin]]))
           .replace('Listing...', '')
           .replace(/(\r\n|\n|\r)/gm, '');
         if (found && found.startsWith(bin)) {
-          installCommands = [
-            ['apt-get', ['update']],
-            ['apt-get', ['-y', 'install', bin]],
-          ];
+          installCommands = [['apt-get', ['-y', 'install', bin]]];
           break;
         }
       }
     } else if (fs.existsSync('/sbin/apk')) {
       // alpine linux (docker)
+      await runCommandWithOutput(['apk', ['update']]);
       for (const bin of binaryNames) {
         const found = (await runCommand(['apk', ['search', bin]]))
           .replace('Listing...', '')
           .replace(/(\r\n|\n|\r)/gm, '');
         if (found && found.startsWith(bin)) {
-          installCommands = [
-            ['apk', ['update']],
-            ['apk', ['add', '--no-cache', bin]],
-          ];
+          installCommands = [['apk', ['add', '--no-cache', bin]]];
           break;
         }
       }
     } else if (fs.existsSync('/usr/bin/yum')) {
       // enterprise linux / centos
+      await runCommandWithOutput(['yum', ['-y', 'update']]);
       installCommands = [
-        ['yum', ['-y', 'update']],
         ['yum', ['-y', 'install', 'epel-release']],
         ['yum', ['-y', 'install', 'chromium']],
       ];
