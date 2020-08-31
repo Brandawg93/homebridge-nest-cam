@@ -91,7 +91,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       return false;
     }
 
-    this.config.fieldTest = this.config.googleAuth.issueToken.endsWith('home.ft.nest.com');
+    this.config.fieldTest = this.config.googleAuth.issueToken.endsWith('https%3A%2F%2Fhome.ft.nest.com');
     this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
     const conn = new Connection(this.config, this.log);
     return await conn.auth();
@@ -321,7 +321,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         await self.setupConnection();
       }, 3480000); // 58 minutes
 
-      const fieldTest = this.config.googleAuth.issueToken.endsWith('home.ft.nest.com');
+      const fieldTest = this.config.googleAuth.issueToken.endsWith('https%3A%2F%2Fhome.ft.nest.com');
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.setupMotionServices();
