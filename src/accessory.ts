@@ -121,4 +121,8 @@ export class NestAccessory {
 
     this.accessory.configureController(cameraController);
   }
+
+  getServicesByType(serviceType: ServiceType) {
+    return this.accessory.services.filter((x) => x.UUID === serviceType.UUID);
+  }
 }

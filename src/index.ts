@@ -91,7 +91,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       return false;
     }
 
-    this.config.fieldTest = this.config.googleAuth.issueToken.includes('home.ft.nest.com');
+    this.config.fieldTest = this.config.googleAuth.issueToken.endsWith('home.ft.nest.com');
     this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
     const conn = new Connection(this.config, this.log);
     return await conn.auth();
@@ -178,7 +178,13 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       if (accessory) {
         // Motion configuration
         const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
+        const services = nestAccessory.getServicesByType(hap.Service.MotionSensor);
         const alertTypes = await camera.getAlertTypes();
+        // Remove invalid services
+        const invalidServices = services.filter((x) => !alertTypes.includes(x.displayName));
+        for (const service of invalidServices) {
+          accessory.removeService(service);
+        }
         alertTypes.forEach((type) => {
           if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
             nestAccessory.createService(hap.Service.MotionSensor, type);
@@ -315,7 +321,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         await self.setupConnection();
       }, 3480000); // 58 minutes
 
-      const fieldTest = this.config.googleAuth.issueToken.includes('home.ft.nest.com');
+      const fieldTest = this.config.googleAuth.issueToken.endsWith('home.ft.nest.com');
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.setupMotionServices();
