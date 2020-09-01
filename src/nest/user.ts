@@ -22,7 +22,7 @@ export class NestUser {
       const epoch = Math.round(currDate.getTime() / 1000);
       const req: AxiosRequestConfig = {
         method: 'GET',
-        url: `https://home.nest.com/session?_=${epoch}`,
+        url: `${this.endpoints.NEST_API_HOSTNAME}/session?_=${epoch}`,
         headers: {
           Authorization: 'Basic ' + this.config.access_token,
           'User-Agent': NestEndpoints.USER_AGENT_STRING,
