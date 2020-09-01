@@ -245,8 +245,8 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
 
       // Building issueToken
-      if (!clientId && url.includes('challenge?')) {
-        const postData = request.postData().split('&');
+      if (!clientId && url.includes('CheckCookie')) {
+        const postData = url.split('&');
         clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
       }
 
