@@ -115,52 +115,53 @@ export class NestSession {
         sessionID: `${session?.userid}.${String(Math.random()).substr(2, 5)}.${epoch}`,
       };
 
-      try {
-        const req: AxiosRequestConfig = {
-          method: 'POST',
-          timeout: SUBSCRIBE_TIMEOUT * 1e3,
-          url: `${appLaunch.service_urls.urls.transport_url}/v5/subscribe`,
-          headers: {
-            Authorization: 'Basic ' + this.config.access_token,
-            'User-Agent': NestEndpoints.USER_AGENT_STRING,
-            Referer: this.endpoints.NEST_API_HOSTNAME,
-          },
-          data: data,
-        };
-        const response = (await axios(req)).data;
-        this.subscribeFailures = 0;
-        const objects = response.objects;
-        for (const object of objects) {
-          const uuid = object.object_key.split('.')[1];
-          const camera = cameras.find((x) => x.info.uuid === uuid);
-          if (camera) {
-            this.log.debug(`Updating info for ${camera.info.name}`);
-            const curr_streaming = camera.info.properties['streaming.enabled'];
-            const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
-            const curr_audio = camera.info.properties['audio.enabled'];
+      while (true) {
+        try {
+          const req: AxiosRequestConfig = {
+            method: 'POST',
+            timeout: SUBSCRIBE_TIMEOUT * 1e3,
+            url: `${appLaunch.service_urls.urls.transport_url}/v5/subscribe`,
+            headers: {
+              Authorization: 'Basic ' + this.config.access_token,
+              'User-Agent': NestEndpoints.USER_AGENT_STRING,
+              Referer: this.endpoints.NEST_API_HOSTNAME,
+            },
+            data: data,
+          };
+          const response = (await axios(req)).data;
+          this.subscribeFailures = 0;
+          const objects = response.objects;
+          for (const object of objects) {
+            const uuid = object.object_key.split('.')[1];
+            const camera = cameras.find((x) => x.info.uuid === uuid);
+            if (camera) {
+              this.log.debug(`Updating info for ${camera.info.name}`);
+              const curr_streaming = camera.info.properties['streaming.enabled'];
+              const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
+              const curr_audio = camera.info.properties['audio.enabled'];
 
-            const newProps = (await camera.updateData()).properties;
-            if (curr_streaming !== newProps['streaming.enabled']) {
-              camera.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
-            }
-            if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
-              camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
-            }
-            if (curr_audio !== newProps['audio.enabled']) {
-              camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
+              const newProps = (await camera.updateData()).properties;
+              if (curr_streaming !== newProps['streaming.enabled']) {
+                camera.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
+              }
+              if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
+                camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
+              }
+              if (curr_audio !== newProps['audio.enabled']) {
+                camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
+              }
             }
           }
-        }
-        await this.subscribe(cameras);
-      } catch (error) {
-        handleError(this.log, error, 'Error subscribing');
-        if (this.subscribeFailures < 10) {
-          this.subscribeFailures++;
-        }
+        } catch (error) {
+          handleError(this.log, error, 'Error subscribing');
+          if (this.subscribeFailures < 10) {
+            this.subscribeFailures++;
+          }
 
-        setTimeout(async () => {
-          await this.subscribe(cameras);
-        }, RETRY_INTERVAL * Math.pow(this.subscribeFailures, 2));
+          setTimeout(() => {
+            // do nothing
+          }, RETRY_INTERVAL * Math.pow(this.subscribeFailures, 2));
+        }
       }
     }
   }
