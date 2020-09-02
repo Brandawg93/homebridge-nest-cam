@@ -17,7 +17,6 @@ import {
   VideoInfo,
   AudioInfo,
 } from 'homebridge';
-import { getDefaultIpAddress } from './util/ip';
 import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
 import { NestEndpoints, handleError } from './nest/endpoints';
@@ -150,31 +149,24 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       audioSSRC: audioSSRC,
     };
 
-    const address = await getDefaultIpAddress();
-    if (address) {
-      const response: PrepareStreamResponse = {
-        address: address,
-        video: {
-          port: returnVideoPort,
-          ssrc: videoSSRC,
+    const response: PrepareStreamResponse = {
+      video: {
+        port: returnVideoPort,
+        ssrc: videoSSRC,
 
-          srtp_key: videoSrtpKey,
-          srtp_salt: videoSrtpSalt,
-        },
-        audio: {
-          port: audioServerPort,
-          ssrc: audioSSRC,
+        srtp_key: videoSrtpKey,
+        srtp_salt: videoSrtpSalt,
+      },
+      audio: {
+        port: audioServerPort,
+        ssrc: audioSSRC,
 
-          srtp_key: audioSrtpKey,
-          srtp_salt: audioSrtpSalt,
-        },
-      };
-      this.pendingSessions[sessionId] = sessionInfo;
-      callback(void 0, response);
-    } else {
-      this.log.error('No valid IP address was found.');
-      callback(new Error('Invalid IP'));
-    }
+        srtp_key: audioSrtpKey,
+        srtp_salt: audioSrtpSalt,
+      },
+    };
+    this.pendingSessions[sessionId] = sessionInfo;
+    callback(void 0, response);
   }
 
   private async getVideoCommand(info: VideoInfo, sessionId: string): Promise<Array<string>> {
