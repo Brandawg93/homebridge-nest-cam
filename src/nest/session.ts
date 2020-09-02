@@ -42,6 +42,10 @@ const KNOWN_BUCKET_TYPES = [
 const SUBSCRIBE_TIMEOUT = 850 + Math.round(250 * Math.random());
 const RETRY_INTERVAL = 10000;
 
+const delay = function (time: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, time));
+};
+
 export class NestSession {
   private endpoints: NestEndpoints;
   private readonly config: PlatformConfig;
@@ -158,9 +162,7 @@ export class NestSession {
             this.subscribeFailures++;
           }
 
-          setTimeout(() => {
-            // do nothing
-          }, RETRY_INTERVAL * Math.pow(this.subscribeFailures, 2));
+          await delay(RETRY_INTERVAL * Math.pow(this.subscribeFailures, 2));
         }
       }
     }
