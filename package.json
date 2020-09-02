@@ -65,7 +65,7 @@
   "dependencies": {
     "axios": "^0.20.0",
     "execa": "^4.0.3",
-    "ffmpeg-for-homebridge": "^0.0.7",
+    "ffmpeg-for-homebridge": "^0.0.8",
     "get-port": "^5.1.1",
     "pbf": "^3.2.1",
     "puppeteer-core": "^5.2.1",
