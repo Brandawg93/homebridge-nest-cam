@@ -51,6 +51,7 @@ export class NestCam extends EventEmitter {
   private alertTimeout: NodeJS.Timeout | undefined;
   private alertFailures = 0;
   private alertsSend = true;
+  private lastUpdatedTime: Date;
 
   constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     super();
@@ -59,6 +60,7 @@ export class NestCam extends EventEmitter {
     this.config = config;
     this.accessory = accessory;
     this.info = info;
+    this.lastUpdatedTime = new Date();
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
     if (this.alertCooldown > 300000) {
       this.alertCooldown = 300000;
@@ -79,13 +81,26 @@ export class NestCam extends EventEmitter {
       log.debug(`Using importantOnly from config: ${importantOnly}`);
       this.importantOnly = importantOnly;
     }
+
+    // Setup events
+    this.on(NestCamEvents.CAMERA_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
+    this.on(NestCamEvents.CHIME_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
+    this.on(NestCamEvents.AUDIO_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
   }
 
   private async setBooleanProperty(
     key: keyof OnlyBooleans<Properties>,
     value: boolean,
     service: Service | undefined,
-    event?: NestCamEvents,
   ): Promise<void> {
     const query = querystring.stringify({
       [key]: value,
@@ -108,7 +123,6 @@ export class NestCam extends EventEmitter {
         if (service) {
           service.updateCharacteristic(this.hap.Characteristic.On, value);
           this.info.properties[key] = value;
-          event && this.emit(event);
         }
       }
     } catch (error) {
@@ -161,32 +175,25 @@ export class NestCam extends EventEmitter {
 
   async toggleActive(enabled: boolean): Promise<void> {
     const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
-    await this.setBooleanProperty('streaming.enabled', enabled, service, NestCamEvents.CAMERA_STATE_CHANGED);
-    if (enabled) {
-      this.startAlertChecks();
-    } else {
-      this.stopAlertChecks();
-    }
+    await this.setBooleanProperty('streaming.enabled', enabled, service);
   }
 
   async toggleChime(enabled: boolean): Promise<void> {
     const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
-    await this.setBooleanProperty('doorbell.indoor_chime.enabled', enabled, service, NestCamEvents.CHIME_STATE_CHANGED);
+    await this.setBooleanProperty('doorbell.indoor_chime.enabled', enabled, service);
   }
 
   async toggleAudio(enabled: boolean): Promise<void> {
     const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
-    await this.setBooleanProperty('audio.enabled', enabled, service, NestCamEvents.AUDIO_STATE_CHANGED);
+    await this.setBooleanProperty('audio.enabled', enabled, service);
   }
 
   startAlertChecks() {
-    if (!this.alertTimeout && this.info.properties['streaming.enabled']) {
+    if (!this.alertTimeout) {
       const self = this;
-      this.alertTimeout = setInterval(async function () {
-        self.checkAlerts();
+      this.alertTimeout = setInterval(async () => {
+        await self.checkAlerts();
       }, this.alertInterval) as NodeJS.Timeout;
-    } else if (!this.info.properties['streaming.enabled']) {
-      this.setMotion(false, this.alertTypes);
     }
   }
 
@@ -198,10 +205,15 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  public async checkAlerts(): Promise<void> {
+  async checkAlerts(): Promise<void> {
     if (!this.alertsSend) {
       return;
     }
+    if (!this.info.properties['streaming.enabled']) {
+      this.setMotion(false, this.alertTypes);
+      return;
+    }
+
     this.log.debug(`Checking for alerts on ${this.accessory.displayName}`);
     try {
       const currDate = new Date();
@@ -302,21 +314,31 @@ export class NestCam extends EventEmitter {
   }
 
   async updateData(): Promise<CameraInfo> {
+    // Only update if more than one second has elapsed
+    const checkTime = new Date(this.lastUpdatedTime);
+    checkTime.setSeconds(checkTime.getSeconds() + 1);
+    if (new Date().getTime() < checkTime.getTime()) {
+      return this.info;
+    }
+
     const query = querystring.stringify({
       uuid: this.info.uuid,
+      value: false,
     });
 
     try {
-      const response: any = await this.endpoints.sendRequest(
+      const properties: any = await this.endpoints.sendRequest(
         this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        `/api/cameras.get_with_properties?${query}`,
-        'GET',
+        this.endpoints.NEST_API_HOSTNAME,
+        `/dropcam/api/cameras/${this.info.uuid}/properties`,
+        'POST',
+        'json',
+        query,
       );
 
-      const info = response.items[0];
-      if (info) {
-        this.info = info;
+      if (properties) {
+        this.info.properties = properties[0];
+        this.lastUpdatedTime = new Date();
       }
     } catch (error) {
       handleError(this.log, error, `Error updating ${this.info.name} camera`);
