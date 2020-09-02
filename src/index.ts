@@ -12,7 +12,7 @@ import { NestCam } from './nest/cam';
 import { CameraInfo, ModelTypes } from './nest/models/camera-info';
 import { NestEndpoints, handleError } from './nest/endpoints';
 import { Connection } from './nest/connection';
-import { NestUser } from './nest/user';
+import { NestSession } from './nest/session';
 import { NestAccessory } from './accessory';
 import { ConfigSchema, Schema } from './config-schema';
 
@@ -310,11 +310,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const connected = await this.setupConnection();
 
     if (connected) {
-      const user = new NestUser(this.config, this.log);
-      const session = await user.getSessionInfo();
-      if (session) {
-        this.config['2fa_enabled'] = session['2fa_enabled'];
-      }
       // Nest needs to be reauthenticated about every hour
       setInterval(async function () {
         self.log.debug('Reauthenticating with config credentials');
@@ -327,6 +322,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       await this.setupMotionServices();
       await this.generateConfigSchema();
       this.cleanupAccessories();
+      const session = new NestSession(this.config, this.log);
+      await session.subscribe(this.cameras);
     }
   }
 }

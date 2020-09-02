@@ -8,6 +8,18 @@ interface Urls {
   direct_transport_url: string;
 }
 
+interface ServiceUrls {
+  limits: Limits;
+  urls: Urls;
+}
+
+interface Bucket {
+  object_key: string;
+  object_revision: number;
+  object_timestamp: number;
+  value: any;
+}
+
 interface Weave {
   service_config: string;
   pairing_token: string;
@@ -36,4 +48,11 @@ export interface Session {
   limits: Limits;
   user: string;
   is_staff: boolean;
+}
+
+export interface AppLaunch {
+  '2fa_enabled': boolean;
+  service_urls: ServiceUrls;
+  updated_buckets: Array<Bucket>;
+  weather_for_structures: any;
 }

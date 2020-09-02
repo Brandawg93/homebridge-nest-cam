@@ -1,6 +1,6 @@
 import { Logging, PlatformConfig } from 'homebridge';
 import { Logger } from 'homebridge/lib/logger';
-import { NestUser } from '../src/nest/user';
+import { NestSession } from '../src/nest/session';
 import { Connection } from '../src/nest/connection';
 
 const log: Logging = Logger.withPrefix('[test]');
@@ -20,7 +20,7 @@ test('getSessionInfo works as expected', async () => {
   const connection = new Connection(config, log);
   const connected = await connection.auth();
   if (connected) {
-    const user = new NestUser(config, log);
+    const user = new NestSession(config, log);
     const session = await user.getSessionInfo();
     return expect(session).toBeDefined();
   } else {
