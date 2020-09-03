@@ -177,7 +177,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   }
 
   private async getVideoCommand(info: VideoInfo, sessionId: string): Promise<Array<string>> {
-    const ffmpegCodec = this.config.ffmpegCodec || (await getDefaultEncoder(this.videoProcessor));
+    let ffmpegCodec = 'libx264';
+    if (await doesFfmpegSupportCodec(this.config.ffmpegCodec, this.videoProcessor)) {
+      ffmpegCodec = this.config.ffmpegCodec;
+    } else {
+      ffmpegCodec = await getDefaultEncoder(this.videoProcessor);
+      this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to ${ffmpegCodec}`);
+    }
     const sessionInfo = this.pendingSessions[sessionId];
     const videoPort = sessionInfo.videoPort;
     const returnVideoPort = sessionInfo.returnVideoPort;

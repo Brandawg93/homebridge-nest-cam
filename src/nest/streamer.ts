@@ -368,13 +368,17 @@ export class NexusStreamer {
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
       const stdin = this.ffmpegVideo.getStdin();
       if (!stdin?.destroyed && !stdin?.writableEnded) {
-        stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]));
+        stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]), () => {
+          // Do nothing
+        });
       }
     }
     if (packet.channel_id === this.audioChannelID) {
       const stdin = this.ffmpegAudio?.getStdin();
       if (!stdin?.destroyed && !stdin?.writableEnded) {
-        stdin?.write(Buffer.from(packet.payload));
+        stdin?.write(Buffer.from(packet.payload), () => {
+          // Do nothing
+        });
       }
     }
   }

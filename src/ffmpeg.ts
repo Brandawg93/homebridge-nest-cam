@@ -5,6 +5,9 @@ import { Readable, Writable } from 'stream';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
 export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string): Promise<boolean> {
+  if (!codec) {
+    return false;
+  }
   const output = await execa(ffmpegPath, ['-codecs']);
   return output.stdout.includes(codec);
 }
