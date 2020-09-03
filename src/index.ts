@@ -59,17 +59,19 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   private initDefaultOptions(): void {
     // Setup boolean options
-    Object.keys(this.options).forEach((opt) => {
-      const key = opt as keyof Options;
-      const configVal = this.config.options[key];
-      if (typeof configVal === 'undefined') {
-        this.options[key] = true;
-        this.log.debug(`Defaulting ${key} to true`);
-      } else {
-        this.options[key] = configVal;
-        this.log.debug(`Using ${key} from config: ${configVal}`);
-      }
-    });
+    if (this.config.options) {
+      Object.keys(this.options).forEach((opt) => {
+        const key = opt as keyof Options;
+        const configVal = this.config.options[key];
+        if (typeof configVal === 'undefined') {
+          this.options[key] = true;
+          this.log.debug(`Defaulting ${key} to true`);
+        } else {
+          this.options[key] = configVal;
+          this.log.debug(`Using ${key} from config: ${configVal}`);
+        }
+      });
+    }
 
     const structures = this.config.options?.structures;
     if (typeof structures !== 'undefined') {
