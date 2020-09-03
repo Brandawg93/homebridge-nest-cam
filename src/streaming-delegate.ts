@@ -26,8 +26,7 @@ import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec, getDefaultEnc
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
-
-const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
+import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
 type SessionInfo = {
   address: string; // address of the HAP controller

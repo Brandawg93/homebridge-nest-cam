@@ -1,10 +1,8 @@
-import { ChildProcess, spawn } from 'child_process';
 import execa from 'execa';
 import { Logging, StreamRequestCallback } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
 import { Readable, Writable } from 'stream';
-
-const pathToFfmpeg = require('ffmpeg-for-homebridge'); // eslint-disable-line @typescript-eslint/no-var-requires
+import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
 export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string): Promise<boolean> {
   const output = await execa(ffmpegPath, ['-codecs']);
@@ -32,7 +30,7 @@ export async function isFfmpegInstalled(ffmpegPath: string): Promise<boolean> {
 }
 
 export class FfmpegProcess {
-  private ff: ChildProcess;
+  private ff: execa.ExecaChildProcess<string> | undefined;
 
   constructor(
     title: string,
@@ -45,80 +43,46 @@ export class FfmpegProcess {
     customFfmpeg?: string,
   ) {
     let started = false;
-    const controller = delegate.controller;
-
-    if (ffmpegDebugOutput) {
-      log.info(`${title} command: ffmpeg ${command}`);
-    } else {
-      log.debug(`${title} command: ffmpeg ${command}`);
-    }
+    const cmdOutput = `${title} command: ffmpeg ${command}`;
+    ffmpegDebugOutput ? log.info(cmdOutput) : log.debug(cmdOutput);
 
     const videoProcessor = customFfmpeg || pathToFfmpeg || 'ffmpeg';
-    this.ff = spawn(videoProcessor, command, { env: process.env });
+    try {
+      // Create ffmpeg process
+      this.ff = execa(videoProcessor, command, { env: process.env });
 
-    if (this.ff.stdin) {
-      this.ff.stdin.on('error', (error) => {
-        if (!error.message.includes('EPIPE')) {
-          log.error(error.message);
-        }
-      });
-    }
-    if (this.ff.stderr) {
-      this.ff.stderr.on('data', (data) => {
-        if (!started) {
+      this.ff.stderr?.on('data', (data) => {
+        // Output debug data if you want
+        const stderrOutput = `${title}: ${String(data)}`;
+        ffmpegDebugOutput ? log.info(stderrOutput) : log.debug(stderrOutput);
+
+        // Only call the callback once frames are actually flowing
+        if (!started && stderrOutput.includes('frame=')) {
           started = true;
-          log.debug(`${title}: received first frame`);
-          if (callback) {
-            callback(); // do not forget to execute callback once set up
-          }
-        }
-
-        if (ffmpegDebugOutput) {
-          log.info(`${title}: ${String(data)}`);
-        } else {
-          log.debug(`${title}: ${String(data)}`);
+          callback && callback();
         }
       });
-    }
-    this.ff.on('error', (error) => {
+    } catch (error) {
       log.error(`[${title}] Failed to start stream: ` + error.message);
       if (callback) {
         callback(new Error('ffmpeg process creation failed!'));
         delegate.stopStream(sessionId);
       }
-    });
-    this.ff.on('exit', (code, signal) => {
-      const message = `[${title}] ffmpeg exited with code: ${code} and signal: ${signal}`;
-
-      if (code == null || code === 255) {
-        log.debug(message + ` (${title} Stream stopped gracefully.)`);
-      } else {
-        if (title.toLowerCase().includes('return')) {
-          log.debug(message + ' (error)');
-        } else {
-          log.error(message + ' (error)');
-        }
-        if (callback) {
-          if (!started) {
-            callback(new Error(message));
-          } else {
-            delegate.stopStream(sessionId);
-            controller?.forceStopStreamingSession(sessionId);
-          }
-        }
-      }
-    });
+    }
   }
 
   public stop(): void {
-    this.ff.kill('SIGKILL');
+    // Attempt to gracefully kill, but forcefully kill after 2 seconds
+    this.ff?.kill('SIGTERM', {
+      forceKillAfterTimeout: 2000,
+    });
   }
 
-  public getStdin(): Writable | null {
-    return this.ff.stdin;
+  public getStdin(): Writable | null | undefined {
+    return this.ff?.stdin;
   }
 
-  public getStdout(): Readable | null {
-    return this.ff.stdout;
+  public getStdout(): Readable | null | undefined {
+    return this.ff?.stdout;
   }
 }
