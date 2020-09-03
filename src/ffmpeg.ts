@@ -43,23 +43,45 @@ export class FfmpegProcess {
     customFfmpeg?: string,
   ) {
     let started = false;
+    const controller = delegate.controller;
     const cmdOutput = `${title} command: ffmpeg ${command}`;
     ffmpegDebugOutput ? log.info(cmdOutput) : log.debug(cmdOutput);
 
     const videoProcessor = customFfmpeg || pathToFfmpeg || 'ffmpeg';
+    let lastOutput = '';
     try {
       // Create ffmpeg process
       this.ff = execa(videoProcessor, command, { env: process.env });
 
       this.ff.stderr?.on('data', (data) => {
         // Output debug data if you want
-        const stderrOutput = `${title}: ${String(data)}`;
-        ffmpegDebugOutput ? log.info(stderrOutput) : log.debug(stderrOutput);
+        lastOutput = `${title}: ${String(data)}`;
+        ffmpegDebugOutput ? log.info(lastOutput) : log.debug(lastOutput);
 
         // Only call the callback once frames are actually flowing
-        if (!started && stderrOutput.includes('frame=')) {
+        if (!started && lastOutput.includes('frame=')) {
           started = true;
           callback && callback();
+        }
+      });
+
+      this.ff.on('exit', (code) => {
+        if (code !== 0 && callback) {
+          const lines = lastOutput.split('\n');
+          let output = '';
+          if (lines.length > 1) {
+            output = lines[lines.length - 2];
+            if (!output.includes('Exiting normally')) {
+              log.error(`${title}: ${output}`);
+            }
+          }
+
+          if (!started) {
+            callback(new Error(output));
+          }
+
+          delegate.stopStream(sessionId);
+          controller?.forceStopStreamingSession(sessionId);
         }
       });
     } catch (error) {

@@ -242,8 +242,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     return command;
   }
 
-  private getAudioCommand(info: AudioInfo, sessionId: string): Array<string> {
+  private getAudioCommand(info: AudioInfo, sessionId: string): Array<string> | undefined {
     const sessionInfo = this.pendingSessions[sessionId];
+    if (!sessionInfo) {
+      return;
+    }
     const address = sessionInfo.address;
     const audioPort = sessionInfo.audioPort;
     const returnAudioPort = sessionInfo.returnAudioPort;
@@ -285,7 +288,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     ];
   }
 
-  private getReturnAudioCommand(info: AudioInfo): Array<string> {
+  private getReturnAudioCommand(info: AudioInfo, sessionId: string): Array<string> | undefined {
+    const sessionInfo = this.pendingSessions[sessionId];
+    if (!sessionInfo) {
+      return;
+    }
     const audioMaxBitrate = info.max_bit_rate;
     return [
       '-hide_banner',
@@ -350,22 +357,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         if (this.camera.info.properties['audio.enabled'] && this.camera.info.properties['streaming.enabled']) {
           if (await doesFfmpegSupportCodec('libfdk_aac', this.videoProcessor)) {
             const audioffmpegCommand = this.getAudioCommand(audio, sessionId);
-            ffmpegAudio = new FfmpegProcess(
-              'AUDIO',
-              audioffmpegCommand,
-              this.log,
-              undefined,
-              this,
-              sessionId,
-              false,
-              this.customFfmpeg,
-            );
-
-            if (await doesFfmpegSupportCodec('libspeex', this.videoProcessor)) {
-              const returnAudioffmpegCommand = this.getReturnAudioCommand(audio);
-              ffmpegReturnAudio = new FfmpegProcess(
-                'RETURN AUDIO',
-                returnAudioffmpegCommand,
+            if (audioffmpegCommand) {
+              ffmpegAudio = new FfmpegProcess(
+                'AUDIO',
+                audioffmpegCommand,
                 this.log,
                 undefined,
                 this,
@@ -373,22 +368,37 @@ export class StreamingDelegate implements CameraStreamingDelegate {
                 false,
                 this.customFfmpeg,
               );
+            }
 
-              const sdpReturnAudio = [
-                'v=0',
-                'o=- 0 0 IN IP4 127.0.0.1',
-                's=Talk',
-                `c=IN IP4 ${address}`,
-                't=0 0',
-                'a=tool:libavformat 58.38.100',
-                `m=audio ${twoWayAudioPort} RTP/AVP 110`,
-                'b=AS:24',
-                'a=rtpmap:110 MPEG4-GENERIC/16000/1',
-                'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
-                `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
-              ].join('\n');
-              ffmpegReturnAudio.getStdin()?.write(sdpReturnAudio);
-              ffmpegReturnAudio.getStdin()?.end();
+            if (await doesFfmpegSupportCodec('libspeex', this.videoProcessor)) {
+              const returnAudioffmpegCommand = this.getReturnAudioCommand(audio, sessionId);
+              if (returnAudioffmpegCommand) {
+                ffmpegReturnAudio = new FfmpegProcess(
+                  'RETURN AUDIO',
+                  returnAudioffmpegCommand,
+                  this.log,
+                  undefined,
+                  this,
+                  sessionId,
+                  false,
+                  this.customFfmpeg,
+                );
+                const sdpReturnAudio = [
+                  'v=0',
+                  'o=- 0 0 IN IP4 127.0.0.1',
+                  's=Talk',
+                  `c=IN IP4 ${address}`,
+                  't=0 0',
+                  'a=tool:libavformat 58.38.100',
+                  `m=audio ${twoWayAudioPort} RTP/AVP 110`,
+                  'b=AS:24',
+                  'a=rtpmap:110 MPEG4-GENERIC/16000/1',
+                  'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
+                  `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
+                ].join('\n');
+                ffmpegReturnAudio.getStdin()?.write(sdpReturnAudio);
+                ffmpegReturnAudio.getStdin()?.end();
+              }
             } else {
               this.log.error(
                 "This version of FFMPEG does not support the audio codec 'libspeex'. You may need to recompile FFMPEG using '--enable-libspeex'.",
@@ -401,7 +411,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           }
         }
 
-        if (this.camera.info.properties['streaming.enabled']) {
+        if (this.camera.info.properties['streaming.enabled'] && this.pendingSessions[sessionId]) {
           const streamer = new NexusStreamer(
             this.camera.info,
             this.config.access_token,
@@ -482,7 +492,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       }
 
       const sessionInfo = this.pendingSessions[sessionId];
-      sessionInfo.rtpSplitter.close();
+      if (sessionInfo) {
+        sessionInfo.rtpSplitter.close();
+      }
 
       delete this.pendingSessions[sessionId];
       delete this.ongoingSessions[sessionId];
