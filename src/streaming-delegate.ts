@@ -57,9 +57,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   controller?: CameraController;
 
   // keep track of sessions
-  pendingSessions: Record<string, SessionInfo> = {};
-  ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
-  ongoingStreams: Record<string, NexusStreamer> = {};
+  private pendingSessions: Record<string, SessionInfo> = {};
+  private ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
+  private ongoingStreams: Record<string, NexusStreamer> = {};
 
   constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
     this.hap = hap;
