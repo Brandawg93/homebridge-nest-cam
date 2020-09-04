@@ -482,6 +482,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   public stopStream(sessionId: string): void {
     try {
+      if (this.ongoingStreams[sessionId]) {
+        const streamer = this.ongoingStreams[sessionId];
+        streamer.stopPlayback();
+      }
+
       if (this.ongoingSessions[sessionId]) {
         const ffmpegVideoProcess = this.ongoingSessions[sessionId][0];
         ffmpegVideoProcess?.stop();
@@ -491,10 +496,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           ffmpegAudioProcess?.stop();
           ffmpegReturnAudioProcess?.stop();
         }
-      }
-      if (this.ongoingStreams[sessionId]) {
-        const streamer = this.ongoingStreams[sessionId];
-        streamer.stopPlayback();
       }
 
       const sessionInfo = this.pendingSessions[sessionId];
