@@ -1,0 +1,5 @@
+needs-questionnaire:
+  comment: |
+    Please fill out the questionnaire provided in the bug report template.
+  labels:
+    - needs-questionnaire
