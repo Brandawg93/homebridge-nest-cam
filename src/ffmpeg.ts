@@ -69,7 +69,7 @@ export class FfmpegProcess {
       });
 
       this.ff.on('exit', (code) => {
-        if (code !== 0 && callback) {
+        if (code && code !== 0 && callback) {
           const lines = lastOutput.split('\n');
           let output = '';
           if (lines.length > 1) {
