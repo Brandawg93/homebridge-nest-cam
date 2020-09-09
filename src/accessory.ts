@@ -49,6 +49,16 @@ export class NestAccessory {
     return service;
   }
 
+  removeService(serviceType: ServiceType, name?: string): void {
+    const existingService = name
+      ? this.accessory.getServiceById(serviceType, `${this.accessory.displayName} ${name}`)
+      : this.accessory.getService(serviceType);
+
+    if (existingService) {
+      this.accessory.removeService(existingService);
+    }
+  }
+
   createSwitchService(
     name: string,
     serviceType: ServiceType,

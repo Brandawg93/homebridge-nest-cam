@@ -127,6 +127,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       nestAccessory.createService(hap.Service.Doorbell, 'Doorbell');
       this.log.debug(`Creating doorbell sensor for ${accessory.displayName}.`);
       camera.startAlertChecks();
+    } else {
+      nestAccessory.removeService(hap.Service.Doorbell, 'Doorbell');
     }
 
     // Add doorbell switch
@@ -140,6 +142,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).setProps({
         maxValue: hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
       });
+    } else {
+      nestAccessory.removeService(hap.Service.StatelessProgrammableSwitch, 'DoorbellSwitch');
     }
 
     // Streaming switch configuration
@@ -147,6 +151,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       nestAccessory.createSwitchService('Streaming', hap.Service.Switch, camera, 'streaming.enabled', async (value) => {
         await camera.toggleActive(value as boolean);
       });
+    } else {
+      nestAccessory.removeService(hap.Service.Switch, 'Streaming');
     }
 
     // Chime switch configuration
@@ -160,6 +166,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
           await camera.toggleChime(value as boolean);
         },
       );
+    } else {
+      nestAccessory.removeService(hap.Service.Switch, 'Chime');
     }
 
     // Audio switch configuration
@@ -167,6 +175,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       nestAccessory.createSwitchService('Audio', hap.Service.Switch, camera, 'audio.enabled', async (value) => {
         await camera.toggleAudio(value as boolean);
       });
+    } else {
+      nestAccessory.removeService(hap.Service.Switch, 'Audio');
     }
 
     this.cameras.push(camera);
