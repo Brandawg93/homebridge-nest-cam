@@ -389,10 +389,18 @@ export class NexusStreamer {
    */
   private handlePlaybackEnd(payload: Pbf): void {
     const packet = PlaybackEnd.read(payload);
-    if (packet.reason === PlaybackEnd.Reason.ERROR_TIME_NOT_AVAILABLE && !this.started) {
-      setTimeout(() => {
-        this.startPlayback();
-      }, 1000);
+    switch (packet.reason) {
+      case PlaybackEnd.Reason.ERROR_PROFILE_NOT_AVAILABLE:
+        this.log.debug('[NexusStreamer] Playback Error: Profile not available');
+        break;
+      case PlaybackEnd.Reason.ERROR_TIME_NOT_AVAILABLE:
+        this.log.error('[NexusStreamer] Playback Error: Time not available');
+        break;
+      case PlaybackEnd.Reason.ERROR_TRANSCODE_NOT_AVAILABLE:
+        this.log.debug('[NexusStreamer] Playback Error: Transcode not available');
+        break;
+      default:
+        break;
     }
   }
 
