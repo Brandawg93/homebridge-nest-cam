@@ -323,21 +323,19 @@ export class NestCam extends EventEmitter {
 
     const query = querystring.stringify({
       uuid: this.info.uuid,
-      value: false,
     });
 
     try {
-      const properties: any = await this.endpoints.sendRequest(
+      const response: any = await this.endpoints.sendRequest(
         this.config.access_token,
-        this.endpoints.NEST_API_HOSTNAME,
-        `/dropcam/api/cameras/${this.info.uuid}/properties`,
-        'POST',
-        'json',
-        query,
+        this.endpoints.CAMERA_API_HOSTNAME,
+        `/api/cameras.get_with_properties?${query}`,
+        'GET',
       );
 
-      if (properties) {
-        this.info.properties = properties[0];
+      const info = response.items[0];
+      if (info) {
+        this.info = info;
         this.lastUpdatedTime = new Date();
       }
     } catch (error) {
