@@ -8,7 +8,7 @@ import { AxiosRequestConfig, Method, ResponseType } from 'axios';
  * @param {any} error       The error thrown
  * @param {string} message  The message to add to the log output
  */
-export function handleError(log: Logging, error: any, message: string): void {
+export function handleError(log: Logging, error: any, message: string, debug = false): void {
   const addendum = 'Troubleshoot here: https://github.com/Brandawg93/homebridge-nest-cam/wiki/Error-Codes';
   if (error.response) {
     const status = parseInt(error.response.status);
@@ -16,14 +16,14 @@ export function handleError(log: Logging, error: any, message: string): void {
     if (status >= 500 || status === 404) {
       log.debug(`${errMsg}\n${addendum}`);
     } else {
-      log.error(`${errMsg}\n${addendum}`);
+      debug ? log.debug(`${errMsg}\n${addendum}`) : log.error(`${errMsg}\n${addendum}`);
     }
   } else if (error.code) {
     const errMsg = `${message}: ${error.code}`;
     if (error.code === 'ECONNRESET' || error.code === 'EAI_AGAIN') {
       log.debug(`${errMsg}\n${addendum}`);
     } else {
-      log.error(`${errMsg}\n${addendum}`);
+      debug ? log.debug(`${errMsg}\n${addendum}`) : log.error(`${errMsg}\n${addendum}`);
     }
   } else {
     log.error(error);

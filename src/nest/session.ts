@@ -159,7 +159,7 @@ export class NestSession {
           }
         }
       } catch (error) {
-        handleError(this.log, error, 'Error subscribing');
+        handleError(this.log, error, 'Error subscribing', true);
         if (this.subscribeFailures < 10) {
           this.subscribeFailures++;
         }
