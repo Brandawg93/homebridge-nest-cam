@@ -432,14 +432,14 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         }
 
         // Used to switch offline/online stream on-the-fly
-        // this.camera.on(NestCamEvents.CAMERA_STATE_CHANGED, (state) => {
+        // this.camera.on(NestCamEvents.CAMERA_STATE_CHANGED, async (state) => {
         //   ffmpegVideo.stop();
         //   ffmpegAudio?.stop();
         //   ffmpegReturnAudio?.stop();
-        //   videoffmpegCommand = this.getVideoCommand(video, sessionId);
-        //   ffmpegVideo = new FfmpegProcess(
+        //   const newVideoffmpegCommand = await this.getVideoCommand(video, sessionId);
+        //   const newFfmpegVideo = new FfmpegProcess(
         //     'VIDEO',
-        //     videoffmpegCommand,
+        //     newVideoffmpegCommand,
         //     this.log,
         //     undefined,
         //     this,
@@ -447,14 +447,15 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         //     true,
         //     this.customFfmpeg,
         //   );
-        //   this.ongoingSessions[sessionId] = [ffmpegVideo, ffmpegAudio, ffmpegReturnAudio];
+        //   this.ongoingSessions[sessionId] = [newFfmpegVideo, ffmpegAudio, ffmpegReturnAudio];
 
         //   if (state) {
         //     const streamer = new NexusStreamer(
         //       this.camera.info,
         //       this.config.access_token,
         //       this.log,
-        //       ffmpegVideo,
+        //       this.config,
+        //       newFfmpegVideo,
         //       ffmpegAudio,
         //       ffmpegReturnAudio,
         //     );
