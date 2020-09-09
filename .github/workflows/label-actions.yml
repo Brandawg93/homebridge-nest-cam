@@ -6,12 +6,10 @@ on:
 
 jobs:
   processLabelAction:
-    name: Process Label Action
+    if: contains(github.event.issue.labels.*.name, 'bug') == 'true' && contains(github.event.issue.body, 'On what OS are you running homebridge') != 'true'
     runs-on: ubuntu-latest
     steps:
-      - if: contains(github.event.issue.labels.*.name, 'bug') == 'true' && contains(github.event.issue.body, 'On what OS are you running homebridge') != 'true'
       - uses: actions/checkout@v2
-      - name: Process Label Action
         uses: hramos/label-actions@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
