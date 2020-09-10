@@ -20,8 +20,8 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 [![npm (tag)](https://img.shields.io/npm/v/homebridge-nest-cam/test?logo=npm)](https://www.npmjs.com/package/homebridge-nest-cam/v/test)
 [![GitHub commits since latest release (by date)](https://img.shields.io/github/commits-since/brandawg93/homebridge-nest-cam/latest?logo=github)](https://github.com/Brandawg93/homebridge-nest-cam/releases/latest)
 
-| [FAQ](https://github.com/Brandawg93/homebridge-nest-cam/wiki/FAQ)    | [Troubleshooting](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) |
-|--------|-----------------|
+| [FAQ](https://github.com/Brandawg93/homebridge-nest-cam/wiki/FAQ) | [Troubleshooting](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting) | [Error Codes](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Error-Codes)
+|---|---|---|
 
 ## Notes
 - This plugin *does not* use the old access token authentication method as Google is urging users to [switch to Google accounts](https://www.macrumors.com/2020/05/05/nest-two-factor-authentication-from-may/).
