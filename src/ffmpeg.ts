@@ -8,6 +8,9 @@ export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string):
   if (!codec) {
     return false;
   }
+  if (codec === 'copy') {
+    return true;
+  }
   const output = await execa(ffmpegPath, ['-codecs']);
   return output.stdout.includes(codec);
 }
