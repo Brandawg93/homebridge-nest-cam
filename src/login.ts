@@ -171,10 +171,9 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
         value = (await prompt(alias, message, alias === 'password')) || '';
       }
       await page.type(identifier, value);
-      await page.waitFor(500);
       await page.keyboard.press('Enter');
       try {
-        await page.waitForSelector(`${identifier}[aria-invalid="true"]`, { timeout: 500 });
+        await page.waitForSelector(`${identifier}[aria-invalid="true"]`, { timeout: 1000 });
       } catch (err) {
         badInput = false;
       }
@@ -220,7 +219,6 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
     if (headless) {
       await page.waitForSelector('button[data-test="google-button-login"]');
-      await page.waitFor(500);
       await page.click('button[data-test="google-button-login"]');
 
       await page.waitForSelector('#identifierId');
@@ -233,11 +231,24 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
         console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
       } catch (error) {
         // Gmail 2FA is not enabled
+        try {
+          await page.waitForSelector('#assistiveActionOutOfQuota', { timeout: 1000 });
+          console.error('Unavailable because of too many failed attempts. Try again in a few hours.');
+          if (uix) {
+            uix.loginFailed('Unavailable because of too many failed attempts. Try again in a few hours.');
+          }
+          try {
+            browser.close();
+          } catch (e) {}
+          return;
+        } catch (error) {
+          // Login did not fail because of too many attempts
+        }
       }
     }
 
     await page.setRequestInterception(true);
-    page.on('request', async (request: any) => {
+    page.on('request', async (request: Browser.Request) => {
       const headers = request.headers();
       const url = request.url();
       // Getting cookies
@@ -252,7 +263,10 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       // Building issueToken
       if (!clientId && url.includes('CheckCookie')) {
         const postData = url.split('&');
-        clientId = postData.find((query: string) => query.includes('client_id=')).slice(10);
+        const queryParam = postData.find((query: string) => query.includes('client_id='));
+        if (queryParam) {
+          clientId = queryParam.slice(10);
+        }
       }
 
       // Getting domain
@@ -288,13 +302,16 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       request.continue();
     });
 
-    page.on('response', async (response: any) => {
+    page.on('response', async (response: Browser.Response) => {
       // Building issueToken
       if (!loginHint && response.url().includes('consent?')) {
         const headers = response.headers();
         if (headers.location) {
           const queries = headers.location.split('&');
-          loginHint = queries.find((query: string) => query.includes('login_hint=')).slice(11);
+          const queryParam = queries.find((query: string) => query.includes('login_hint='));
+          if (queryParam) {
+            loginHint = queryParam.slice(11);
+          }
         }
       }
     });
