@@ -27,6 +27,8 @@ export class RtpSplitter {
         socket.send(msg, returnAudioPort, 'localhost');
       } else {
         socket.send(msg, audioRTCPPort, 'localhost');
+        // Send RTCP to return audio as a heartbeat
+        socket.send(msg, returnAudioPort, 'localhost');
       }
     });
 
