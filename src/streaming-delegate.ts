@@ -83,24 +83,27 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     });
   }
 
-  async handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): Promise<void> {
+  handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): void {
     const query = querystring.stringify({
       uuid: this.camera.info.uuid,
       width: request.width,
     });
     if (!this.camera.info.properties['streaming.enabled']) {
-      await this.getOfflineImage(callback);
+      this.getOfflineImage(callback);
       return;
     }
     try {
-      const snapshot = await this.endpoints.sendRequest(
-        this.config.access_token,
-        `https://${this.camera.info.nexus_api_nest_domain_host}`,
-        `/get_image?${query}`,
-        'GET',
-        'arraybuffer',
-      );
-      callback(void 0, snapshot);
+      this.endpoints
+        .sendRequest(
+          this.config.access_token,
+          `https://${this.camera.info.nexus_api_nest_domain_host}`,
+          `/get_image?${query}`,
+          'GET',
+          'arraybuffer',
+        )
+        .then((snapshot) => {
+          callback(void 0, snapshot);
+        });
     } catch (error) {
       handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
       callback(error);
