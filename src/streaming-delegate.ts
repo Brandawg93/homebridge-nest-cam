@@ -299,7 +299,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     if (!sessionInfo) {
       return;
     }
-    const audioMaxBitrate = info.max_bit_rate;
     return [
       '-hide_banner',
       '-protocol_whitelist',
@@ -315,13 +314,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '-c:a',
       'libspeex',
       '-af',
-      'atempo=2.0',
+      'atempo=2.0,asetrate=16000/0.95',
       '-frames_per_packet',
       '2',
       '-ac',
       '1',
-      '-b:a',
-      `${audioMaxBitrate}k`,
       '-ar',
       `16k`,
       '-f',
