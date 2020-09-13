@@ -164,7 +164,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     message: string,
     value: string | undefined,
     page: Browser.Page,
-  ) {
+  ): Promise<void> {
     let badInput = true;
     while (badInput) {
       if (!value) {
@@ -173,9 +173,8 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       await page.type(identifier, value);
       await page.waitFor(500);
       await page.keyboard.press('Enter');
-      await page.waitFor(500);
       try {
-        badInput = await page.evaluate(() => document.querySelector(`${identifier}[aria-invalid="true"]`) !== null);
+        await page.waitForSelector(`${identifier}[aria-invalid="true"]`, { timeout: 500 });
       } catch (err) {
         badInput = false;
       }
@@ -229,6 +228,12 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       await inputData('input[type="password"]', 'password', 'Password: ', password, page);
 
       console.log('Finishing up...');
+      try {
+        await page.waitForSelector('figure[data-illustration="authzenGmailApp"]', { timeout: 1000 });
+        console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
+      } catch (error) {
+        // Gmail 2FA is not enabled
+      }
     }
 
     await page.setRequestInterception(true);
