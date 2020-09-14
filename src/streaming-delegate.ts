@@ -22,7 +22,7 @@ import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
 import { NestEndpoints, handleError } from './nest/endpoints';
 import { RtpSplitter, reservePorts } from './util/rtp';
-import { FfmpegProcess, isFfmpegInstalled, doesFfmpegSupportCodec, getDefaultEncoder } from './ffmpeg';
+import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
 import querystring from 'querystring';
@@ -52,6 +52,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private readonly config: PlatformConfig;
   private customFfmpeg = '';
   private videoProcessor: string;
+  private ffmpegCodec = 'libx264';
+  private ffmpegInstalled = true;
+  private ffmpegSupportsLibfdk_acc = true;
+  private ffmpegSupportsLibspeex = true;
   private camera: NestCam;
   private endpoints: NestEndpoints;
   controller?: CameraController;
@@ -69,9 +73,25 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
     this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
+
+    // Get the correct video codec
+    getCodecsOutput(this.videoProcessor).then((output) => {
+      if (output.includes(this.config.ffmpegCodec)) {
+        this.ffmpegCodec = this.config.ffmpegCodec;
+      } else {
+        this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to libx264.`);
+      }
+      this.ffmpegSupportsLibfdk_acc = output.includes('libfdk_aac');
+      this.ffmpegSupportsLibspeex = output.includes('libspeex');
+    });
+
+    // Check if ffmpeg is installed
+    isFfmpegInstalled(this.videoProcessor).then((installed) => {
+      this.ffmpegInstalled = installed;
+    });
   }
 
-  private async getOfflineImage(callback: SnapshotRequestCallback): Promise<void> {
+  private getOfflineImage(callback: SnapshotRequestCallback): void {
     const log = this.log;
     readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
       if (err) {
@@ -179,14 +199,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     }
   }
 
-  private async getVideoCommand(info: VideoInfo, sessionId: string): Promise<Array<string>> {
-    let ffmpegCodec = 'libx264';
-    if (await doesFfmpegSupportCodec(this.config.ffmpegCodec, this.videoProcessor)) {
-      ffmpegCodec = this.config.ffmpegCodec;
-    } else {
-      ffmpegCodec = await getDefaultEncoder(this.videoProcessor);
-      this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to ${ffmpegCodec}`);
-    }
+  private getVideoCommand(info: VideoInfo, sessionId: string): Array<string> {
     const sessionInfo = this.pendingSessions[sessionId];
     const videoPort = sessionInfo.videoPort;
     const returnVideoPort = sessionInfo.returnVideoPort;
@@ -208,12 +221,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '-i',
       'pipe:',
       '-c:v',
-      ffmpegCodec,
+      this.ffmpegCodec,
       '-pix_fmt',
       'yuv420p',
     ];
 
-    if (ffmpegCodec === 'libx264') {
+    if (this.ffmpegCodec === 'libx264') {
       command.splice(10, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
     }
 
@@ -224,12 +237,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         '-i',
         join(__dirname, `../images/offline.jpg`),
         '-c:v',
-        ffmpegCodec,
+        this.ffmpegCodec,
         '-pix_fmt',
         'yuv420p',
       ];
 
-      if (ffmpegCodec === 'libx264') {
+      if (this.ffmpegCodec === 'libx264') {
         command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
       }
     }
@@ -330,7 +343,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     ];
   }
 
-  async handleStreamRequest(request: StreamingRequest, callback: StreamRequestCallback): Promise<void> {
+  handleStreamRequest(request: StreamingRequest, callback: StreamRequestCallback): void {
     const sessionId = request.sessionID;
 
     switch (request.type) {
@@ -343,12 +356,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         const audioSRTP = sessionInfo.audioSRTP.toString('base64');
         const twoWayAudioPort = sessionInfo.twoWayAudioPort;
 
-        if (!(await isFfmpegInstalled(this.videoProcessor))) {
-          this.log.error('FFMPEG is not installed. Please install it before using this plugin.');
+        if (!this.ffmpegInstalled) {
+          this.log.error('FFMPEG is not installed. Please install it and restart homebridge.');
+          callback(new Error('FFmpeg not installed'));
           break;
         }
 
-        const videoffmpegCommand = await this.getVideoCommand(video, sessionId);
+        const videoffmpegCommand = this.getVideoCommand(video, sessionId);
         const ffmpegVideo = new FfmpegProcess(
           'VIDEO',
           videoffmpegCommand,
@@ -363,7 +377,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         let ffmpegAudio: FfmpegProcess | undefined;
         let ffmpegReturnAudio: FfmpegProcess | undefined;
         if (this.camera.info.properties['audio.enabled'] && this.camera.info.properties['streaming.enabled']) {
-          if (await doesFfmpegSupportCodec('libfdk_aac', this.videoProcessor)) {
+          if (this.ffmpegSupportsLibfdk_acc) {
             const audioffmpegCommand = this.getAudioCommand(audio, sessionId);
             if (audioffmpegCommand) {
               ffmpegAudio = new FfmpegProcess(
@@ -378,7 +392,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
               );
             }
 
-            if (await doesFfmpegSupportCodec('libspeex', this.videoProcessor)) {
+            if (this.ffmpegSupportsLibspeex) {
               const returnAudioffmpegCommand = this.getReturnAudioCommand(audio, sessionId);
               if (returnAudioffmpegCommand) {
                 ffmpegReturnAudio = new FfmpegProcess(
@@ -409,12 +423,12 @@ export class StreamingDelegate implements CameraStreamingDelegate {
               }
             } else {
               this.log.error(
-                "This version of FFMPEG does not support the audio codec 'libspeex'. You may need to recompile FFMPEG using '--enable-libspeex'.",
+                "This version of FFMPEG does not support the audio codec 'libspeex'. You may need to recompile FFMPEG using '--enable-libspeex' and restart homebridge.",
               );
             }
           } else {
             this.log.error(
-              "This version of FFMPEG does not support the audio codec 'libfdk_aac'. You may need to recompile FFMPEG using '--enable-libfdk_aac'.",
+              "This version of FFMPEG does not support the audio codec 'libfdk_aac'. You may need to recompile FFMPEG using '--enable-libfdk_aac' and restart homebridge.",
             );
           }
         }
@@ -434,11 +448,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         }
 
         // Used to switch offline/online stream on-the-fly
-        // this.camera.on(NestCamEvents.CAMERA_STATE_CHANGED, async (state) => {
+        // this.camera.on(NestCamEvents.CAMERA_STATE_CHANGED, (state) => {
         //   ffmpegVideo.stop();
         //   ffmpegAudio?.stop();
         //   ffmpegReturnAudio?.stop();
-        //   const newVideoffmpegCommand = await this.getVideoCommand(video, sessionId);
+        //   const newVideoffmpegCommand = this.getVideoCommand(video, sessionId);
         //   const newFfmpegVideo = new FfmpegProcess(
         //     'VIDEO',
         //     newVideoffmpegCommand,
