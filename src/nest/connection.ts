@@ -1,7 +1,8 @@
-import { Logging, PlatformConfig } from 'homebridge';
+import { Logging } from 'homebridge';
 import axios from 'axios';
 import { NestEndpoints } from './endpoints';
 import { AxiosRequestConfig } from 'axios';
+import { NestConfig } from './models/config';
 
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
@@ -20,10 +21,10 @@ const delay = function (time: number): Promise<void> {
  */
 export class Connection {
   private endpoints: NestEndpoints;
-  private readonly config: PlatformConfig;
+  private readonly config: NestConfig;
   private readonly log: Logging;
 
-  constructor(config: PlatformConfig, log: Logging) {
+  constructor(config: NestConfig, log: Logging) {
     this.endpoints = new NestEndpoints(config.fieldTest);
     this.config = config;
     this.log = log;
@@ -34,6 +35,11 @@ export class Connection {
    */
   async auth(): Promise<boolean> {
     let req: AxiosRequestConfig;
+
+    if (!this.config.googleAuth || !this.config.googleAuth.issueToken || !this.config.googleAuth.cookies) {
+      this.log.error('The plugin configuration is missing values.');
+      return false;
+    }
 
     //Only doing google auth from now on
     const issueToken = this.config.googleAuth.issueToken.replace('Request URL: ', '');

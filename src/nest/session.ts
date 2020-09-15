@@ -1,9 +1,10 @@
-import { Logging, PlatformConfig } from 'homebridge';
+import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
 import { NestCam, NestCamEvents } from './cam';
 import axios from 'axios';
 import { AxiosRequestConfig } from 'axios';
-import { Session, AppLaunch } from './models/session-info';
+import { Session, AppLaunch } from './models/session';
+import { NestConfig } from './models/config';
 
 const KNOWN_BUCKET_TYPES = [
   // 'buckets',
@@ -48,11 +49,11 @@ const delay = function (time: number): Promise<void> {
 
 export class NestSession {
   private endpoints: NestEndpoints;
-  private readonly config: PlatformConfig;
+  private readonly config: NestConfig;
   private readonly log: Logging;
   private subscribeFailures = 0;
 
-  constructor(config: PlatformConfig, log: Logging) {
+  constructor(config: NestConfig, log: Logging) {
     this.endpoints = new NestEndpoints(config.fieldTest);
     this.config = config;
     this.log = log;
@@ -144,16 +145,18 @@ export class NestSession {
                 const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
                 const curr_audio = camera.info.properties['audio.enabled'];
 
-                const newProps = (await camera.updateData()).properties;
-                if (curr_streaming !== newProps['streaming.enabled']) {
-                  camera.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
-                }
-                if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
-                  camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
-                }
-                if (curr_audio !== newProps['audio.enabled']) {
-                  camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
-                }
+                camera.updateData().then((info) => {
+                  const newProps = info.properties;
+                  if (curr_streaming !== newProps['streaming.enabled']) {
+                    camera.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
+                  }
+                  if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
+                    camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
+                  }
+                  if (curr_audio !== newProps['audio.enabled']) {
+                    camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
+                  }
+                });
               }
             }
           }

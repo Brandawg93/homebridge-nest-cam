@@ -1,17 +1,18 @@
-import { Logging, PlatformConfig } from 'homebridge';
+import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
-import { Face } from './models/structure-info';
-import { CameraInfo } from './models/camera-info';
+import { Face } from './models/structure';
+import { CameraInfo } from './models/camera';
+import { NestConfig } from './models/config';
 
 export class NestStructure {
-  private config: PlatformConfig;
+  private config: NestConfig;
   private readonly log: Logging;
   public id = '';
   private apiHost = '';
   private endpoints: NestEndpoints;
   private faces: Array<Face> = [];
 
-  constructor(cameraInfo: CameraInfo, config: PlatformConfig, log: Logging) {
+  constructor(cameraInfo: CameraInfo, config: NestConfig, log: Logging) {
     this.id = cameraInfo.nest_structure_id.replace('structure.', '');
     this.apiHost = cameraInfo.nexus_api_nest_domain_host;
     this.config = config;

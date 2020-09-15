@@ -9,7 +9,8 @@ import {
   PlatformConfig,
 } from 'homebridge';
 import { NestCam } from './nest/cam';
-import { CameraInfo, ModelTypes } from './nest/models/camera-info';
+import { CameraInfo, ModelTypes } from './nest/models/camera';
+import { NestConfig } from './nest/models/config';
 import { NestEndpoints, handleError } from './nest/endpoints';
 import { Connection } from './nest/connection';
 import { NestSession } from './nest/session';
@@ -34,7 +35,7 @@ const PLATFORM_NAME = 'Nest-cam';
 class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly log: Logging;
   private readonly api: API;
-  private config: PlatformConfig;
+  private config: NestConfig;
   private options: Options;
   private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
@@ -45,7 +46,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
     this.api = api;
-    this.config = config;
+    this.config = config as NestConfig;
     this.options = new Options();
 
     // Need a config or plugin will not start
@@ -59,9 +60,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   private initDefaultOptions(): void {
     // Setup boolean options
-    if (this.config.options) {
-      Object.keys(this.options).forEach((opt) => {
-        const key = opt as keyof Options;
+    Object.keys(this.options).forEach((opt) => {
+      const key = opt as keyof Options;
+      if (this.config.options) {
         const configVal = this.config.options[key];
         if (typeof configVal === 'undefined') {
           this.options[key] = true;
@@ -70,8 +71,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
           this.options[key] = configVal;
           this.log.debug(`Using ${key} from config: ${configVal}`);
         }
-      });
-    }
+      }
+    });
 
     const structures = this.config.options?.structures;
     if (typeof structures !== 'undefined') {
@@ -88,7 +89,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       return false;
     }
 
-    if (this.config.googleAuth && (!this.config.googleAuth.issueToken || !this.config.googleAuth.cookies)) {
+    if (!this.config.googleAuth.issueToken || !this.config.googleAuth.cookies) {
       this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
       return false;
     }
@@ -106,7 +107,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.log.info(`${accessory.displayName} identified!`);
     });
 
-    const cameraInfo: CameraInfo = accessory.context.cameraInfo;
+    const cameraInfo: CameraInfo = accessory.context.cameraInfo as CameraInfo;
     const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
     const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
     nestAccessory.configureController(camera);
@@ -209,12 +210,14 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   private removeAccessory(accessory: PlatformAccessory): void {
-    accessory.context.removed = true;
     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     const index = this.accessories.indexOf(accessory);
     if (index > -1) {
       this.accessories.splice(index, 1);
-      this.cameras.slice(index, 1);
+      const cameras = this.cameras.splice(index, 1);
+      for (const cam of cameras) {
+        cam.stopAlertChecks();
+      }
     }
   }
 
@@ -262,7 +265,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
       cameras.forEach((cameraInfo) => {
         const exists = this.schema.structures.find(
-          (x) => x.id == cameraInfo.nest_structure_id.replace('structure.', ''),
+          (x) => x.id === cameraInfo.nest_structure_id.replace('structure.', ''),
         );
         if (!exists) {
           this.schema.structures.push({
@@ -323,12 +326,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     if (connected) {
       // Nest needs to be reauthenticated about every hour
-      setInterval(async function () {
+      setInterval(async () => {
         self.log.debug('Reauthenticating with config credentials');
         await self.setupConnection();
       }, 3480000); // 58 minutes
 
-      const fieldTest = this.config.googleAuth.issueToken.endsWith('https%3A%2F%2Fhome.ft.nest.com');
+      const fieldTest = this.config.googleAuth?.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
       this.endpoints = new NestEndpoints(fieldTest);
       await this.addCameras();
       await this.setupMotionServices();

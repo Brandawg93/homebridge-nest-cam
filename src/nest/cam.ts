@@ -1,9 +1,10 @@
-import { HAP, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
+import { HAP, Logging, PlatformAccessory, Service } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
-import { CameraInfo, Properties, Zone } from './models/camera-info';
-import { MotionEvent } from './models/event-info';
+import { CameraInfo, Properties, Zone } from './models/camera';
+import { NestConfig } from './models/config';
+import { MotionEvent } from './models/event';
 import { NestStructure } from './structure';
-import { Face } from './models/structure-info';
+import { Face } from './models/structure';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -35,7 +36,7 @@ export const enum NestCamEvents {
 }
 
 export class NestCam extends EventEmitter {
-  private readonly config: PlatformConfig;
+  private readonly config: NestConfig;
   private readonly log: Logging;
   private endpoints: NestEndpoints;
   private readonly hap: HAP;
@@ -53,7 +54,7 @@ export class NestCam extends EventEmitter {
   private alertsSend = true;
   private lastUpdatedTime: Date;
 
-  constructor(config: PlatformConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
+  constructor(config: NestConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
     super();
     this.hap = hap;
     this.log = log;
@@ -188,7 +189,7 @@ export class NestCam extends EventEmitter {
     await this.setBooleanProperty('audio.enabled', enabled, service);
   }
 
-  startAlertChecks() {
+  startAlertChecks(): void {
     if (!this.alertTimeout) {
       const self = this;
       this.alertTimeout = setInterval(async () => {
@@ -197,7 +198,7 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  stopAlertChecks() {
+  stopAlertChecks(): void {
     if (this.alertTimeout) {
       clearInterval(this.alertTimeout);
       this.alertTimeout = void 0;
@@ -222,59 +223,57 @@ export class NestCam extends EventEmitter {
       const query = querystring.stringify({
         start_time: epoch,
       });
-      if (!this.accessory.context.removed) {
-        const self = this;
-        const response: Array<MotionEvent> = await this.endpoints.sendRequest(
-          this.config.access_token,
-          `https://${this.info.nexus_api_nest_domain_host}`,
-          `/cuepoint/${this.info.uuid}/2?${query}`,
-          'GET',
-        );
-        this.alertFailures = 0;
-        if (response.length > 0) {
-          response.forEach((trigger) => {
-            // Add face to alert if name is not empty
-            if (trigger.face_name) {
-              this.log.debug(`Found face for ${trigger.face_name} in event`);
-              trigger.types?.push(`Face - ${trigger.face_name}`);
+      const self = this;
+      const response: Array<MotionEvent> = await this.endpoints.sendRequest(
+        this.config.access_token,
+        `https://${this.info.nexus_api_nest_domain_host}`,
+        `/cuepoint/${this.info.uuid}/2?${query}`,
+        'GET',
+      );
+      this.alertFailures = 0;
+      if (response.length > 0) {
+        response.forEach((trigger) => {
+          // Add face to alert if name is not empty
+          if (trigger.face_name) {
+            this.log.debug(`Found face for ${trigger.face_name} in event`);
+            trigger.types?.push(`Face - ${trigger.face_name}`);
 
-              //If there is a face, there is a person
-              if (!trigger.types?.includes('person')) {
-                trigger.types?.push('person');
+            //If there is a face, there is a person
+            if (!trigger.types?.includes('person')) {
+              trigger.types?.push('person');
+            }
+          }
+
+          if (trigger.zone_ids.length > 0) {
+            trigger.zone_ids.forEach((zone_id) => {
+              const zone = this.zones.find((x) => x.id === zone_id);
+              if (zone) {
+                this.log.debug(`Found zone for ${zone.label} in event`);
+                trigger.types.push(`Zone - ${zone.label}`);
               }
-            }
+            });
+          }
 
-            if (trigger.zone_ids.length > 0) {
-              trigger.zone_ids.forEach((zone_id) => {
-                const zone = this.zones.find((x) => x.id === zone_id);
-                if (zone) {
-                  this.log.debug(`Found zone for ${zone.label} in event`);
-                  trigger.types.push(`Zone - ${zone.label}`);
-                }
-              });
-            }
+          // Check importantOnly flag
+          let important = true;
+          if (this.importantOnly) {
+            important = trigger.is_important;
+          }
 
-            // Check importantOnly flag
-            let important = true;
-            if (this.importantOnly) {
-              important = trigger.is_important;
-            }
+          if (important && trigger.types.includes('doorbell') && !this.doorbellRang) {
+            this.triggerDoorbell();
+          }
 
-            if (important && trigger.types.includes('doorbell') && !this.doorbellRang) {
-              this.triggerDoorbell();
+          if (important && !this.motionDetected) {
+            if (trigger.types && trigger.types.length > 0) {
+              this.triggerMotion(trigger.types);
+            } else {
+              this.triggerMotion(['Motion']);
             }
-
-            if (important && !this.motionDetected) {
-              if (trigger.types && trigger.types.length > 0) {
-                this.triggerMotion(trigger.types);
-              } else {
-                this.triggerMotion(['Motion']);
-              }
-            }
-          });
-        } else {
-          self.setMotion(false, this.alertTypes);
-        }
+          }
+        });
+      } else {
+        self.setMotion(false, this.alertTypes);
       }
     } catch (error) {
       handleError(this.log, error, 'Error checking alerts');
@@ -350,7 +349,7 @@ export class NestCam extends EventEmitter {
     this.setMotion(true, types);
     this.motionDetected = true;
 
-    setTimeout(async function () {
+    setTimeout(async () => {
       self.motionDetected = false;
       self.log.debug('Cooldown has ended');
     }, this.alertCooldown);
@@ -377,7 +376,7 @@ export class NestCam extends EventEmitter {
     const self = this;
     this.setDoorbell();
     this.doorbellRang = true;
-    setTimeout(function () {
+    setTimeout(() => {
       self.doorbellRang = false;
     }, this.alertCooldown);
   }

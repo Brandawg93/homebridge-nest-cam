@@ -1,9 +1,10 @@
-import { Logging, PlatformConfig } from 'homebridge';
+import { Logging } from 'homebridge';
 import { TLSSocket, connect } from 'tls';
 import { Socket } from 'net';
 import { FfmpegProcess } from '../ffmpeg';
 import { NestEndpoints } from './endpoints';
-import { CameraInfo } from './models/camera-info';
+import { CameraInfo } from './models/camera';
+import { NestConfig } from './models/config';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
 import { Redirect } from './protos/Redirect';
@@ -22,11 +23,11 @@ export class NexusStreamer {
   private ffmpegReturnAudio: FfmpegProcess | undefined;
   private authorized = false;
   private readonly log: Logging;
-  private readonly config: PlatformConfig;
+  private readonly config: NestConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
   private host = '';
-  private accessToken = '';
+  private accessToken: string | undefined;
   private socket: TLSSocket = new TLSSocket(new Socket());
   private pendingMessages: Array<{ type: number; buffer: Uint8Array }> = [];
   private pendingBuffer: Buffer | undefined;
@@ -37,9 +38,9 @@ export class NexusStreamer {
 
   constructor(
     cameraInfo: CameraInfo,
-    accessToken: string,
+    accessToken: string | undefined,
     log: Logging,
-    config: PlatformConfig,
+    config: NestConfig,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,

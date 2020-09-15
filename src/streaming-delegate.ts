@@ -3,7 +3,6 @@ import {
   CameraStreamingDelegate,
   HAP,
   Logging,
-  PlatformConfig,
   PrepareStreamCallback,
   PrepareStreamRequest,
   PrepareStreamResponse,
@@ -21,6 +20,7 @@ import { getDefaultIpAddress } from './util/ip';
 import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
 import { NestEndpoints, handleError } from './nest/endpoints';
+import { NestConfig } from './nest/models/config';
 import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
 import { readFile } from 'fs';
@@ -49,8 +49,8 @@ type SessionInfo = {
 export class StreamingDelegate implements CameraStreamingDelegate {
   private readonly hap: HAP;
   private readonly log: Logging;
-  private readonly config: PlatformConfig;
-  private customFfmpeg = '';
+  private readonly config: NestConfig;
+  private customFfmpeg: string | undefined;
   private videoProcessor: string;
   private ffmpegCodec = 'libx264';
   private ffmpegInstalled = true;
@@ -65,18 +65,18 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
   private ongoingStreams: Record<string, NexusStreamer> = {};
 
-  constructor(hap: HAP, camera: any, config: PlatformConfig, log: Logging) {
+  constructor(hap: HAP, camera: any, config: NestConfig, log: Logging) {
     this.hap = hap;
     this.log = log;
     this.config = config;
-    this.endpoints = new NestEndpoints(config.options?.fieldTest);
+    this.endpoints = new NestEndpoints(config.fieldTest);
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
     this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
 
     // Get the correct video codec
     getCodecsOutput(this.videoProcessor).then((output) => {
-      if (output.includes(this.config.ffmpegCodec)) {
+      if (this.config.ffmpegCodec && output.includes(this.config.ffmpegCodec)) {
         this.ffmpegCodec = this.config.ffmpegCodec;
       } else {
         this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to libx264.`);
@@ -93,7 +93,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
   private getOfflineImage(callback: SnapshotRequestCallback): void {
     const log = this.log;
-    readFile(join(__dirname, `../images/offline.jpg`), function (err, data) {
+    readFile(join(__dirname, `../images/offline.jpg`), (err, data) => {
       if (err) {
         log.error(err.message);
         callback(err);
