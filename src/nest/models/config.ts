@@ -26,6 +26,7 @@ interface Options {
 
 export interface NestConfig extends PlatformConfig {
   googleAuth?: GoogleAuth;
+  ffmpegCodec?: string;
   options?: Options;
   access_token?: string;
   fieldTest?: boolean;

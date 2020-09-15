@@ -37,11 +37,12 @@ export function handleError(log: Logging, error: any, message: string, debug = f
 export class NestEndpoints {
   public static USER_AGENT_STRING =
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36';
+
   public NEST_API_HOSTNAME = 'https://home.nest.com';
   public CAMERA_API_HOSTNAME = 'https://webapi.camera.home.nest.com';
   public CAMERA_AUTH_COOKIE = 'website_2';
 
-  constructor(fieldTestMode: boolean) {
+  constructor(fieldTestMode: boolean | undefined) {
     if (fieldTestMode) {
       this.NEST_API_HOSTNAME = 'https://home.ft.nest.com';
       this.CAMERA_API_HOSTNAME = 'https://webapi.camera.home.ft.nest.com';
@@ -76,7 +77,7 @@ export class NestEndpoints {
     }
 
     if (accessToken) {
-      headers['Cookie'] = `user_token=${accessToken}`;
+      headers.Cookie = `user_token=${accessToken}`;
     }
 
     const url = hostname + endpoint;

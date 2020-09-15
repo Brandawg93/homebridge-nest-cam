@@ -16,13 +16,13 @@ export class RtpSplitter {
   constructor(serverPort: number, audioRTCPPort: number, returnAudioPort: number) {
     // emits when any error occurs
     const socket = this.socket;
-    socket.on('error', function (error) {
+    socket.on('error', (error) => {
       console.log('Error: ' + error);
       socket.close();
     });
 
     // emits on new datagram msg
-    socket.on('message', function (msg) {
+    socket.on('message', (msg) => {
       if (isRtpMessage(msg)) {
         socket.send(msg, returnAudioPort, 'localhost');
       } else {
@@ -44,12 +44,13 @@ export class RtpSplitter {
 export async function reservePorts(count = 1): Promise<Array<number>> {
   const port = await getPort();
   const ports = [port];
-  const tryAgain = () => {
+  const tryAgain = (): Promise<Array<number>> => {
     return reservePorts(count);
   };
 
   for (let i = 1; i < count; i++) {
     const targetConsecutivePort = port + i;
+    // eslint-disable-next-line no-await-in-loop
     const openPort = await getPort({ port: targetConsecutivePort });
 
     if (openPort !== targetConsecutivePort) {

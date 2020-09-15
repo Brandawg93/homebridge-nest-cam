@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import Browser from 'puppeteer-core';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
@@ -271,7 +272,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
       // Getting domain
       if (!domain && url.includes('issue_jwt')) {
-        domain = encodeURIComponent(headers['origin'] || 'https://home.nest.com');
+        domain = encodeURIComponent(headers.origin || 'https://home.nest.com');
       }
 
       // Build googleAuth object

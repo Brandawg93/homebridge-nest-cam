@@ -1,10 +1,11 @@
+/* eslint-disable no-await-in-loop */
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import execa from 'execa';
 import Browser from 'puppeteer-core';
 
-async function main() {
+async function main(): Promise<void> {
   if (os.arch() === 'x64') {
     // The browser bundled with puppeteer only supports x64 systems.
     if (fs.existsSync(Browser.executablePath())) {
@@ -107,7 +108,7 @@ async function main() {
   }
 }
 
-function canUseBundledChromium() {
+function canUseBundledChromium(): boolean {
   switch (os.platform()) {
     case 'linux': {
       return fs.existsSync('/usr/bin/apt-get');
@@ -124,7 +125,7 @@ function canUseBundledChromium() {
   }
 }
 
-async function downloadBundledChromium() {
+async function downloadBundledChromium(): Promise<void> {
   const puppeteerInstallScript = path.resolve(__dirname, '../node_modules/puppeteer-core/install.js');
 
   if (!fs.existsSync(puppeteerInstallScript)) {

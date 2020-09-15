@@ -34,7 +34,7 @@ export class HomebridgeUI extends EventEmitter {
     }
   }
 
-  async doLogin() {
+  async doLogin(): Promise<void> {
     try {
       const { login, getChromiumBrowser } = await import('./login');
       if (!(await getChromiumBrowser())) {
@@ -67,11 +67,11 @@ export class HomebridgeUI extends EventEmitter {
     return response.totp;
   }
 
-  async setCredentials(credentials: any) {
+  async setCredentials(credentials: any): Promise<void> {
     await this.sendToParent({ action: 'credentials', payload: credentials });
   }
 
-  async loginFailed(msg: string) {
+  async loginFailed(msg: string): Promise<void> {
     await this.sendToParent({
       action: 'error',
       payload: {

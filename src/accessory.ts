@@ -15,7 +15,7 @@ import {
 } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
 import { NestCam } from './nest/cam';
-import { Properties } from './nest/models/camera-info';
+import { Properties } from './nest/models/camera';
 
 type ServiceType = WithUUID<typeof Service>;
 
@@ -132,7 +132,7 @@ export class NestAccessory {
     this.accessory.configureController(cameraController);
   }
 
-  getServicesByType(serviceType: ServiceType) {
+  getServicesByType(serviceType: ServiceType): Array<Service> {
     return this.accessory.services.filter((x) => x.UUID === serviceType.UUID);
   }
 }
