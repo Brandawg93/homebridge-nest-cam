@@ -1,3 +1,4 @@
+/* eslint-disable curly */
 import Pbf from 'pbf';
 
 export class TalkbackEnd {
