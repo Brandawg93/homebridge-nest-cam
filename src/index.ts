@@ -100,14 +100,14 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     return await conn.auth();
   }
 
-  configureAccessory(accessory: PlatformAccessory): void {
+  configureAccessory(accessory: PlatformAccessory<Record<string, CameraInfo>>): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
     accessory.on(PlatformAccessoryEvent.IDENTIFY, () => {
       this.log.info(`${accessory.displayName} identified!`);
     });
 
-    const cameraInfo: CameraInfo = accessory.context.cameraInfo as CameraInfo;
+    const cameraInfo = accessory.context.cameraInfo;
     const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
     const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
     nestAccessory.configureController(camera);
