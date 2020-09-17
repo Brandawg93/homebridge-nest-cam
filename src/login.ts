@@ -319,11 +319,11 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
     // the two factor catch is after the page interceptors intentionally
     try {
-      await page.waitForSelector('input[name="totpPin"],[name="idvPin"]', { timeout: 5000 });
+      await page.waitForSelector('input[name="totpPin"],input[name="idvPin"]', { timeout: 5000 });
       console.log('2-step Verification Required');
 
       await inputData(
-        'input[name="totpPin"],[name="idvPin"]',
+        'input[name="totpPin"],input[name="idvPin"]',
         'totp',
         'Please enter the verification code from the Google Authenticator app or SMS: ',
         undefined,
