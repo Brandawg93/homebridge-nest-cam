@@ -24,7 +24,11 @@ export class RtpSplitter {
     // emits on new datagram msg
     socket.on('message', (msg) => {
       if (isRtpMessage(msg)) {
-        socket.send(msg, returnAudioPort, 'localhost');
+        if (msg.length > 50) {
+          socket.send(msg, returnAudioPort, 'localhost');
+        } else {
+          socket.send(msg, audioRTCPPort, 'localhost');
+        }
       } else {
         socket.send(msg, audioRTCPPort, 'localhost');
         // Send RTCP to return audio as a heartbeat
