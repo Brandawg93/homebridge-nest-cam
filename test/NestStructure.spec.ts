@@ -1,13 +1,14 @@
 import { Logging, PlatformConfig } from 'homebridge';
 import { Logger } from 'homebridge/lib/logger';
 import { NestStructure } from '../src/nest/structure';
-import { CameraInfo } from '../src/nest/models/camera-info';
+import { CameraInfo } from '../src/nest/models/camera';
+import { NestConfig } from '../src/nest/models/config';
 import { Connection } from '../src/nest/connection';
 import { NestEndpoints } from '../src/nest/endpoints';
 
 const log: Logging = Logger.withPrefix('[test]');
 
-const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
+const getCamera = async function (config: NestConfig): Promise<CameraInfo> {
   const endpoints = new NestEndpoints(false);
   const response = await endpoints.sendRequest(
     config.access_token,

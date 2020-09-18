@@ -1,15 +1,16 @@
-import { Logging, PlatformConfig, HAP } from 'homebridge';
+import { Logging, HAP } from 'homebridge';
 import { PlatformAccessory } from 'homebridge/lib/platformAccessory';
 import { Logger } from 'homebridge/lib/logger';
 import { NestCam } from '../src/nest/cam';
-import { CameraInfo } from '../src/nest/models/camera-info';
+import { CameraInfo } from '../src/nest/models/camera';
+import { NestConfig } from '../src/nest/models/config';
 import { Connection } from '../src/nest/connection';
 import { NestEndpoints } from '../src/nest/endpoints';
 
 let hap: HAP;
 const log: Logging = Logger.withPrefix('[test]');
 
-const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
+const getCamera = async function (config: NestConfig): Promise<CameraInfo> {
   const endpoints = new NestEndpoints(false);
   const response = await endpoints.sendRequest(
     config.access_token,
@@ -23,15 +24,13 @@ const getCamera = async function (config: PlatformConfig): Promise<CameraInfo> {
 
 test('checkAlerts works as expected', async () => {
   expect.assertions(1);
-  const config: PlatformConfig = {
+  const config: NestConfig = {
     platform: 'test',
     googleAuth: {
       issueToken: process.env.ISSUE_TOKEN,
       cookies: process.env.COOKIES,
     },
-    options: {
-      fieldTest: false,
-    },
+    fieldTest: false,
   };
   const connection = new Connection(config, log);
   const connected = await connection.auth();
