@@ -166,6 +166,15 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     value: string | undefined,
     page: Browser.Page,
   ): Promise<void> {
+    try {
+      await page.waitForSelector(identifier, { timeout: 5000 });
+    } catch (error) {
+      console.error(`Unable to find input field for ${alias}.`);
+      if (uix) {
+        uix.loginFailed(`Unable to find input field for ${alias}.`);
+      }
+      return;
+    }
     let badInput = true;
     while (badInput) {
       if (!value) {
@@ -219,10 +228,17 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     });
     await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
     if (headless) {
-      await page.waitForSelector('button[data-test="google-button-login"]');
-      await page.click('button[data-test="google-button-login"]');
+      try {
+        await page.waitForSelector('button[data-test="google-button-login"]');
+        await page.click('button[data-test="google-button-login"]');
+      } catch (error) {
+        console.error(`Unable to find login button.`);
+        if (uix) {
+          uix.loginFailed(`Unable to find login button.`);
+        }
+        return;
+      }
 
-      await page.waitForSelector('#identifierId');
       await inputData('#identifierId', 'username', 'Email or phone: ', email, page);
       await inputData('input[type="password"]', 'password', 'Password: ', password, page);
 
@@ -262,7 +278,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
 
       // Building issueToken
-      if (!clientId && url.includes('CheckCookie')) {
+      if (!clientId && (url.includes('CheckCookie') || url.includes('challenge?'))) {
         const postData = url.split('&');
         const queryParam = postData.find((query: string) => query.includes('client_id='));
         if (queryParam) {
