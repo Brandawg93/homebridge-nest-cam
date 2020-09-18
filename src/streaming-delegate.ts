@@ -75,20 +75,28 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
 
     // Get the correct video codec
-    getCodecsOutput(this.videoProcessor).then((output) => {
-      if (this.config.ffmpegCodec && output.includes(this.config.ffmpegCodec)) {
-        this.ffmpegCodec = this.config.ffmpegCodec;
-      } else {
-        this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to libx264.`);
-      }
-      this.ffmpegSupportsLibfdk_acc = output.includes('libfdk_aac');
-      this.ffmpegSupportsLibspeex = output.includes('libspeex');
-    });
+    getCodecsOutput(this.videoProcessor)
+      .then((output) => {
+        if (this.config.ffmpegCodec && output.includes(this.config.ffmpegCodec)) {
+          this.ffmpegCodec = this.config.ffmpegCodec;
+        } else {
+          this.log.error(`Unknown video codec ${this.config.ffmpegCodec}. Defaulting to libx264.`);
+        }
+        this.ffmpegSupportsLibfdk_acc = output.includes('libfdk_aac');
+        this.ffmpegSupportsLibspeex = output.includes('libspeex');
+      })
+      .catch(() => {
+        // skip
+      });
 
     // Check if ffmpeg is installed
-    isFfmpegInstalled(this.videoProcessor).then((installed) => {
-      this.ffmpegInstalled = installed;
-    });
+    isFfmpegInstalled(this.videoProcessor)
+      .then((installed) => {
+        this.ffmpegInstalled = installed;
+      })
+      .catch(() => {
+        // skip
+      });
   }
 
   private getOfflineImage(callback: SnapshotRequestCallback): void {
@@ -112,22 +120,21 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       this.getOfflineImage(callback);
       return;
     }
-    try {
-      this.endpoints
-        .sendRequest(
-          this.config.access_token,
-          `https://${this.camera.info.nexus_api_nest_domain_host}`,
-          `/get_image?${query}`,
-          'GET',
-          'arraybuffer',
-        )
-        .then((snapshot) => {
-          callback(void 0, snapshot);
-        });
-    } catch (error) {
-      handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
-      callback(error);
-    }
+    this.endpoints
+      .sendRequest(
+        this.config.access_token,
+        `https://${this.camera.info.nexus_api_nest_domain_host}`,
+        `/get_image?${query}`,
+        'GET',
+        'arraybuffer',
+      )
+      .then((snapshot) => {
+        callback(void 0, snapshot);
+      })
+      .catch((error) => {
+        handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
+        callback(error);
+      });
   }
 
   async prepareStream(request: PrepareStreamRequest, callback: PrepareStreamCallback): Promise<void> {
