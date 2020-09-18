@@ -343,6 +343,8 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'atempo=2.0,asetrate=16000/0.95',
       '-frames_per_packet',
       '2',
+      '-cbr_quality',
+      '10',
       '-ac',
       '1',
       '-ar',
