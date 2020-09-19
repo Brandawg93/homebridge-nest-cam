@@ -201,7 +201,7 @@ export class NestCam extends EventEmitter {
   stopAlertChecks(): void {
     if (this.alertTimeout) {
       clearInterval(this.alertTimeout);
-      this.alertTimeout = void 0;
+      this.alertTimeout = undefined;
       this.setMotion(false, this.alertTypes);
     }
   }
@@ -312,6 +312,20 @@ export class NestCam extends EventEmitter {
     return [];
   }
 
+  async getSnapshot(width: number): Promise<Buffer> {
+    const query = querystring.stringify({
+      uuid: this.info.uuid,
+      width: width,
+    });
+    return await this.endpoints.sendRequest(
+      this.config.access_token,
+      `https://${this.info.nexus_api_nest_domain_host}`,
+      `/get_image?${query}`,
+      'GET',
+      'arraybuffer',
+    );
+  }
+
   async updateData(): Promise<CameraInfo> {
     // Only update if more than one second has elapsed
     const checkTime = new Date(this.lastUpdatedTime);
@@ -335,6 +349,7 @@ export class NestCam extends EventEmitter {
       const info = response.items[0];
       if (info) {
         this.info = info;
+        this.accessory.context.cameraInfo = info;
         this.lastUpdatedTime = new Date();
       }
     } catch (error) {

@@ -19,13 +19,12 @@ import {
 import { getDefaultIpAddress } from './util/ip';
 import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
-import { NestEndpoints, handleError } from './nest/endpoints';
+import { handleError } from './nest/endpoints';
 import { NestConfig } from './nest/models/config';
 import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
-import querystring from 'querystring';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
 type SessionInfo = {
@@ -57,7 +56,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private ffmpegSupportsLibfdk_acc = true;
   private ffmpegSupportsLibspeex = true;
   private camera: NestCam;
-  private endpoints: NestEndpoints;
   controller?: CameraController;
 
   // keep track of sessions
@@ -69,7 +67,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     this.hap = hap;
     this.log = log;
     this.config = config;
-    this.endpoints = new NestEndpoints(config.fieldTest);
     this.camera = camera;
     this.customFfmpeg = config.options?.pathToFfmpeg;
     this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
@@ -109,35 +106,25 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         log.error(err.message);
         callback(err);
       } else {
-        callback(void 0, data);
+        callback(undefined, data);
       }
     });
   }
 
   handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): void {
-    const query = querystring.stringify({
-      uuid: this.camera.info.uuid,
-      width: request.width,
-    });
-    if (!this.camera.info.properties['streaming.enabled']) {
+    if (this.camera.info.properties['streaming.enabled']) {
+      this.camera
+        .getSnapshot(request.width)
+        .then((snapshot) => {
+          callback(undefined, snapshot);
+        })
+        .catch((error) => {
+          handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
+          callback(error);
+        });
+    } else {
       this.getOfflineImage(callback);
-      return;
     }
-    this.endpoints
-      .sendRequest(
-        this.config.access_token,
-        `https://${this.camera.info.nexus_api_nest_domain_host}`,
-        `/get_image?${query}`,
-        'GET',
-        'arraybuffer',
-      )
-      .then((snapshot) => {
-        callback(void 0, snapshot);
-      })
-      .catch((error) => {
-        handleError(this.log, error, `Error fetching snapshot for ${this.camera.info.name}`);
-        callback(error);
-      });
   }
 
   async prepareStream(request: PrepareStreamRequest, callback: PrepareStreamCallback): Promise<void> {
@@ -202,7 +189,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         },
       };
       this.pendingSessions[sessionId] = sessionInfo;
-      callback(void 0, response);
+      callback(undefined, response);
     } else {
       this.log.error('No valid IP address was found.');
       callback(new Error('Invalid IP'));

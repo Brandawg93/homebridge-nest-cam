@@ -477,7 +477,7 @@ export class NexusStreamer {
    * @param {Buffer} data The raw data
    */
   private handleNexusData(data: Buffer): void {
-    if (this.pendingBuffer === void 0) {
+    if (this.pendingBuffer === undefined) {
       this.pendingBuffer = data;
     } else {
       this.pendingBuffer = Buffer.concat([this.pendingBuffer, data]);
@@ -499,7 +499,7 @@ export class NexusStreamer {
       const payload = new Pbf(rawPayload);
       this.handleNexusPacket(type, payload);
       const remainingData = this.pendingBuffer.slice(payloadEndPosition);
-      this.pendingBuffer = void 0;
+      this.pendingBuffer = undefined;
       if (remainingData.length !== 0) {
         this.handleNexusData(remainingData);
       }
