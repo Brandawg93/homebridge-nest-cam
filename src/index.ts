@@ -56,6 +56,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     this.initDefaultOptions();
     api.on(APIEvent.DID_FINISH_LAUNCHING, this.didFinishLaunching.bind(this));
+    api.on(APIEvent.SHUTDOWN, this.isShuttingDown.bind(this));
   }
 
   private initDefaultOptions(): void {
@@ -340,6 +341,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const session = new NestSession(this.config, this.log);
       await session.subscribe(this.cameras);
     }
+  }
+
+  isShuttingDown(): void {
+    this.api.updatePlatformAccessories(this.accessories);
   }
 }
 
