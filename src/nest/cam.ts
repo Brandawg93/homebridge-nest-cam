@@ -359,7 +359,7 @@ export class NestCam extends EventEmitter {
     return this.info;
   }
 
-  triggerMotion(types: Array<string>): void {
+  private triggerMotion(types: Array<string>): void {
     const self = this;
     this.setMotion(true, types);
     this.motionDetected = true;
@@ -387,7 +387,7 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  triggerDoorbell(): void {
+  private triggerDoorbell(): void {
     const self = this;
     this.setDoorbell();
     this.doorbellRang = true;

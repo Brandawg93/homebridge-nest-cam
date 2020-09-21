@@ -1,8 +1,9 @@
 import { Logging } from 'homebridge';
 import axios from 'axios';
-import { NestEndpoints } from './endpoints';
+import { NestEndpoints, handleError } from './endpoints';
 import { AxiosRequestConfig } from 'axios';
 import { NestConfig } from './models/config';
+import { CameraInfo } from './models/camera';
 
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
@@ -28,6 +29,25 @@ export class Connection {
     this.endpoints = new NestEndpoints(config.fieldTest);
     this.config = config;
     this.log = log;
+  }
+
+  /**
+   * Get info on all cameras
+   */
+  async getCameras(): Promise<Array<CameraInfo>> {
+    let cameras: Array<CameraInfo> = [];
+    try {
+      const response = await this.endpoints.sendRequest(
+        this.config.access_token,
+        this.endpoints.CAMERA_API_HOSTNAME,
+        '/api/cameras.get_owned_and_member_of_with_properties',
+        'GET',
+      );
+      cameras = response.items;
+    } catch (error) {
+      handleError(this.log, error, 'Error fetching cameras');
+    }
+    return cameras;
   }
 
   /**

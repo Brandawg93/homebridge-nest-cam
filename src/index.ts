@@ -11,7 +11,6 @@ import {
 import { NestCam } from './nest/cam';
 import { CameraInfo, ModelTypes } from './nest/models/camera';
 import { NestConfig } from './nest/models/config';
-import { NestEndpoints, handleError } from './nest/endpoints';
 import { Connection } from './nest/connection';
 import { NestSession } from './nest/session';
 import { NestAccessory } from './accessory';
@@ -37,7 +36,6 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly api: API;
   private config: NestConfig;
   private options: Options;
-  private endpoints: NestEndpoints = new NestEndpoints(false);
   private readonly accessories: Array<PlatformAccessory> = [];
   private readonly cameras: Array<NestCam> = [];
   private structures: Array<string> = [];
@@ -84,7 +82,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async setupConnection(): Promise<boolean> {
+  private async checkGoogleAuth(): Promise<boolean> {
     if (!this.config.googleAuth) {
       this.log.error('You did not specify your Google account credentials, googleAuth, in config.json');
       return false;
@@ -94,11 +92,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
       return false;
     }
-
-    this.config.fieldTest = this.config.googleAuth.issueToken.endsWith('https%3A%2F%2Fhome.ft.nest.com');
-    this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
-    const conn = new Connection(this.config, this.log);
-    return await conn.auth();
+    return true;
   }
 
   configureAccessory(accessory: PlatformAccessory<Record<string, CameraInfo>>): void {
@@ -251,39 +245,26 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   /**
-   * Get info on all cameras
+   * Filter cameras from Nest account
    */
-  private async getCameras(): Promise<Array<CameraInfo>> {
-    let cameras: Array<CameraInfo> = [];
-    try {
-      const response = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        '/api/cameras.get_owned_and_member_of_with_properties',
-        'GET',
+  private filterCameras(cameras: Array<CameraInfo>): Array<CameraInfo> {
+    cameras.forEach((cameraInfo) => {
+      const exists = this.schema.structures.find(
+        (x) => x.id === cameraInfo.nest_structure_id.replace('structure.', ''),
       );
-      cameras = response.items;
-
-      cameras.forEach((cameraInfo) => {
-        const exists = this.schema.structures.find(
-          (x) => x.id === cameraInfo.nest_structure_id.replace('structure.', ''),
-        );
-        if (!exists) {
-          this.schema.structures.push({
-            name: cameraInfo.nest_structure_name,
-            id: cameraInfo.nest_structure_id.replace('structure.', ''),
-          });
-        }
-      });
-
-      if (this.structures.length > 0) {
-        this.log.debug('Filtering cameras by structures');
-        cameras = cameras.filter((info: CameraInfo) =>
-          this.structures.includes(info.nest_structure_id.replace('structure.', '')),
-        );
+      if (!exists) {
+        this.schema.structures.push({
+          name: cameraInfo.nest_structure_name,
+          id: cameraInfo.nest_structure_id.replace('structure.', ''),
+        });
       }
-    } catch (error) {
-      handleError(this.log, error, 'Error fetching cameras');
+    });
+
+    if (this.structures.length > 0) {
+      this.log.debug('Filtering cameras by structures');
+      cameras = cameras.filter((info: CameraInfo) =>
+        this.structures.includes(info.nest_structure_id.replace('structure.', '')),
+      );
     }
     return cameras;
   }
@@ -291,9 +272,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   /**
    * Add fetched cameras from nest to Homebridge
    */
-  private async addCameras(): Promise<void> {
-    const cameras = await this.getCameras();
-    cameras.forEach((cameraInfo: CameraInfo) => {
+  private async addCameras(cameras: Array<CameraInfo>): Promise<void> {
+    const filteredCameras = await this.filterCameras(cameras);
+    filteredCameras.forEach((cameraInfo: CameraInfo) => {
       const uuid = hap.uuid.generate(cameraInfo.uuid);
       const displayName = cameraInfo.name.replace('(', '').replace(')', '');
       const accessory = new Accessory(displayName, uuid);
@@ -323,23 +304,28 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   async didFinishLaunching(): Promise<void> {
     const self = this;
-    const connected = await this.setupConnection();
+    const valid = await this.checkGoogleAuth();
 
-    if (connected) {
-      // Nest needs to be reauthenticated about every hour
-      setInterval(async () => {
-        self.log.debug('Reauthenticating with config credentials');
-        await self.setupConnection();
-      }, 3480000); // 58 minutes
+    if (valid) {
+      this.config.fieldTest = this.config.googleAuth?.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
+      this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
+      const conn = new Connection(this.config, this.log);
+      const connected = await conn.auth();
+      if (connected) {
+        // Nest needs to be reauthenticated about every hour
+        setInterval(async () => {
+          self.log.debug('Reauthenticating with config credentials');
+          await conn.auth();
+        }, 3480000); // 58 minutes
 
-      const fieldTest = this.config.googleAuth?.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
-      this.endpoints = new NestEndpoints(fieldTest);
-      await this.addCameras();
-      await this.setupMotionServices();
-      await this.generateConfigSchema();
-      this.cleanupAccessories();
-      const session = new NestSession(this.config, this.log);
-      await session.subscribe(this.cameras);
+        const cameras = await conn.getCameras();
+        await this.addCameras(cameras);
+        await this.setupMotionServices();
+        await this.generateConfigSchema();
+        this.cleanupAccessories();
+        const session = new NestSession(this.config, this.log);
+        await session.subscribe(this.cameras);
+      }
     }
   }
 
