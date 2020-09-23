@@ -17,7 +17,7 @@ const delay = function (time: number): Promise<void> {
 
 /**
  * Class used to authenticate via Google
- * @param {PlatformConfig}  config The configuration object
+ * @param {NestConfig}      config The configuration object
  * @param {Logging}         log The logger used for output
  */
 export class Connection {
