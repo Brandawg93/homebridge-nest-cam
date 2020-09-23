@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { HomebridgeUI } from './uix';
 import execa from 'execa';
+import querystring from 'querystring';
 
 const whichChromiumBrowser = async (binary: string): Promise<string> => {
   try {
@@ -87,10 +88,10 @@ export async function getChromiumBrowser(): Promise<string> {
 }
 
 export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
-  let clientId = '';
-  let loginHint = '';
-  let cookies = '';
-  let domain = '';
+  let clientId: string | Array<string> | undefined;
+  let loginHint: string | Array<string> | undefined;
+  let cookies: string | undefined;
+  let domain: string | undefined;
 
   const executablePath = await getChromiumBrowser();
 
@@ -279,11 +280,8 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
       // Building issueToken
       if (!clientId && (url.includes('CheckCookie') || url.includes('challenge?'))) {
-        const postData = url.split('&');
-        const queryParam = postData.find((query: string) => query.includes('client_id='));
-        if (queryParam) {
-          clientId = queryParam.slice(10);
-        }
+        const postData = querystring.parse(url.split('?')[1]);
+        clientId = postData.client_id;
       }
 
       // Getting domain
@@ -324,11 +322,8 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       if (!loginHint && response.url().includes('consent?')) {
         const headers = response.headers();
         if (headers.location) {
-          const queries = headers.location.split('&');
-          const queryParam = queries.find((query: string) => query.includes('login_hint='));
-          if (queryParam) {
-            loginHint = queryParam.slice(11);
-          }
+          const queries = querystring.parse(headers.location);
+          loginHint = queries.login_hint;
         }
       }
     });
