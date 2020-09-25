@@ -1,4 +1,4 @@
-import { HAP, Logging, PlatformAccessory, Service } from 'homebridge';
+import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
 import { CameraInfo, Properties, Zone } from './models/camera';
 import { NestConfig } from './models/config';
@@ -15,18 +15,6 @@ type OnlyBooleans<T> = Pick<
   }[keyof T]
 >;
 
-const sanitizeString = (str: string): string => {
-  if (str.includes('package')) {
-    // Package
-    return str.replace('-', ' ').replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
-  } else if (str.startsWith('Face') || str.startsWith('Zone')) {
-    return str;
-  } else {
-    // Motion, Person, Sound
-    return str.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
-  }
-};
-
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',
   CHIME_STATE_CHANGED = 'chime-change',
@@ -39,10 +27,8 @@ export class NestCam extends EventEmitter {
   private readonly config: NestConfig;
   private readonly log: Logging;
   private endpoints: NestEndpoints;
-  private readonly hap: HAP;
   public info: CameraInfo;
   private zones: Array<Zone> = [];
-  private accessory: PlatformAccessory;
   private motionDetected = false;
   private doorbellRang = false;
   private importantOnly = true;
@@ -53,13 +39,12 @@ export class NestCam extends EventEmitter {
   private alertFailures = 0;
   private alertsSend = true;
   private lastUpdatedTime: Date;
+  private lastAlertTypes: Array<string> = [];
 
-  constructor(config: NestConfig, info: CameraInfo, accessory: PlatformAccessory, log: Logging, hap: HAP) {
+  constructor(config: NestConfig, info: CameraInfo, log: Logging) {
     super();
-    this.hap = hap;
     this.log = log;
     this.config = config;
-    this.accessory = accessory;
     this.info = info;
     this.lastUpdatedTime = new Date();
     this.alertCooldown = (config.options?.alertCooldownRate || 180) * 1000;
@@ -82,27 +67,9 @@ export class NestCam extends EventEmitter {
       log.debug(`Using importantOnly from config: ${importantOnly}`);
       this.importantOnly = importantOnly;
     }
-
-    // Setup events
-    this.on(NestCamEvents.CAMERA_STATE_CHANGED, (value: boolean) => {
-      const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
-      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
-    });
-    this.on(NestCamEvents.CHIME_STATE_CHANGED, (value: boolean) => {
-      const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
-      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
-    });
-    this.on(NestCamEvents.AUDIO_STATE_CHANGED, (value: boolean) => {
-      const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
-      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
-    });
   }
 
-  private async setBooleanProperty(
-    key: keyof OnlyBooleans<Properties>,
-    value: boolean,
-    service: Service | undefined,
-  ): Promise<void> {
+  async setBooleanProperty(key: keyof OnlyBooleans<Properties>, value: boolean): Promise<boolean> {
     const query = querystring.stringify({
       [key]: value,
       uuid: this.info.uuid,
@@ -120,15 +87,14 @@ export class NestCam extends EventEmitter {
     try {
       if (response.status !== 0) {
         this.log.error(`Unable to set property '${key}' for ${this.info.name} to ${value}`);
-      } else {
-        if (service) {
-          service.updateCharacteristic(this.hap.Characteristic.On, value);
-          this.info.properties[key] = value;
-        }
+        return false;
       }
+      this.info.properties[key] = value;
+      return true;
     } catch (error) {
       handleError(this.log, error, `Error setting property for ${this.info.name}`);
     }
+    return false;
   }
 
   async getAlertTypes(): Promise<Array<string>> {
@@ -174,21 +140,6 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  async toggleActive(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
-    await this.setBooleanProperty('streaming.enabled', enabled, service);
-  }
-
-  async toggleChime(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
-    await this.setBooleanProperty('doorbell.indoor_chime.enabled', enabled, service);
-  }
-
-  async toggleAudio(enabled: boolean): Promise<void> {
-    const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
-    await this.setBooleanProperty('audio.enabled', enabled, service);
-  }
-
   startAlertChecks(): void {
     if (!this.alertTimeout) {
       const self = this;
@@ -202,7 +153,7 @@ export class NestCam extends EventEmitter {
     if (this.alertTimeout) {
       clearInterval(this.alertTimeout);
       this.alertTimeout = undefined;
-      this.setMotion(false, this.alertTypes);
+      this.emit(NestCamEvents.MOTION_DETECTED, false, this.alertTypes);
     }
   }
 
@@ -211,11 +162,11 @@ export class NestCam extends EventEmitter {
       return;
     }
     if (!this.info.properties['streaming.enabled']) {
-      this.setMotion(false, this.alertTypes);
+      this.emit(NestCamEvents.MOTION_DETECTED, false, this.alertTypes);
       return;
     }
 
-    this.log.debug(`Checking for alerts on ${this.accessory.displayName}`);
+    this.log.debug(`Checking for alerts on ${this.info.name}`);
     try {
       const currDate = new Date();
       currDate.setMinutes(currDate.getMinutes() - 1);
@@ -223,7 +174,6 @@ export class NestCam extends EventEmitter {
       const query = querystring.stringify({
         start_time: epoch,
       });
-      const self = this;
       const response: Array<MotionEvent> = await this.endpoints.sendRequest(
         this.config.access_token,
         `https://${this.info.nexus_api_nest_domain_host}`,
@@ -266,14 +216,17 @@ export class NestCam extends EventEmitter {
 
           if (important && !this.motionDetected) {
             if (trigger.types && trigger.types.length > 0) {
-              this.triggerMotion(trigger.types);
-            } else {
-              this.triggerMotion(['Motion']);
+              const lastSubset = this.lastAlertTypes.filter((x) => !trigger.types.includes(x));
+              this.emit(NestCamEvents.MOTION_DETECTED, false, lastSubset);
+              const currSubset = trigger.types.filter((x) => !this.lastAlertTypes.includes(x));
+              this.triggerMotion(currSubset);
+              this.lastAlertTypes = trigger.types;
             }
           }
         });
       } else {
-        self.setMotion(false, this.alertTypes);
+        this.emit(NestCamEvents.MOTION_DETECTED, false, this.alertTypes);
+        this.lastAlertTypes = [];
       }
     } catch (error) {
       handleError(this.log, error, 'Error checking alerts');
@@ -349,7 +302,6 @@ export class NestCam extends EventEmitter {
       const info = response.items[0];
       if (info) {
         this.info = info;
-        this.accessory.context.cameraInfo = info;
         this.lastUpdatedTime = new Date();
       }
     } catch (error) {
@@ -361,7 +313,7 @@ export class NestCam extends EventEmitter {
 
   private triggerMotion(types: Array<string>): void {
     const self = this;
-    this.setMotion(true, types);
+    this.emit(NestCamEvents.MOTION_DETECTED, true, types);
     this.motionDetected = true;
 
     setTimeout(async () => {
@@ -370,52 +322,12 @@ export class NestCam extends EventEmitter {
     }, this.alertCooldown);
   }
 
-  private setMotion(state: boolean, types: Array<string>): void {
-    if (this.hap) {
-      types.forEach((type) => {
-        type = sanitizeString(type);
-        const service = this.accessory.getServiceById(
-          this.hap.Service.MotionSensor,
-          `${this.accessory.displayName} ${type}`,
-        );
-        if (service) {
-          this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
-          service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
-          this.emit(NestCamEvents.MOTION_DETECTED, state);
-        }
-      });
-    }
-  }
-
   private triggerDoorbell(): void {
     const self = this;
-    this.setDoorbell();
+    this.emit(NestCamEvents.DOORBELL_RANG);
     this.doorbellRang = true;
     setTimeout(() => {
       self.doorbellRang = false;
     }, this.alertCooldown);
-  }
-
-  private setDoorbell(): void {
-    const doorbellService = this.accessory.getServiceById(
-      this.hap.Service.Doorbell,
-      `${this.accessory.displayName} Doorbell`,
-    );
-    if (doorbellService) {
-      this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
-      doorbellService.updateCharacteristic(
-        this.hap.Characteristic.ProgrammableSwitchEvent,
-        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
-      );
-      this.emit(NestCamEvents.DOORBELL_RANG, true);
-    }
-
-    const switchService = this.accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
-    if (switchService) {
-      switchService.updateCharacteristic(
-        this.hap.Characteristic.ProgrammableSwitchEvent,
-        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
-      );
-    }
   }
 }

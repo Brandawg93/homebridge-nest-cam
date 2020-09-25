@@ -14,22 +14,56 @@ import {
   WithUUID,
 } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
-import { NestCam } from './nest/cam';
+import { NestCam, NestCamEvents } from './nest/cam';
 import { Properties } from './nest/models/camera';
 
 type ServiceType = WithUUID<typeof Service>;
+
+const sanitizeString = (str: string): string => {
+  if (str.includes('package')) {
+    // Package
+    return str.replace('-', ' ').replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
+  } else if (str.startsWith('Face') || str.startsWith('Zone')) {
+    return str;
+  } else {
+    // Motion, Person, Sound
+    return str.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase());
+  }
+};
 
 export class NestAccessory {
   private readonly log: Logging;
   private readonly hap: HAP;
   private accessory: PlatformAccessory;
+  private camera: NestCam;
   private config: PlatformConfig;
 
-  constructor(accessory: PlatformAccessory, config: PlatformConfig, log: Logging, hap: HAP) {
+  constructor(accessory: PlatformAccessory, camera: NestCam, config: PlatformConfig, log: Logging, hap: HAP) {
     this.accessory = accessory;
+    this.camera = camera;
     this.config = config;
     this.log = log;
     this.hap = hap;
+
+    // Setup events
+    camera.on(NestCamEvents.CAMERA_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
+    camera.on(NestCamEvents.CHIME_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
+    camera.on(NestCamEvents.AUDIO_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
+    camera.on(NestCamEvents.MOTION_DETECTED, (state: boolean, alertTypes: Array<string>) => {
+      this.setMotion(state, alertTypes);
+    });
+    camera.on(NestCamEvents.DOORBELL_RANG, () => {
+      this.setDoorbell();
+    });
   }
 
   createService(serviceType: ServiceType, name?: string): Service {
@@ -62,14 +96,13 @@ export class NestAccessory {
   createSwitchService(
     name: string,
     serviceType: ServiceType,
-    camera: NestCam,
     _key: keyof Properties,
     cb: (value: CharacteristicValue) => void,
   ): void {
     const service = this.createService(serviceType, name);
     this.log.debug(`Creating switch for ${this.accessory.displayName} ${name}.`);
     service
-      .setCharacteristic(this.hap.Characteristic.On, camera.info.properties[_key])
+      .setCharacteristic(this.hap.Characteristic.On, this.camera.info.properties[_key])
       .getCharacteristic(this.hap.Characteristic.On)
       .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         cb(value);
@@ -77,7 +110,8 @@ export class NestAccessory {
         callback();
       })
       .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
-        const info = await camera.updateData();
+        const info = await this.camera.updateData();
+        this.accessory.context.cameraInfo = info;
         const value = info.properties[_key];
         if (typeof value !== 'undefined') {
           this.log.debug(`Updating info for ${this.accessory.displayName} ${name}`);
@@ -88,8 +122,8 @@ export class NestAccessory {
       });
   }
 
-  configureController(camera: NestCam): void {
-    const streamingDelegate = new StreamingDelegate(this.hap, camera, this.config, this.log);
+  configureController(): void {
+    const streamingDelegate = new StreamingDelegate(this.hap, this.camera, this.config, this.log);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
       delegate: streamingDelegate,
@@ -115,7 +149,7 @@ export class NestAccessory {
           },
         },
         audio: {
-          twoWayAudio: camera.info.capabilities.includes('audio.microphone'),
+          twoWayAudio: this.camera.info.capabilities.includes('audio.microphone'),
           codecs: [
             {
               type: AudioStreamingCodecType.AAC_ELD,
@@ -134,5 +168,67 @@ export class NestAccessory {
 
   getServicesByType(serviceType: ServiceType): Array<Service> {
     return this.accessory.services.filter((x) => x.UUID === serviceType.UUID);
+  }
+
+  async toggleActive(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService(`${this.accessory.displayName} Streaming`);
+    const set = await this.camera.setBooleanProperty('streaming.enabled', enabled);
+    if (set && service) {
+      service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+    }
+  }
+
+  async toggleChime(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
+    const set = await this.camera.setBooleanProperty('doorbell.indoor_chime.enabled', enabled);
+    if (set && service) {
+      service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+    }
+  }
+
+  async toggleAudio(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
+    const set = await this.camera.setBooleanProperty('audio.enabled', enabled);
+    if (set && service) {
+      service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+    }
+  }
+
+  private setMotion(state: boolean, types: Array<string>): void {
+    if (this.hap) {
+      types.forEach((type) => {
+        type = sanitizeString(type);
+        const service = this.accessory.getServiceById(
+          this.hap.Service.MotionSensor,
+          `${this.accessory.displayName} ${type}`,
+        );
+        if (service) {
+          this.log.debug(`Setting ${this.accessory.displayName} ${type} Motion to ${state}`);
+          service.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
+        }
+      });
+    }
+  }
+
+  private setDoorbell(): void {
+    const doorbellService = this.accessory.getServiceById(
+      this.hap.Service.Doorbell,
+      `${this.accessory.displayName} Doorbell`,
+    );
+    if (doorbellService) {
+      this.log.debug(`Ringing ${this.accessory.displayName} Doorbell`);
+      doorbellService.updateCharacteristic(
+        this.hap.Characteristic.ProgrammableSwitchEvent,
+        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      );
+    }
+
+    const switchService = this.accessory.getService(this.hap.Service.StatelessProgrammableSwitch);
+    if (switchService) {
+      switchService.updateCharacteristic(
+        this.hap.Characteristic.ProgrammableSwitchEvent,
+        this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+      );
+    }
   }
 }

@@ -103,9 +103,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
 
     const cameraInfo = accessory.context.cameraInfo;
-    const camera = new NestCam(this.config, cameraInfo, accessory, this.log, hap);
-    const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
-    nestAccessory.configureController(camera);
+    const camera = new NestCam(this.config, cameraInfo, this.log);
+    const nestAccessory = new NestAccessory(accessory, camera, this.config, this.log, hap);
+    nestAccessory.configureController();
 
     // Microphone configuration
     if (camera.info.capabilities.includes('audio.microphone')) {
@@ -144,8 +144,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Streaming switch configuration
     if (camera.info.capabilities.includes('streaming.start-stop') && this.options.streamingSwitch) {
-      nestAccessory.createSwitchService('Streaming', hap.Service.Switch, camera, 'streaming.enabled', async (value) => {
-        await camera.toggleActive(value as boolean);
+      nestAccessory.createSwitchService('Streaming', hap.Service.Switch, 'streaming.enabled', async (value) => {
+        await nestAccessory.toggleActive(value as boolean);
       });
     } else {
       nestAccessory.removeService(hap.Service.Switch, 'Streaming');
@@ -153,23 +153,17 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
     // Chime switch configuration
     if (camera.info.capabilities.includes('indoor_chime') && this.options.chimeSwitch) {
-      nestAccessory.createSwitchService(
-        'Chime',
-        hap.Service.Switch,
-        camera,
-        'doorbell.indoor_chime.enabled',
-        async (value) => {
-          await camera.toggleChime(value as boolean);
-        },
-      );
+      nestAccessory.createSwitchService('Chime', hap.Service.Switch, 'doorbell.indoor_chime.enabled', async (value) => {
+        await nestAccessory.toggleChime(value as boolean);
+      });
     } else {
       nestAccessory.removeService(hap.Service.Switch, 'Chime');
     }
 
     // Audio switch configuration
     if (camera.info.capabilities.includes('audio.microphone') && this.options.audioSwitch) {
-      nestAccessory.createSwitchService('Audio', hap.Service.Switch, camera, 'audio.enabled', async (value) => {
-        await camera.toggleAudio(value as boolean);
+      nestAccessory.createSwitchService('Audio', hap.Service.Switch, 'audio.enabled', async (value) => {
+        await nestAccessory.toggleAudio(value as boolean);
       });
     } else {
       nestAccessory.removeService(hap.Service.Switch, 'Audio');
@@ -185,7 +179,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
       if (accessory) {
         // Motion configuration
-        const nestAccessory = new NestAccessory(accessory, this.config, this.log, hap);
+        const nestAccessory = new NestAccessory(accessory, camera, this.config, this.log, hap);
         const services = nestAccessory.getServicesByType(hap.Service.MotionSensor);
         const alertTypes = await camera.getAlertTypes();
         // Remove invalid services
