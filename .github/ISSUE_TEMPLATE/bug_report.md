@@ -29,7 +29,7 @@ Steps to reproduce the behavior:
 
 Please answer these questions before submitting this issue:
 ```
-On what OS are you running homebridge: 
+On what device are you running homebridge: 
 On what iOS version are you having issues: 
 What camera types are having issues: 
 Does this issue occur consistently or randomly: 
