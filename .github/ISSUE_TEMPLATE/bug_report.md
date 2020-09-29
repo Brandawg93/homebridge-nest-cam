@@ -6,7 +6,7 @@ labels: bug
 assignees: ''
 
 ---
-**Before Submitting an Issue**
+<!--Before Submitting an Issue
 
 https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting
 
@@ -14,9 +14,11 @@ Make sure you have the latest LTS from https://nodejs.org
 and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam`
 
 Also include debug log output from startup through seeing the issue:
-`homebridge -D`
+`homebridge -D`-->
 
 **Describe the bug**
+
+**Debug Output**
 
 **To Reproduce**
 
