@@ -24,18 +24,17 @@
         }
       }
     },
-    "ffmpegCodec": {
-      "title": "ffmpeg Codec",
-      "type": "string",
-      "default": "libx264",
-      "required": true,
-      "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices."
-    },
     "options": {
       "title": "Advanced Settings",
       "expandable": true,
       "type": "object",
       "properties": {
+        "ffmpegCodec": {
+          "title": "FFmpeg Codec",
+          "type": "string",
+          "default": "libx264",
+          "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices."
+        },    
         "streamQuality": {
           "title": "Stream Quality",
           "description": "The quality of the stream from LOW to HIGH. (Higher quality means better picture but slower stream)",
@@ -118,8 +117,7 @@
           "title": "Path to FFMPEG",
           "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",
           "type": "string",
-          "placeholder": "/path/to/ffmpeg",
-          "default": ""
+          "placeholder": "/path/to/ffmpeg"
         },
         "structures": {
           "title": "Structures",

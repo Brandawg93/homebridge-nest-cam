@@ -42,8 +42,8 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
 ```
 {
     "platform": "Nest-cam",
-    "ffmpegCodec": "libx264",
     "options": {
+      "ffmpegCodec": "libx264",
       "motionDetection": true,
       "streamingSwitch": true,
       "disableAudio": false
@@ -60,6 +60,7 @@ Extra options can be enabled/disabled depending on which switches and sensors yo
 
 | Name              | Description                                                         | Type             |
 |-------------------|---------------------------------------------------------------------|------------------|
+| ffmpegCodec       | The video codec to use for FFmpeg                                   | string           |
 | streamQuality     | The quality of the stream from LOW to HIGH                          | number (1-3)     |
 | alertCheckRate    | How often to check for alerts                                       | number (seconds) |
 | alertCooldownRate | How long between consecutive alert notifications                    | number (seconds) |

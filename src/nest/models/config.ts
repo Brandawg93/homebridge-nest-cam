@@ -9,6 +9,7 @@ interface GoogleAuth {
 }
 
 interface Options {
+  ffmpegCodec?: string;
   streamQuality?: number;
   alertCheckRate?: number;
   alertCooldownRate?: number;
@@ -26,7 +27,7 @@ interface Options {
 
 export interface NestConfig extends PlatformConfig {
   googleAuth?: GoogleAuth;
-  ffmpegCodec?: string;
+  ffmpegCodec?: string; // Leaving for backwards compatibility
   options?: Options;
   access_token?: string;
   fieldTest?: boolean;
