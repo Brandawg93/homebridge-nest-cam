@@ -1,6 +1,5 @@
 import { Logging } from 'homebridge';
-import { TLSSocket, connect } from 'tls';
-import { Socket } from 'net';
+import WebSocket from 'ws';
 import { FfmpegProcess } from '../ffmpeg';
 import { NestEndpoints } from './endpoints';
 import { CameraInfo } from './models/camera';
@@ -26,9 +25,8 @@ export class NexusStreamer {
   private readonly config: NestConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
-  private host = '';
   private accessToken: string | undefined;
-  private socket: TLSSocket = new TLSSocket(new Socket());
+  private socket: WebSocket | undefined;
   private pendingMessages: Array<{ type: number; buffer: Uint8Array }> = [];
   private pendingBuffer: Buffer | undefined;
   private videoChannelID = -1;
@@ -52,8 +50,7 @@ export class NexusStreamer {
     this.ffmpegReturnAudio = ffmpegReturnAudio;
     this.cameraInfo = cameraInfo;
     this.accessToken = accessToken;
-    this.host = cameraInfo.direct_nexustalk_host;
-    this.setupConnection();
+    this.setupConnection(cameraInfo.websocket_nexustalk_host);
   }
 
   /**
@@ -63,8 +60,21 @@ export class NexusStreamer {
     this.started = false;
     if (this.socket) {
       this.sendStopPlayback();
-      this.socket.end();
+      this.socket.close();
     }
+  }
+
+  /**
+   * Redirect to the new websocket server
+   * @param {string} host The new websocket server address
+   */
+  private redirect(host: string): void {
+    const self = this;
+    this.socket?.on('close', () => {
+      self.setupConnection(host);
+      this.startPlayback();
+    });
+    this.stopPlayback();
   }
 
   /**
@@ -90,17 +100,14 @@ export class NexusStreamer {
   /**
    * Setup socket communication and send hello packet
    */
-  private setupConnection(): void {
+  private setupConnection(host: string): void {
     const self = this;
     let pingInterval: NodeJS.Timeout;
 
     this.stopPlayback();
     this.createReturnAudioServer();
-    const options = {
-      host: this.host,
-      port: 1443,
-    };
-    this.socket = connect(options, () => {
+    this.socket = new WebSocket(`wss://${host}/nexustalk`);
+    this.socket.on('open', () => {
       self.log.info('[NexusStreamer] Connected');
       self.requestHello();
       pingInterval = setInterval(() => {
@@ -108,11 +115,11 @@ export class NexusStreamer {
       }, 15000);
     });
 
-    this.socket.on('data', (data) => {
-      self.handleNexusData(data);
+    this.socket.on('message', (data) => {
+      self.handleNexusData(data as Buffer);
     });
 
-    this.socket.on('end', () => {
+    this.socket.on('close', () => {
       self.unschedulePingMessage(pingInterval);
       self.log.info('[NexusStreamer] Disconnected');
     });
@@ -138,7 +145,7 @@ export class NexusStreamer {
    * @param {Uint8Array} buffer  The information to send
    */
   private sendMessage(type: number, buffer: Uint8Array): void {
-    if (this.socket.connecting || !this.socket.encrypted) {
+    if (this.socket?.readyState === WebSocket.CONNECTING) {
       this.log.debug('waiting for socket to connect');
       if (!this.pendingMessages) {
         this.pendingMessages = [];
@@ -175,8 +182,8 @@ export class NexusStreamer {
       requestBuffer.writeUInt16BE(buffer.length, 1);
       requestBuffer = Buffer.concat([requestBuffer, Buffer.from(buffer)]);
     }
-    if (!this.socket.destroyed && !this.socket.writableEnded) {
-      this.socket.write(requestBuffer);
+    if (this.socket?.readyState !== WebSocket.CLOSING && this.socket?.readyState !== WebSocket.CLOSED) {
+      this.socket?.send(requestBuffer);
     }
   }
 
@@ -331,9 +338,7 @@ export class NexusStreamer {
     const packet = Redirect.read(payload);
     if (packet.new_host) {
       this.log.info('[NexusStreamer] Redirecting...');
-      this.host = packet.new_host;
-      this.setupConnection();
-      this.startPlayback();
+      this.redirect(packet.new_host);
     }
   }
 
