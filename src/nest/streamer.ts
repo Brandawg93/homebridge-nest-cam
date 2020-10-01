@@ -21,6 +21,8 @@ export class NexusStreamer {
   private ffmpegAudio: FfmpegProcess | undefined;
   private ffmpegReturnAudio: FfmpegProcess | undefined;
   private authorized = false;
+  private videoStarted = false;
+  private returnAudioStarted = false;
   private readonly log: Logging;
   private readonly config: NestConfig;
   private sessionID: number = Math.floor(Math.random() * 100);
@@ -32,7 +34,6 @@ export class NexusStreamer {
   private videoChannelID = -1;
   private audioChannelID = -1;
   private returnAudioTimeout: NodeJS.Timeout | undefined;
-  private started = false;
 
   constructor(
     cameraInfo: CameraInfo,
@@ -57,7 +58,7 @@ export class NexusStreamer {
    * Close the socket and stop playback
    */
   stopPlayback(): void {
-    this.started = false;
+    this.videoStarted = false;
     if (this.socket) {
       this.sendStopPlayback();
       this.socket.close();
@@ -92,20 +93,24 @@ export class NexusStreamer {
         }
         this.returnAudioTimeout = setTimeout(() => {
           self.sendAudioPayload(Buffer.from([]));
-        }, 1000);
+        }, 500);
       });
+      this.returnAudioStarted = true;
     }
   }
 
   /**
    * Setup socket communication and send hello packet
+   * @param {string} host The websocket server address
    */
   private setupConnection(host: string): void {
     const self = this;
     let pingInterval: NodeJS.Timeout;
 
     this.stopPlayback();
-    this.createReturnAudioServer();
+    if (!this.returnAudioStarted) {
+      this.createReturnAudioServer();
+    }
     this.socket = new WebSocket(`wss://${host}/nexustalk`);
     this.socket.on('open', () => {
       self.log.info('[NexusStreamer] Connected');
@@ -247,7 +252,7 @@ export class NexusStreamer {
    * Request that playback start with specific params
    */
   startPlayback(): void {
-    this.started = true;
+    this.videoStarted = true;
     // Attempt to use camera's stream profile or use default
     let primaryProfile = StreamProfile.VIDEO_H264_2MBIT_L40;
     const otherProfiles: Array<StreamProfile> = [];
@@ -373,7 +378,7 @@ export class NexusStreamer {
       // H264 NAL Units require 0001 added to beginning
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
       const stdin = this.ffmpegVideo.getStdin();
-      if (this.started) {
+      if (this.videoStarted) {
         stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]), () => {
           // Do nothing
         });
@@ -381,7 +386,7 @@ export class NexusStreamer {
     }
     if (packet.channel_id === this.audioChannelID) {
       const stdin = this.ffmpegAudio?.getStdin();
-      if (this.started) {
+      if (this.videoStarted) {
         stdin?.write(Buffer.from(packet.payload), () => {
           // Do nothing
         });
