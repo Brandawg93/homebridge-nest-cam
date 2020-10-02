@@ -8,7 +8,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { HomebridgeUI } from './uix';
 import execa from 'execa';
-import querystring from 'querystring';
 
 const whichChromiumBrowser = async (binary: string): Promise<string> => {
   try {
@@ -88,10 +87,8 @@ export async function getChromiumBrowser(): Promise<string> {
 }
 
 export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
-  let clientId: string | Array<string> | undefined;
-  let loginHint: string | Array<string> | undefined;
+  let issueToken: string | undefined;
   let cookies: string | undefined;
-  let domain: string | undefined;
 
   const executablePath = await getChromiumBrowser();
 
@@ -267,7 +264,6 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
     await page.setRequestInterception(true);
     page.on('request', async (request: Browser.Request) => {
-      const headers = request.headers();
       const url = request.url();
       // Getting cookies
       if (!cookies && url.includes('CheckCookie')) {
@@ -278,21 +274,15 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
           .join('; ');
       }
 
-      // Building issueToken
-      if (!clientId && (url.includes('CheckCookie') || url.includes('challenge?'))) {
-        const postData = querystring.parse(url.split('?')[1]);
-        clientId = postData.client_id;
-      }
-
-      // Getting domain
-      if (!domain && url.includes('issue_jwt')) {
-        domain = encodeURIComponent(headers.origin || 'https://home.nest.com');
+      // Getting issueToken
+      if (url.includes('iframerpc?action=issueToken')) {
+        issueToken = url;
       }
 
       // Build googleAuth object
-      if (clientId && loginHint && domain && cookies) {
+      if (issueToken && cookies) {
         const auth = {
-          issueToken: `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${domain}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${domain}`,
+          issueToken: issueToken,
           cookies: cookies,
         };
 
@@ -315,17 +305,6 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
 
       request.continue();
-    });
-
-    page.on('response', async (response: Browser.Response) => {
-      // Building issueToken
-      if (!loginHint && response.url().includes('consent?')) {
-        const headers = response.headers();
-        if (headers.location) {
-          const queries = querystring.parse(headers.location);
-          loginHint = queries.login_hint;
-        }
-      }
     });
 
     // the two factor catch is after the page interceptors intentionally
