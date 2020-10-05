@@ -104,6 +104,7 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
   let browser: Browser.Browser;
   const headless = !process.argv.includes('-h');
+  const homeUrl = process.argv.includes('-ft') ? 'https://home.ft.nest.com' : 'https://home.nest.com';
 
   const prompt = (key: 'username' | 'password' | 'totp', query: string, hidden = false): Promise<string> =>
     new Promise(async (resolve, reject) => {
@@ -219,12 +220,13 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     const page = await browser.newPage();
     const pages = await browser.pages();
     pages[0].close();
+    // This stops google login from throwing untrusted browser error
     await page.evaluateOnNewDocument(() => {
       const newProto = Object.getPrototypeOf(navigator);
       delete newProto.webdriver;
       Object.setPrototypeOf(navigator, newProto);
     });
-    await page.goto('https://home.nest.com', { waitUntil: 'networkidle2' });
+    await page.goto(homeUrl, { waitUntil: 'networkidle2' });
     if (headless) {
       try {
         await page.waitForSelector('button[data-test="google-button-login"]');
