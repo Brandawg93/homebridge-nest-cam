@@ -93,5 +93,4 @@ This plugin was converted to typescript using both [homebridge-ring](https://git
 ## Donate to Support homebridge-nest-cam
 This plugin was made with you in mind. If you would like to show your appreciation for its continued development, please consider making [a small donation](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url).
 
-## Disclaimer
-This plugin and its contributers are not affiliated with Google LLC or Nest Labs in any way.
+<sub><sup>**Disclaimer:** This plugin and its contributers are not affiliated with Google LLC or Nest Labs in any way.</sub></sup>
