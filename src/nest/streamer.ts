@@ -187,8 +187,10 @@ export class NexusStreamer {
       requestBuffer.writeUInt16BE(buffer.length, 1);
       requestBuffer = Buffer.concat([requestBuffer, Buffer.from(buffer)]);
     }
-    if (this.socket?.readyState !== WebSocket.CLOSING && this.socket?.readyState !== WebSocket.CLOSED) {
-      this.socket?.send(requestBuffer);
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket?.send(requestBuffer, () => {
+        // Do nothing
+      });
     }
   }
 
@@ -493,15 +495,23 @@ export class NexusStreamer {
       this.pendingBuffer = Buffer.concat([this.pendingBuffer, data]);
     }
 
-    const type = this.pendingBuffer.readUInt8();
     let headerLength = 0;
     let length = 0;
-    if (type === PacketType.LONG_PLAYBACK_PACKET) {
-      headerLength = 5;
-      length = this.pendingBuffer.readUInt32BE(1);
-    } else {
-      headerLength = 3;
-      length = this.pendingBuffer.readUInt16BE(1);
+    let type = 0;
+    try {
+      type = this.pendingBuffer.readUInt8();
+      if (type === PacketType.LONG_PLAYBACK_PACKET) {
+        headerLength = 5;
+        length = this.pendingBuffer.readUInt32BE(1);
+      } else {
+        headerLength = 3;
+        length = this.pendingBuffer.readUInt16BE(1);
+      }
+    } catch (error) {
+      this.log.debug(`Buffer only had ${this.pendingBuffer.length} bytes. Skipping...`);
+      this.log.debug(error);
+      this.pendingBuffer = undefined;
+      return;
     }
     const payloadEndPosition = length + headerLength;
     if (this.pendingBuffer.length >= payloadEndPosition) {
