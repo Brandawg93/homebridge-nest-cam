@@ -116,7 +116,7 @@ export class NexusStreamer {
       self.log.info('[NexusStreamer] Connected');
       self.requestHello();
       pingInterval = setInterval(() => {
-        self.sendPingMessage();
+        self.sendMessage(1, Buffer.alloc(0));
       }, 15000);
     });
 
@@ -125,8 +125,13 @@ export class NexusStreamer {
     });
 
     this.socket.on('close', () => {
-      self.unschedulePingMessage(pingInterval);
+      clearInterval(pingInterval);
       self.log.info('[NexusStreamer] Disconnected');
+    });
+
+    this.socket.on('error', (error) => {
+      self.log.error(`[NexusStreamer] Websocket error: ${error.message}`);
+      self.stopPlayback();
     });
   }
 
@@ -192,23 +197,6 @@ export class NexusStreamer {
         // Do nothing
       });
     }
-  }
-
-  // Ping
-
-  /**
-   * Send a ping message to keep stream alive
-   */
-  private sendPingMessage(): void {
-    this.sendMessage(1, Buffer.alloc(0));
-  }
-
-  /**
-   * Stop sending the ping message
-   * @param {NodeJS.Timeout} pingInterval The interval object
-   */
-  private unschedulePingMessage(pingInterval: NodeJS.Timeout): void {
-    clearInterval(pingInterval);
   }
 
   /**
