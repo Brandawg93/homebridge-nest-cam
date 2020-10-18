@@ -244,7 +244,10 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
       console.log('Finishing up...');
       try {
-        await page.waitForSelector('figure[data-illustration="authzenGmailApp"]', { timeout: 1000 });
+        await page.waitForSelector(
+          'figure[data-illustration="authzenGmailApp"],figure[data-illustration="authzenHiddenPin"]',
+          { timeout: 1000 },
+        );
         console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
       } catch (error) {
         // Gmail 2FA is not enabled
@@ -297,11 +300,13 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       }
 
       // Auth didn't work
-      if (url.includes('cameras.get_owned_and_member_of_with_properties')) {
+      if (url.includes('app_launch')) {
         if (uix) {
-          uix.loginFailed('Could not generate "googleAuth" object.');
+          uix.loginFailed(`Could not generate "googleAuth" object.`);
         } else {
-          console.log('Could not generate "googleAuth" object.');
+          console.log(
+            `Could not generate "googleAuth" object. \n\nBelow are the values retrieved by the login process:\n\nissueToken: ${issueToken},\ncookies: ${cookies}`,
+          );
         }
         browser.close();
       }
