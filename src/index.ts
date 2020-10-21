@@ -114,12 +114,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     // Microphone configuration
     if (camera.info.capabilities.includes('audio.microphone')) {
       nestAccessory.createService(hap.Service.Microphone);
-      this.log.debug(`Creating microphone for ${accessory.displayName}.`);
-    }
-
-    if (camera.info.capabilities.includes('audio.microphone')) {
       nestAccessory.createService(hap.Service.Speaker);
-      this.log.debug(`Creating speaker for ${accessory.displayName}.`);
+      this.log.debug(`Creating microphone for ${accessory.displayName}.`);
     }
 
     // Doorbell configuration

@@ -67,10 +67,10 @@ export class ConfigSchema {
         data.schema.options.properties.structures &&
         data.schema.options.properties.structures.items
       ) {
-        if (structures.length > 0) {
+        if (structures.length > 1) {
           data.schema.options.properties.structures.items.oneOf = structures;
-        } else if (data.schema.options.properties.structures.items.oneOf) {
-          delete data.schema.options.properties.structures.items.oneOf;
+        } else {
+          delete data.schema.options.properties.structures;
         }
         await this.writeSchemaFile(data);
       }
