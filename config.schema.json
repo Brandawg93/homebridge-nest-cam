@@ -33,7 +33,16 @@
           "title": "FFmpeg Codec",
           "type": "string",
           "default": "libx264",
-          "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices."
+          "description": "For best results use \"libx264\". The \"copy\" codec is not recommended but may work for less powerful devices.",
+          "typeahead": {
+            "source": [
+              "libx264",
+              "copy",
+              "h264_omx",
+              "h264_videotoolbox",
+              "h264_mmal"
+            ]
+          }  
         },    
         "streamQuality": {
           "title": "Stream Quality",
@@ -49,7 +58,10 @@
           "type": "integer",
           "default": 10,
           "minimum": 2,
-          "maximum": 60
+          "maximum": 60,
+          "condition": {
+            "functionBody": "return model.options.motionDetection === true || model.options.doorbellAlerts === true;"
+          }
         },
         "alertCooldownRate": {
           "title": "Alert Cooldown Rate",
@@ -57,7 +69,10 @@
           "type": "integer",
           "default": 180,
           "minimum": 60,
-          "maximum": 300
+          "maximum": 300,
+          "condition": {
+            "functionBody": "return model.options.motionDetection === true || model.options.doorbellAlerts === true;"
+          }
         },
         "alertTypes": {
           "title": "Alert Types",
@@ -75,13 +90,19 @@
               { "title": "Face", "enum": ["Face"] },
               { "title": "Zone", "enum": ["Zone"] }
             ]    
+          },
+          "condition": {
+            "functionBody": "return model.options.motionDetection === true || model.options.doorbellAlerts === true;"
           }
         },
         "importantOnly": {
           "title": "Important Events Only",
           "description": "Only send notifications on events considered important?",
           "type": "boolean",
-          "default": true
+          "default": true,
+          "condition": {
+            "functionBody": "return model.options.motionDetection === true || model.options.doorbellAlerts === true;"
+          }
         },
         "motionDetection": {
           "title": "Motion Detection",
