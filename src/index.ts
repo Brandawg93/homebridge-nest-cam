@@ -25,6 +25,11 @@ class Options {
   audioSwitch = true;
 }
 
+interface NestObject {
+  accessory: PlatformAccessory;
+  camera: NestCam;
+}
+
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
 
@@ -36,8 +41,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private readonly api: API;
   private config: NestConfig;
   private options: Options;
-  private readonly accessories: Array<PlatformAccessory> = [];
-  private readonly cameras: Array<NestCam> = [];
+  private readonly nestObjects: Array<NestObject> = [];
   private structures: Array<string> = [];
   private schema: Schema = { structures: [] };
 
@@ -169,68 +173,53 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       nestAccessory.removeService(hap.Service.Switch, 'Audio');
     }
 
-    this.cameras.push(camera);
-    this.accessories.push(accessory);
+    this.nestObjects.push({ accessory: accessory, camera: camera });
   }
 
   private async setupMotionServices(): Promise<void> {
-    this.cameras.forEach(async (camera) => {
-      const uuid = hap.uuid.generate(camera.info.uuid);
-      const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
+    this.nestObjects.forEach(async (obj) => {
+      const camera = obj.camera;
+      const accessory = obj.accessory;
       if (accessory) {
-        // Motion configuration
         const nestAccessory = new NestAccessory(accessory, camera, this.config, this.log, hap);
-        const services = nestAccessory.getServicesByType(hap.Service.MotionSensor);
-        const alertTypes = await camera.getAlertTypes();
-        // Remove invalid services
-        const invalidServices = services.filter((x) => !alertTypes.includes(x.displayName));
-        for (const service of invalidServices) {
-          accessory.removeService(service);
-        }
-        alertTypes.forEach((type) => {
-          if (camera.info.capabilities.includes('detectors.on_camera') && this.options.motionDetection) {
-            nestAccessory.createService(hap.Service.MotionSensor, type);
-            this.log.debug(`Creating motion sensor for ${accessory.displayName} ${type}.`);
-            camera.startAlertChecks();
+        if (this.options.motionDetection) {
+          // Motion configuration
+          const services = nestAccessory.getServicesByType(hap.Service.MotionSensor);
+          const alertTypes = await camera.getAlertTypes();
+          // Remove invalid services
+          const invalidServices = services.filter((x) => !alertTypes.includes(x.displayName));
+          for (const service of invalidServices) {
+            accessory.removeService(service);
           }
-        });
+          alertTypes.forEach((type) => {
+            if (camera.info.capabilities.includes('detectors.on_camera')) {
+              nestAccessory.createService(hap.Service.MotionSensor, type);
+              this.log.debug(`Creating motion sensor for ${accessory.displayName} ${type}.`);
+              camera.startAlertChecks();
+            }
+          });
+        } else {
+          nestAccessory.removeAllServicesByType(hap.Service.MotionSensor);
+        }
       }
     });
-  }
-
-  private removeAccessory(accessory: PlatformAccessory): void {
-    this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-    const index = this.accessories.indexOf(accessory);
-    if (index > -1) {
-      this.accessories.splice(index, 1);
-      const cameras = this.cameras.splice(index, 1);
-      for (const cam of cameras) {
-        cam.stopAlertChecks();
-      }
-    }
   }
 
   private cleanupAccessories(): void {
     //Remove cached cameras filtered by structure
     if (this.structures.length > 0) {
-      const oldCameras = this.cameras.filter(
-        (camera: NestCam) => !this.structures.includes(camera.info.nest_structure_id.replace('structure.', '')),
+      const oldObjects = this.nestObjects.filter(
+        (obj: NestObject) => !this.structures.includes(obj.camera.info.nest_structure_id.replace('structure.', '')),
       );
-      oldCameras.forEach((camera) => {
-        const uuid = hap.uuid.generate(camera.info.uuid);
-        const accessory = this.accessories.find((x: PlatformAccessory) => x.UUID === uuid);
-        if (accessory) {
-          this.removeAccessory(accessory);
+      oldObjects.forEach((obj) => {
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [obj.accessory]);
+        const index = this.nestObjects.indexOf(obj);
+        if (index > -1) {
+          obj.camera.stopAlertChecks();
+          this.nestObjects.splice(index, 1);
         }
       });
     }
-
-    // Remove cameras that were not in previous call
-    // this.accessories.forEach((accessory: PlatformAccessory) => {
-    //   if (!cameras.find((x: CameraInfo) => x.uuid === accessory.context.cameraInfo.uuid)) {
-    //     this.removeAccessory(accessory);
-    //   }
-    // });
   }
 
   private async generateConfigSchema(): Promise<void> {
@@ -288,7 +277,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       }
 
       // Only add new cameras that are not cached
-      if (!this.accessories.find((x: PlatformAccessory) => x.UUID === uuid)) {
+      if (!this.nestObjects.find((x: NestObject) => x.accessory.UUID === uuid)) {
         this.log.debug(`New camera found: ${cameraInfo.name}`);
         this.configureAccessory(accessory); // abusing the configureAccessory here
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
@@ -318,13 +307,19 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         await this.generateConfigSchema();
         this.cleanupAccessories();
         const session = new NestSession(this.config, this.log);
-        await session.subscribe(this.cameras);
+        const cameraObjects = this.nestObjects.map((x) => {
+          return x.camera;
+        });
+        await session.subscribe(cameraObjects);
       }
     }
   }
 
   isShuttingDown(): void {
-    this.api.updatePlatformAccessories(this.accessories);
+    const accessoryObjects = this.nestObjects.map((x) => {
+      return x.accessory;
+    });
+    this.api.updatePlatformAccessories(accessoryObjects);
   }
 }
 

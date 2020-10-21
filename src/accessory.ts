@@ -93,6 +93,14 @@ export class NestAccessory {
     }
   }
 
+  removeAllServicesByType(serviceType: ServiceType): void {
+    let existingService = this.accessory.getService(serviceType);
+    while (existingService) {
+      this.accessory.removeService(existingService);
+      existingService = this.accessory.getService(serviceType);
+    }
+  }
+
   createSwitchService(
     name: string,
     serviceType: ServiceType,
