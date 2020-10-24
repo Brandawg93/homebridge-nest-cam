@@ -227,46 +227,6 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       Object.setPrototypeOf(navigator, newProto);
     });
     await page.goto(homeUrl, { waitUntil: 'networkidle2' });
-    if (headless) {
-      try {
-        await page.waitForSelector('button[data-test="google-button-login"]');
-        await page.click('button[data-test="google-button-login"]');
-      } catch (error) {
-        console.error(`Unable to find login button.`);
-        if (uix) {
-          uix.loginFailed(`Unable to find login button.`);
-        }
-        return;
-      }
-
-      await inputData('#identifierId', 'username', 'Email or phone: ', email, page);
-      await inputData('input[type="password"]', 'password', 'Password: ', password, page);
-
-      console.log('Finishing up...');
-      try {
-        await page.waitForSelector(
-          'figure[data-illustration="authzenGmailApp"],figure[data-illustration="authzenHiddenPin"]',
-          { timeout: 1000 },
-        );
-        console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
-      } catch (error) {
-        // Gmail 2FA is not enabled
-        try {
-          await page.waitForSelector('#assistiveActionOutOfQuota', { timeout: 1000 });
-          console.error('Unavailable because of too many failed attempts. Try again in a few hours.');
-          if (uix) {
-            uix.loginFailed('Unavailable because of too many failed attempts. Try again in a few hours.');
-          }
-          try {
-            browser.close();
-          } catch (e) {}
-          return;
-        } catch (error) {
-          // Login did not fail because of too many attempts
-        }
-      }
-    }
-
     await page.setRequestInterception(true);
     page.on('request', async (request: Browser.Request) => {
       const url = request.url();
@@ -313,21 +273,58 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
 
       request.continue();
     });
+    if (headless) {
+      try {
+        await page.waitForSelector('button[data-test="google-button-login"]');
+        await page.click('button[data-test="google-button-login"]');
+      } catch (error) {
+        console.error(`Unable to find login button.`);
+        if (uix) {
+          uix.loginFailed(`Unable to find login button.`);
+        }
+        return;
+      }
 
-    // the two factor catch is after the page interceptors intentionally
-    try {
-      await page.waitForSelector('input[name="totpPin"],input[name="idvPin"]', { timeout: 5000 });
-      console.log('2-step Verification Required');
+      await inputData('#identifierId', 'username', 'Email or phone: ', email, page);
+      await inputData('input[type="password"]', 'password', 'Password: ', password, page);
+      console.log('Finishing up...');
 
-      await inputData(
-        'input[name="totpPin"],input[name="idvPin"]',
-        'totp',
-        'Please enter the verification code from the Google Authenticator app or SMS: ',
-        undefined,
-        page,
-      );
-    } catch (e) {
-      // totp is not enabled
+      try {
+        await page.waitForSelector('input[name="totpPin"],input[name="idvPin"]', { timeout: 5000 });
+        console.log('2-step Verification Required');
+
+        await inputData(
+          'input[name="totpPin"],input[name="idvPin"]',
+          'totp',
+          'Please enter the verification code from the Google Authenticator app or SMS: ',
+          undefined,
+          page,
+        );
+      } catch (e) {
+        // totp is not enabled
+        try {
+          await page.waitForSelector(
+            'figure[data-illustration="authzenGmailApp"],figure[data-illustration="authzenHiddenPin"]',
+            { timeout: 1000 },
+          );
+          console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
+        } catch (error) {
+          // Gmail 2FA is not enabled
+          try {
+            await page.waitForSelector('#assistiveActionOutOfQuota', { timeout: 1000 });
+            console.error('Unavailable because of too many failed attempts. Try again in a few hours.');
+            if (uix) {
+              uix.loginFailed('Unavailable because of too many failed attempts. Try again in a few hours.');
+            }
+            try {
+              browser.close();
+            } catch (e) {}
+            return;
+          } catch (error) {
+            // Login did not fail because of too many attempts
+          }
+        }
+      }
     }
   } catch (err) {
     console.error('Unable to retrieve credentials.');
