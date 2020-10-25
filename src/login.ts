@@ -7,6 +7,7 @@ import * as readline from 'readline';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HomebridgeUI } from './uix';
+import querystring from 'querystring';
 import execa from 'execa';
 
 const whichChromiumBrowser = async (binary: string): Promise<string> => {
@@ -87,9 +88,8 @@ export async function getChromiumBrowser(): Promise<string> {
 }
 
 export async function login(email?: string, password?: string, uix?: HomebridgeUI): Promise<void> {
-  let issueToken: string | undefined;
-  let cookies: string | undefined;
-
+  let clientId: string | Array<string> | undefined;
+  let loginHint: string | Array<string> | undefined;
   const executablePath = await getChromiumBrowser();
 
   if (!executablePath) {
@@ -230,22 +230,23 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
     await page.setRequestInterception(true);
     page.on('request', async (request: Browser.Request) => {
       const url = request.url();
-      // Getting cookies
-      if (!cookies && url.includes('CheckCookie')) {
-        cookies = (await page.cookies())
+
+      // Getting issueToken
+      if (url.includes('iframerpc?action=issueToken') || (loginHint && clientId)) {
+        const cookies = (await page.cookies('https://accounts.google.com'))
           .map((cookie: any) => {
             return `${cookie.name}=${cookie.value}`;
           })
           .join('; ');
-      }
 
-      // Getting issueToken
-      if (url.includes('iframerpc?action=issueToken')) {
-        issueToken = url;
-      }
-
-      // Build googleAuth object
-      if (issueToken && cookies) {
+        const issueToken =
+          loginHint && clientId
+            ? `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${encodeURIComponent(
+                homeUrl,
+              )}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${encodeURIComponent(
+                homeUrl,
+              )}`
+            : url;
         const auth = {
           issueToken: issueToken,
           cookies: cookies,
@@ -262,17 +263,28 @@ export async function login(email?: string, password?: string, uix?: HomebridgeU
       // Auth didn't work
       if (url.includes('app_launch')) {
         if (uix) {
-          uix.loginFailed(`Could not generate "googleAuth" object.`);
+          uix.loginFailed('Could not generate "googleAuth" object.');
         } else {
-          console.log(
-            `Could not generate "googleAuth" object. \n\nBelow are the values retrieved by the login process:\n\nissueToken: ${issueToken},\ncookies: ${cookies}`,
-          );
+          console.log('Could not generate "googleAuth" object.');
         }
         browser.close();
       }
 
       request.continue();
     });
+
+    page.on('response', async (response: Browser.Response) => {
+      // Building issueToken
+      if (response.url().includes('consent?')) {
+        const headers = response.headers();
+        if (headers.location) {
+          const queries = querystring.parse(headers.location);
+          loginHint = queries.login_hint;
+          clientId = queries.client_id;
+        }
+      }
+    });
+
     if (headless) {
       try {
         await page.waitForSelector('button[data-test="google-button-login"]');
