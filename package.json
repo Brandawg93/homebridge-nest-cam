@@ -68,7 +68,7 @@
   ],
   "dependencies": {
     "ws": "^7.3.1",
-    "axios": "^0.20.0",
+    "axios": "^0.21.0",
     "execa": "^4.0.3",
     "ffmpeg-for-homebridge": "^0.0.9",
     "get-port": "^5.1.1",
