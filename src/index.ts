@@ -99,6 +99,15 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     return true;
   }
 
+  private async checkNestAuth(): Promise<boolean> {
+    if (!this.config.access_token) {
+      this.log.error('You did not specify your Nest account credentials in config.json');
+      return false;
+    }
+    return true;
+
+  }
+
   configureAccessory(accessory: PlatformAccessory<Record<string, CameraInfo>>): void {
     this.log.info(`Configuring accessory ${accessory.displayName}`);
 
@@ -283,11 +292,15 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   async didFinishLaunching(): Promise<void> {
     const self = this;
-    const valid = await this.checkGoogleAuth();
+    const test_nest = await this.checkNestAuth();
+    const test_google = await this.checkNestAuth();
+    const valid = test_nest || test_google;
 
     if (valid) {
-      this.config.fieldTest = this.config.googleAuth?.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
-      this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
+      if (test_google){
+          this.config.fieldTest = this.config.googleAuth?.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
+          this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
+      }
       const conn = new Connection(this.config, this.log);
       const connected = await conn.auth();
       if (connected) {
