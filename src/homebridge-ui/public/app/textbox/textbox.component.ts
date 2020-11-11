@@ -7,6 +7,5 @@ import '@homebridge/plugin-ui-utils/dist/ui.interface';
   styleUrls: ['./textbox.component.css'],
 })
 export class TextboxComponent {
-  version = window.homebridge.plugin.installedVersion;
-  name = window.homebridge.plugin.name;
+  version = window.homebridge?.plugin?.installedVersion;
 }
