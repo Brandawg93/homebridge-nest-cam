@@ -1,2 +1,13 @@
-<input type="text" class="form-control" [(ngModel)]="issueToken" required />
-<input type="text" class="form-control" [(ngModel)]="cookies" required />
+<div *ngIf="isLoggedIn; else notLoggedIn">
+    <div class="schema-form-text form-group">
+        <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
+        <input type="text" class="form-control" [(ngModel)]="issueToken" required />
+    </div>
+    <div class="schema-form-text form-group">
+        <label class="control-label">Cookies <strong class="text-danger">*</strong></label>
+        <input type="text" class="form-control" [(ngModel)]="cookies" required />
+    </div>    
+</div>
+<ng-template #notLoggedIn>
+    <button class="btn btn-primary" type="button">Log In</button>
+</ng-template>
