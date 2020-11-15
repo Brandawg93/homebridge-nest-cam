@@ -8,6 +8,7 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/auth', this.handleAuthRequest.bind(this));
 
     this.ready();
+    this.pushEvent('auth-error', { message: 'Something went wrong.' });
   }
 
   /**

@@ -12,9 +12,13 @@ export class LoginComponent implements OnInit {
   public isLoggedIn = false;
   public authenticated = false;
   private homebridge = window.homebridge;
+  public errMsg = '';
 
   constructor() {
     this.homebridge.showSpinner();
+    this.homebridge.addEventListener('auth-error', () => {
+      console.log('auth error');
+    });
   }
 
   async ngOnInit(): Promise<void> {
