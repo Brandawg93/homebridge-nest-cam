@@ -16,8 +16,8 @@ export class LoginComponent implements OnInit {
 
   constructor() {
     this.homebridge.showSpinner();
-    this.homebridge.addEventListener('auth-error', () => {
-      console.log('auth error');
+    this.homebridge.addEventListener('auth-error', (event: any) => {
+      this.errMsg = event.data.message;
     });
   }
 
