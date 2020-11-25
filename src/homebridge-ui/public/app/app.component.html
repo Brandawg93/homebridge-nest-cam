@@ -1,6 +1,5 @@
 <div class="content hb-plugin-settings-modal">
-  <span>{{ title }} app is running!</span>
-  <div class="card card-body">
+  <div *ngIf="!authenticated" class="card card-body">
     <app-login></app-login>
   </div>
 </div>

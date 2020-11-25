@@ -1,14 +1,26 @@
-<div *ngIf="isLoggedIn; else notLoggedIn">
-    <div class="schema-form-text form-group">
-        <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
-        <input type="text" class="form-control" [(ngModel)]="issueToken" required />
+<div *ngIf="manualLogin; else autoLogin">
+    <div [formGroup]="form">
+        <div class="schema-form-text form-group">
+            <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
+            <input type="text" class="form-control" formControlName="issueToken" placeholder="https://accounts.google.com/o/oauth2/iframerpc?action=issueToken..." />
+        </div>
+        <div class="schema-form-text form-group">
+            <label class="control-label">Cookies <strong class="text-danger">*</strong></label>
+            <input type="text" class="form-control" formControlName="cookies" placeholder="SMSV=ADHTe..." />
+        </div>    
     </div>
-    <div class="schema-form-text form-group">
-        <label class="control-label">Cookies <strong class="text-danger">*</strong></label>
-        <input type="text" class="form-control" [(ngModel)]="cookies" required />
-    </div>    
 </div>
-<ng-template #notLoggedIn>
+
+<ng-template #autoLogin>
+    <div class="schema-form-text form-group">
+        <label class="control-label">Email <strong class="text-danger">*</strong></label>
+        <input type="text" class="form-control" [(ngModel)]="email" required />
+    </div>    
+    <div class="schema-form-text form-group">
+        <label class="control-label">Password <strong class="text-danger">*</strong></label>
+        <input type="password" class="form-control" [(ngModel)]="password" required />
+    </div> 
+
     <div class="text-center">
         <button class="btn btn-primary" type="button">Log In</button>
         <p class="text-danger">{{errMsg}}</p>   

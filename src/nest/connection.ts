@@ -19,7 +19,7 @@ const delay = function (time: number): Promise<void> {
 /**
  * Get info on all cameras
  */
-export async function getCameras(config: NestConfig, log: Logging): Promise<Array<CameraInfo>> {
+export async function getCameras(config: NestConfig, log?: Logging): Promise<Array<CameraInfo>> {
   const endpoints = new NestEndpoints(config.fieldTest);
   let cameras: Array<CameraInfo> = [];
   try {
@@ -31,7 +31,9 @@ export async function getCameras(config: NestConfig, log: Logging): Promise<Arra
     );
     cameras = response.items;
   } catch (error) {
-    handleError(log, error, 'Error fetching cameras');
+    if (log) {
+      handleError(log, error, 'Error fetching cameras');
+    }
   }
   return cameras;
 }
