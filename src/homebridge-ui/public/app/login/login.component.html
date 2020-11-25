@@ -9,6 +9,11 @@
             <input type="text" class="form-control" formControlName="cookies" placeholder="SMSV=ADHTe..." />
         </div>    
     </div>
+    <div class="text-center">
+        <button class="btn btn-primary" type="button">Log In</button>
+        <p class="text-danger">{{errMsg}}</p>
+        <a href="#" (click)="toggleLogin()"><small>...or login automatically.</small></a> 
+    </div>
 </div>
 
 <ng-template #autoLogin>
@@ -23,6 +28,7 @@
 
     <div class="text-center">
         <button class="btn btn-primary" type="button">Log In</button>
-        <p class="text-danger">{{errMsg}}</p>   
+        <p class="text-danger">{{errMsg}}</p>
+        <a href="#" (click)="toggleLogin()"><small>...or login manually.</small></a> 
     </div>
 </ng-template>

@@ -34,6 +34,10 @@ export class LoginComponent implements OnInit {
     this.generateForm();
   }
 
+  toggleLogin(): void {
+    this.manualLogin = !this.manualLogin;
+  }
+
   doLogin(): void {
     // Login
   }
