@@ -8,7 +8,7 @@ import { LoginComponent } from './login/login.component';
 @NgModule({
   declarations: [AppComponent, LoginComponent],
   imports: [BrowserModule, FormsModule, ReactiveFormsModule],
-  providers: [],
+  providers: [AppComponent],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

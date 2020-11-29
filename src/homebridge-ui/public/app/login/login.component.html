@@ -1,5 +1,6 @@
+<p class="help-block"><strong>Note: </strong>This plugin only works with Google accounts. Please visit this <a target="_blank" href="https://nest.com/whats-happening/">blog post</a> for more info.</p>
 <div *ngIf="manualLogin; else autoLogin">
-    <div [formGroup]="form">
+    <form [formGroup]="manualForm" (ngSubmit)="doManualLogin()">
         <div class="schema-form-text form-group">
             <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
             <input type="text" class="form-control" formControlName="issueToken" placeholder="https://accounts.google.com/o/oauth2/iframerpc?action=issueToken..." />
@@ -7,28 +8,32 @@
         <div class="schema-form-text form-group">
             <label class="control-label">Cookies <strong class="text-danger">*</strong></label>
             <input type="text" class="form-control" formControlName="cookies" placeholder="SMSV=ADHTe..." />
+        </div>
+        <div class="text-center">
+            <p class="help-block"><small>&nbsp;</small></p>
+            <button type="submit" class="btn btn-primary" [disabled]="!manualForm.valid">Log In</button>
+            <p class="text-danger">{{errMsg}}</p>
+            <a href="#" (click)="toggleLogin()"><small>...or login automatically.</small></a> 
         </div>    
-    </div>
-    <div class="text-center">
-        <button class="btn btn-primary" type="button">Log In</button>
-        <p class="text-danger">{{errMsg}}</p>
-        <a href="#" (click)="toggleLogin()"><small>...or login automatically.</small></a> 
-    </div>
+    </form>
 </div>
 
 <ng-template #autoLogin>
-    <div class="schema-form-text form-group">
-        <label class="control-label">Email <strong class="text-danger">*</strong></label>
-        <input type="text" class="form-control" [(ngModel)]="email" required />
-    </div>    
-    <div class="schema-form-text form-group">
-        <label class="control-label">Password <strong class="text-danger">*</strong></label>
-        <input type="password" class="form-control" [(ngModel)]="password" required />
-    </div> 
-
-    <div class="text-center">
-        <button class="btn btn-primary" type="button">Log In</button>
-        <p class="text-danger">{{errMsg}}</p>
-        <a href="#" (click)="toggleLogin()"><small>...or login manually.</small></a> 
-    </div>
+    <form [formGroup]="autoForm" (ngSubmit)="doAutoLogin()">
+        <div class="schema-form-text form-group">
+            <label class="control-label">Email <strong class="text-danger">*</strong></label>
+            <input type="text" class="form-control" formControlName="email" required />
+        </div>
+        <div class="schema-form-text form-group">
+            <label class="control-label">Password <strong class="text-danger">*</strong></label>
+            <input type="password" class="form-control" formControlName="password" required />
+        </div>
+    
+        <div class="text-center">
+            <p class="help-block"><small>Your email and password will be sent directly to Google and will not be stored anywhere.</small></p>
+            <button type="submit" class="btn btn-primary" [disabled]="!autoForm.valid">Log In</button>
+            <p class="text-danger">{{errMsg}}</p>
+            <a href="#" (click)="toggleLogin()"><small>...or login manually.</small></a> 
+        </div>    
+    </form>
 </ng-template>

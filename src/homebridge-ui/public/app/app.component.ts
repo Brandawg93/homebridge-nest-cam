@@ -15,6 +15,30 @@ export class AppComponent implements OnInit {
     this.homebridge.showSpinner();
   }
 
+  async showForm(): Promise<void> {
+    // create the form
+    const self = this;
+    const config = (await this.homebridge.getPluginConfig())[0];
+    let schema = (await this.homebridge.getPluginConfigSchema()).schema;
+    if (schema) {
+      schema = await this.modifySchema(schema);
+      // Remove properties not present in the schema
+      for (const property in Object.keys(config)) {
+        if (!schema[property]) {
+          delete config[property];
+        }
+      }
+      const form = this.homebridge.createForm({ schema: schema }, config);
+      // watch for change events
+      form.onChange(async (change) => {
+        await self.homebridge.updatePluginConfig([change]);
+      });
+
+      // stop listening to change events and hide the form
+      // form.end();
+    }
+  }
+
   async ngOnInit(): Promise<void> {
     const config = (await this.homebridge.getPluginConfig())[0];
     const issueToken = config.googleAuth?.issueToken;
@@ -25,20 +49,7 @@ export class AppComponent implements OnInit {
         cookies: cookies,
       });
       if (this.authenticated) {
-        // create the form
-        const self = this;
-        let schema = (await this.homebridge.getPluginConfigSchema()).schema;
-        if (schema) {
-          schema = await this.modifySchema(schema);
-          const form = this.homebridge.createForm({ schema: schema }, config);
-          // watch for change events
-          form.onChange(async (change) => {
-            await self.homebridge.updatePluginConfig([change]);
-          });
-
-          // stop listening to change events and hide the form
-          // form.end();
-        }
+        this.showForm();
       }
     } else {
       this.authenticated = false;
@@ -50,13 +61,14 @@ export class AppComponent implements OnInit {
     const cameras = (await this.homebridge.request('/cameras')) as Array<CameraInfo>;
     const structures = await this.homebridge.request('/structures');
 
-    const hasDoorbell = cameras.some((c) => c.capabilities.includes('indoor_chime'));
-    const hasMotion = cameras.some((c) => c.capabilities.includes('detectors.on_camera'));
+    const hasDoorbell = cameras ? cameras.some((c) => c.capabilities.includes('indoor_chime')) : false;
+    const hasMotion = cameras ? cameras.some((c) => c.capabilities.includes('detectors.on_camera')) : false;
 
     if (schema && schema.options && schema.options.properties) {
       if (!hasDoorbell) {
         delete schema.options.properties.doorbellAlerts;
         delete schema.options.properties.doorbellSwitch;
+        delete schema.options.properties.chimeSwitch;
       }
       if (!hasMotion) {
         delete schema.options.properties.alertCheckRate;
@@ -66,7 +78,7 @@ export class AppComponent implements OnInit {
         delete schema.options.properties.motionDetection;
       }
       if (schema.options.properties.structures && schema.options.properties.structures.items) {
-        if (structures.length > 1) {
+        if (structures && structures.length > 1) {
           schema.options.properties.structures.items.oneOf = structures;
         } else {
           delete schema.options.properties.structures;
