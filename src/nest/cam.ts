@@ -38,6 +38,7 @@ export class NestCam extends EventEmitter {
   private alertTimeout: NodeJS.Timeout | undefined;
   private alertFailures = 0;
   private alertsSend = true;
+  private lastCuepoint = '';
   private lastUpdatedTime: Date;
   private lastAlertTypes: Array<string> = [];
 
@@ -183,6 +184,7 @@ export class NestCam extends EventEmitter {
       this.alertFailures = 0;
       if (response.length > 0) {
         response.forEach((trigger) => {
+          this.lastCuepoint = trigger.id;
           // Add face to alert if name is not empty
           if (trigger.face_name) {
             this.log.debug(`Found face for ${trigger.face_name} in event`);
@@ -224,6 +226,10 @@ export class NestCam extends EventEmitter {
             }
           }
         });
+        // Reset last cuepoint if not used in 5 seconds
+        setTimeout(() => {
+          this.lastCuepoint = '';
+        }, 5000);
       } else {
         this.emit(NestCamEvents.MOTION_DETECTED, false, this.alertTypes);
         this.lastAlertTypes = [];
@@ -265,15 +271,36 @@ export class NestCam extends EventEmitter {
     return [];
   }
 
-  async getSnapshot(width: number): Promise<Buffer> {
+  async getSnapshot(height: number): Promise<Buffer> {
     const query = querystring.stringify({
       uuid: this.info.uuid,
-      width: width,
     });
+
+    if (this.lastCuepoint) {
+      return await this.getEventSnapshot(height);
+    }
     return await this.endpoints.sendRequest(
       this.config.access_token,
       `https://${this.info.nexus_api_nest_domain_host}`,
       `/get_image?${query}`,
+      'GET',
+      'arraybuffer',
+    );
+  }
+
+  async getEventSnapshot(height: number): Promise<Buffer> {
+    const query = querystring.stringify({
+      uuid: this.info.uuid,
+      cuepoint_id: this.lastCuepoint,
+      num_frames: 1,
+      height: height,
+      format: 'sprite',
+    });
+    this.lastCuepoint = '';
+    return await this.endpoints.sendRequest(
+      this.config.access_token,
+      `https://${this.info.nexus_api_nest_domain_host}`,
+      `/get_event_clip?${query}`,
       'GET',
       'arraybuffer',
     );

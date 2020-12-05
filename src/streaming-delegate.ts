@@ -111,7 +111,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): void {
     if (this.camera.info.properties['streaming.enabled']) {
       this.camera
-        .getSnapshot(request.width)
+        .getSnapshot(request.height)
         .then((snapshot) => {
           callback(undefined, snapshot);
         })
