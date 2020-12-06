@@ -193,7 +193,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const videoSsrc = sessionInfo.videoSSRC;
     const videoSRTP = sessionInfo.videoSRTP.toString('base64');
     const address = sessionInfo.address;
-    const fps = info.fps;
+    // Multiply the bitrate because homekit requests extremely low bitrates
+    const bitrate = info.max_bit_rate * 4;
+    // const fps = info.fps;
 
     const videoPayloadType = info.pt;
     const mtu = info.mtu; // maximum transmission unit
@@ -203,22 +205,28 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'h264',
       '-use_wallclock_as_timestamps',
       '1',
+      '-r',
+      '15',
       '-i',
       'pipe:',
       '-c:v',
       this.ffmpegCodec,
-      '-profile:v',
-      'high',
       '-bf',
       '0',
+      '-b:v',
+      `${bitrate}k`,
+      '-bufsize',
+      `${bitrate}k`,
+      '-maxrate',
+      `${2 * bitrate}k`,
       '-pix_fmt',
       'yuv420p',
-      '-filter:v',
-      `fps=fps=${fps}`,
+      '-an',
     ];
 
+    const index = command.indexOf(this.ffmpegCodec) + 1;
     if (this.ffmpegCodec === 'libx264') {
-      command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
+      command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
     }
 
     if (!this.camera.info.properties['streaming.enabled']) {
@@ -231,10 +239,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         this.ffmpegCodec,
         '-pix_fmt',
         'yuv420p',
+        '-an',
       ];
 
       if (this.ffmpegCodec === 'libx264') {
-        command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
+        command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
       }
     }
 
@@ -281,6 +290,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'aac_eld',
       '-ac',
       '1',
+      '-vn',
       '-ar',
       `${sampleRate}k`,
       '-b:a',
@@ -324,6 +334,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '4',
       '-ac',
       '1',
+      '-vn',
       '-ar',
       `16k`,
       '-f',
