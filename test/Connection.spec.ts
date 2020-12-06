@@ -1,20 +1,9 @@
-import { Logging, PlatformConfig } from 'homebridge';
-import { Logger } from 'homebridge/lib/logger';
-import { Connection } from '../src/nest/connection';
+import { auth } from '../src/nest/connection';
 
-test('works as expected', () => {
-  const config: PlatformConfig = {
-    platform: 'test',
-    googleAuth: {
-      issueToken: process.env.ISSUE_TOKEN,
-      cookies: process.env.COOKIES,
-    },
-    options: {
-      fieldTest: false,
-    },
-  };
-  const log: Logging = Logger.withPrefix('[test]');
-  const connection = new Connection(config, log);
+test('works as expected', async () => {
+  const issueToken = process.env.ISSUE_TOKEN || '';
+  const cookies = process.env.COOKIES || '';
   expect.assertions(1);
-  return expect(connection.auth()).resolves.toBeTruthy();
+  const accessToken = await auth(issueToken, cookies);
+  return expect(accessToken.length > 0).toBeTruthy();
 });
