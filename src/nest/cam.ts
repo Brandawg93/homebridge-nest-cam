@@ -25,7 +25,7 @@ export const enum NestCamEvents {
 
 export class NestCam extends EventEmitter {
   private readonly config: NestConfig;
-  private readonly log: Logging;
+  private readonly log: Logging | undefined;
   private endpoints: NestEndpoints;
   public info: CameraInfo;
   private zones: Array<Zone> = [];
@@ -42,7 +42,7 @@ export class NestCam extends EventEmitter {
   private lastUpdatedTime: Date;
   private lastAlertTypes: Array<string> = [];
 
-  constructor(config: NestConfig, info: CameraInfo, log: Logging) {
+  constructor(config: NestConfig, info: CameraInfo, log?: Logging) {
     super();
     this.log = log;
     this.config = config;
@@ -60,12 +60,12 @@ export class NestCam extends EventEmitter {
 
     const alertTypes = config.options?.alertTypes;
     if (typeof alertTypes !== 'undefined') {
-      log.debug(`Using alertTypes from config: ${alertTypes}`);
+      log?.debug(`Using alertTypes from config: ${alertTypes}`);
       this.alertTypes = alertTypes.slice();
     }
     const importantOnly = config.options?.importantOnly;
     if (typeof importantOnly !== 'undefined') {
-      log.debug(`Using importantOnly from config: ${importantOnly}`);
+      log?.debug(`Using importantOnly from config: ${importantOnly}`);
       this.importantOnly = importantOnly;
     }
   }
@@ -87,7 +87,7 @@ export class NestCam extends EventEmitter {
 
     try {
       if (response.status !== 0) {
-        this.log.error(`Unable to set property '${key}' for ${this.info.name} to ${value}`);
+        this.log?.error(`Unable to set property '${key}' for ${this.info.name} to ${value}`);
         return false;
       }
       this.info.properties[key] = value;
@@ -107,13 +107,13 @@ export class NestCam extends EventEmitter {
     if (useZones) {
       const zones = await this.getZones();
       zones.forEach((zone) => {
-        this.log.debug(`Found zone ${zone.label} for ${this.info.name}`);
+        this.log?.debug(`Found zone ${zone.label} for ${this.info.name}`);
         this.alertTypes.push(`Zone - ${zone.label}`);
       });
     }
 
     if (this.info.capabilities.includes('stranger_detection')) {
-      this.log.debug(`${this.info.name} has stranger_detection`);
+      this.log?.debug(`${this.info.name} has stranger_detection`);
       const useFaces = this.alertTypes.includes('Face');
       const index = this.alertTypes.indexOf('Face');
       if (index > -1) {
@@ -126,7 +126,7 @@ export class NestCam extends EventEmitter {
         if (faces) {
           faces.forEach((face: Face) => {
             if (face.name) {
-              this.log.debug(`Found face ${face.name} for ${structureId}`);
+              this.log?.debug(`Found face ${face.name} for ${structureId}`);
               this.alertTypes.push(`Face - ${face.name}`);
             }
           });
@@ -167,7 +167,7 @@ export class NestCam extends EventEmitter {
       return;
     }
 
-    this.log.debug(`Checking for alerts on ${this.info.name}`);
+    this.log?.debug(`Checking for alerts on ${this.info.name}`);
     try {
       const currDate = new Date();
       currDate.setMinutes(currDate.getMinutes() - 1);
@@ -187,7 +187,7 @@ export class NestCam extends EventEmitter {
           this.lastCuepoint = trigger.id;
           // Add face to alert if name is not empty
           if (trigger.face_name) {
-            this.log.debug(`Found face for ${trigger.face_name} in event`);
+            this.log?.debug(`Found face for ${trigger.face_name} in event`);
             trigger.types?.push(`Face - ${trigger.face_name}`);
 
             //If there is a face, there is a person
@@ -200,7 +200,7 @@ export class NestCam extends EventEmitter {
             trigger.zone_ids.forEach((zone_id) => {
               const zone = this.zones.find((x) => x.id === zone_id);
               if (zone) {
-                this.log.debug(`Found zone for ${zone.label} in event`);
+                this.log?.debug(`Found zone for ${zone.label} in event`);
                 trigger.types.push(`Zone - ${zone.label}`);
               }
             });
@@ -345,7 +345,7 @@ export class NestCam extends EventEmitter {
 
     setTimeout(async () => {
       self.motionDetected = false;
-      self.log.debug('Cooldown has ended');
+      self.log?.debug('Cooldown has ended');
     }, this.alertCooldown);
   }
 

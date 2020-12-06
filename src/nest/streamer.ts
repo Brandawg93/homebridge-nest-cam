@@ -28,7 +28,7 @@ export class NexusStreamer {
   private authorized = false;
   private videoStarted = false;
   private returnAudioStarted = false;
-  private readonly log: Logging;
+  private readonly log: Logging | undefined;
   private streamQuality: StreamQuality;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
@@ -43,11 +43,11 @@ export class NexusStreamer {
   constructor(
     cameraInfo: CameraInfo,
     accessToken: string | undefined,
-    log: Logging,
     streamQuality: StreamQuality,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,
+    log?: Logging,
   ) {
     this.log = log;
     this.streamQuality = streamQuality;
@@ -118,7 +118,7 @@ export class NexusStreamer {
     }
     this.socket = new WebSocket(`wss://${host}/nexustalk`);
     this.socket.on('open', () => {
-      self.log.info('[NexusStreamer] Connected');
+      self.log?.info('[NexusStreamer] Connected');
       self.requestHello();
       pingInterval = setInterval(() => {
         self.sendMessage(1, Buffer.alloc(0));
@@ -131,11 +131,11 @@ export class NexusStreamer {
 
     this.socket.on('close', () => {
       clearInterval(pingInterval);
-      self.log.info('[NexusStreamer] Disconnected');
+      self.log?.info('[NexusStreamer] Disconnected');
     });
 
     this.socket.on('error', (error) => {
-      self.log.error(`[NexusStreamer] Websocket error: ${error.message}`);
+      self.log?.error(`[NexusStreamer] Websocket error: ${error.message}`);
       self.stopPlayback();
     });
   }
@@ -161,7 +161,7 @@ export class NexusStreamer {
    */
   private sendMessage(type: number, buffer: Uint8Array): void {
     if (this.socket?.readyState === WebSocket.CONNECTING) {
-      this.log.debug('waiting for socket to connect');
+      this.log?.debug('waiting for socket to connect');
       if (!this.pendingMessages) {
         this.pendingMessages = [];
       }
@@ -173,7 +173,7 @@ export class NexusStreamer {
     }
 
     if (type !== PacketType.HELLO && !this.authorized) {
-      this.log.debug('waiting for authorization');
+      this.log?.debug('waiting for authorization');
       if (!this.pendingMessages) {
         this.pendingMessages = [];
       }
@@ -261,7 +261,7 @@ export class NexusStreamer {
     let index = -1;
     switch (this.streamQuality) {
       case StreamQuality.LOW:
-        this.log.debug('Using LOW quality stream.');
+        this.log?.debug('Using LOW quality stream.');
         primaryProfile = StreamProfile.VIDEO_H264_100KBIT_L30;
         index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
         if (index > -1) {
@@ -273,7 +273,7 @@ export class NexusStreamer {
         }
         break;
       case StreamQuality.MEDIUM:
-        this.log.debug('Using MEDIUM quality stream.');
+        this.log?.debug('Using MEDIUM quality stream.');
         primaryProfile = StreamProfile.VIDEO_H264_530KBIT_L31;
         index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
         if (index > -1) {
@@ -281,10 +281,10 @@ export class NexusStreamer {
         }
         break;
       case StreamQuality.HIGH:
-        this.log.debug('Using HIGH quality stream.');
+        this.log?.debug('Using HIGH quality stream.');
         break;
       default:
-        this.log.debug('Using HIGH quality stream.');
+        this.log?.debug('Using HIGH quality stream.');
         break;
     }
     this.cameraInfo.properties['audio.enabled'] && this.ffmpegAudio && otherProfiles.push(StreamProfile.AUDIO_AAC);
@@ -337,7 +337,7 @@ export class NexusStreamer {
   private handleRedirect(payload: Pbf): void {
     const packet = Redirect.read(payload);
     if (packet.new_host) {
-      this.log.info('[NexusStreamer] Redirecting...');
+      this.log?.info('[NexusStreamer] Redirecting...');
       this.redirect(packet.new_host);
     }
   }
@@ -397,13 +397,13 @@ export class NexusStreamer {
     const packet = PlaybackEnd.read(payload);
     switch (packet.reason) {
       case PlaybackEnd.Reason.ERROR_PROFILE_NOT_AVAILABLE:
-        this.log.debug('[NexusStreamer] Playback Error: Profile not available');
+        this.log?.debug('[NexusStreamer] Playback Error: Profile not available');
         break;
       case PlaybackEnd.Reason.ERROR_TIME_NOT_AVAILABLE:
-        this.log.error('[NexusStreamer] Playback Error: Time not available');
+        this.log?.error('[NexusStreamer] Playback Error: Time not available');
         break;
       case PlaybackEnd.Reason.ERROR_TRANSCODE_NOT_AVAILABLE:
-        this.log.debug('[NexusStreamer] Playback Error: Transcode not available');
+        this.log?.debug('[NexusStreamer] Playback Error: Transcode not available');
         break;
       default:
         break;
@@ -417,10 +417,10 @@ export class NexusStreamer {
   private handleNexusError(payload: Pbf): void {
     const packet = Error.read(payload);
     if (packet.code === ErrorCode.ERROR_AUTHORIZATION_FAILED) {
-      this.log.debug('[NexusStreamer] Updating authentication');
+      this.log?.debug('[NexusStreamer] Updating authentication');
       this.updateAuthentication();
     } else {
-      this.log.error(`[NexusStreamer] Error: ${packet.message}`);
+      this.log?.error(`[NexusStreamer] Error: ${packet.message}`);
       this.stopPlayback();
     }
   }
@@ -433,10 +433,10 @@ export class NexusStreamer {
   private handleNexusPacket(type: number, payload: Pbf): void {
     switch (type) {
       case PacketType.PING:
-        this.log.debug('[NexusStreamer] Ping');
+        this.log?.debug('[NexusStreamer] Ping');
         break;
       case PacketType.OK:
-        this.log.debug('[NexusStreamer] OK');
+        this.log?.debug('[NexusStreamer] OK');
         this.authorized = true;
         this.processPendingMessages();
         break;
@@ -444,36 +444,36 @@ export class NexusStreamer {
         this.handleNexusError(payload);
         break;
       case PacketType.PLAYBACK_BEGIN:
-        this.log.debug('[NexusStreamer] Playback Begin');
+        this.log?.debug('[NexusStreamer] Playback Begin');
         this.handlePlaybackBegin(payload);
         break;
       case PacketType.PLAYBACK_END:
-        this.log.debug('[NexusStreamer] Playback End');
+        this.log?.debug('[NexusStreamer] Playback End');
         this.handlePlaybackEnd(payload);
         break;
       case PacketType.PLAYBACK_PACKET:
-        // this.log.debug('[NexusStreamer] Playback Packet');
+        // this.log?.debug('[NexusStreamer] Playback Packet');
         this.handlePlaybackPacket(payload);
         break;
       case PacketType.LONG_PLAYBACK_PACKET:
-        // this.log.debug('[NexusStreamer] Long Playback Packet');
+        // this.log?.debug('[NexusStreamer] Long Playback Packet');
         this.handlePlaybackPacket(payload);
         break;
       case PacketType.CLOCK_SYNC:
-        this.log.debug('[NexusStreamer] Clock Sync');
+        this.log?.debug('[NexusStreamer] Clock Sync');
         break;
       case PacketType.REDIRECT:
-        this.log.debug('[NexusStreamer] Redirect');
+        this.log?.debug('[NexusStreamer] Redirect');
         this.handleRedirect(payload);
         break;
       case PacketType.TALKBACK_BEGIN:
-        this.log.info('[NexusStreamer] Talkback Begin');
+        this.log?.info('[NexusStreamer] Talkback Begin');
         break;
       case PacketType.TALKBACK_END:
-        this.log.info('[NexusStreamer] Talkback End');
+        this.log?.info('[NexusStreamer] Talkback End');
         break;
       default:
-        this.log.debug('[NexusStreamer] Unhandled Type: ' + type);
+        this.log?.debug('[NexusStreamer] Unhandled Type: ' + type);
     }
   }
 
@@ -501,8 +501,8 @@ export class NexusStreamer {
         length = this.pendingBuffer.readUInt16BE(1);
       }
     } catch (error) {
-      this.log.debug(`Buffer only had ${this.pendingBuffer.length} bytes. Skipping...`);
-      this.log.debug(error);
+      this.log?.debug(`Buffer only had ${this.pendingBuffer.length} bytes. Skipping...`);
+      this.log?.debug(error);
       this.pendingBuffer = undefined;
       return;
     }

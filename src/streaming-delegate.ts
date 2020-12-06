@@ -426,11 +426,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           const streamer = new NexusStreamer(
             this.camera.info,
             this.config.access_token,
-            this.log,
             this.config.options?.streamQuality || 3,
             ffmpegVideo,
             ffmpegAudio,
             ffmpegReturnAudio,
+            this.log,
           );
           streamer.startPlayback();
           this.ongoingStreams[sessionId] = streamer;
