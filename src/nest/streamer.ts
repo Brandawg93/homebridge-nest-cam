@@ -3,7 +3,6 @@ import WebSocket from 'ws';
 import { FfmpegProcess } from '../ffmpeg';
 import { NestEndpoints } from './endpoints';
 import { CameraInfo } from './models/camera';
-import { NestConfig } from './models/config';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
 import { Redirect } from './protos/Redirect';
@@ -16,6 +15,12 @@ import { StreamProfile, PlaybackBegin, CodecType } from './protos/PlaybackBegin'
 import { PlaybackEnd } from './protos/PlaybackEnd';
 import { Error, ErrorCode } from './protos/Error';
 
+enum StreamQuality {
+  'LOW' = 1,
+  'MEDIUM' = 2,
+  'HIGH' = 3,
+}
+
 export class NexusStreamer {
   private ffmpegVideo: FfmpegProcess;
   private ffmpegAudio: FfmpegProcess | undefined;
@@ -24,7 +29,7 @@ export class NexusStreamer {
   private videoStarted = false;
   private returnAudioStarted = false;
   private readonly log: Logging;
-  private readonly config: NestConfig;
+  private streamQuality: StreamQuality;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
   private accessToken: string | undefined;
@@ -39,13 +44,13 @@ export class NexusStreamer {
     cameraInfo: CameraInfo,
     accessToken: string | undefined,
     log: Logging,
-    config: NestConfig,
+    streamQuality: StreamQuality,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,
   ) {
     this.log = log;
-    this.config = config;
+    this.streamQuality = streamQuality;
     this.ffmpegVideo = ffmpegVideo;
     this.ffmpegAudio = ffmpegAudio;
     this.ffmpegReturnAudio = ffmpegReturnAudio;
@@ -254,8 +259,8 @@ export class NexusStreamer {
     });
 
     let index = -1;
-    switch (this.config.options?.streamQuality || 3) {
-      case 1:
+    switch (this.streamQuality) {
+      case StreamQuality.LOW:
         this.log.debug('Using LOW quality stream.');
         primaryProfile = StreamProfile.VIDEO_H264_100KBIT_L30;
         index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
@@ -267,7 +272,7 @@ export class NexusStreamer {
           otherProfiles.splice(index, 1);
         }
         break;
-      case 2:
+      case StreamQuality.MEDIUM:
         this.log.debug('Using MEDIUM quality stream.');
         primaryProfile = StreamProfile.VIDEO_H264_530KBIT_L31;
         index = otherProfiles.indexOf(StreamProfile.VIDEO_H264_2MBIT_L40, 0);
@@ -275,7 +280,7 @@ export class NexusStreamer {
           otherProfiles.splice(index, 1);
         }
         break;
-      case 3:
+      case StreamQuality.HIGH:
         this.log.debug('Using HIGH quality stream.');
         break;
       default:

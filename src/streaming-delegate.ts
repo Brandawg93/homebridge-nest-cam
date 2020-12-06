@@ -203,18 +203,22 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'h264',
       '-use_wallclock_as_timestamps',
       '1',
-      '-r',
-      `${fps}`,
       '-i',
       'pipe:',
       '-c:v',
       this.ffmpegCodec,
+      '-profile:v',
+      'high',
+      '-bf',
+      '0',
       '-pix_fmt',
       'yuv420p',
+      '-filter:v',
+      `fps=fps=${fps}`,
     ];
 
     if (this.ffmpegCodec === 'libx264') {
-      command.splice(10, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
+      command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
     }
 
     if (!this.camera.info.properties['streaming.enabled']) {
@@ -423,7 +427,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             this.camera.info,
             this.config.access_token,
             this.log,
-            this.config,
+            this.config.options?.streamQuality || 3,
             ffmpegVideo,
             ffmpegAudio,
             ffmpegReturnAudio,

@@ -47,11 +47,14 @@
         },    
         "streamQuality": {
           "title": "Stream Quality",
-          "description": "The quality of the stream from LOW to HIGH. (Higher quality means better picture but slower stream)",
+          "description": "The quality of the stream. (Higher quality means better picture but slower stream)",
           "type": "integer",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 3
+          "default": "HIGH",
+          "oneOf": [
+            { "title": "High", "enum": [3] },
+            { "title": "Medium", "enum": [2] },
+            { "title": "Low", "enum": [1] }
+          ]
         },
         "alertCheckRate": {
           "title": "Alert Check Rate",
