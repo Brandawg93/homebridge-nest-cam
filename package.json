@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "6.0.0-test.0",
+  "version": "6.0.0-test.2",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -87,7 +87,8 @@
     "rxjs": "~6.6.3",
     "systeminformation": "^4.31.0",
     "tslib": "^2.0.3",
-    "ws": "^7.4.1"
+    "ws": "^7.4.1",
+    "zone.js": "~0.10.3"
   },
   "devDependencies": {
     "@angular-builders/jest": "^10.0.1",
