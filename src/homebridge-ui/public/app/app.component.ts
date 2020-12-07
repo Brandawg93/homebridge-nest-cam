@@ -53,14 +53,12 @@ export class AppComponent implements OnInit {
       this.form.onChange(async (change) => {
         await self.homebridge.updatePluginConfig([change]);
       });
-
-      // stop listening to change events and hide the form
-      // form.end();
     }
   }
 
   async signout(): Promise<void> {
     this.authenticated = false;
+    // stop listening to change events and hide the form
     this.form?.end();
     const config = (await this.homebridge.getPluginConfig())[0];
     config.googleAuth.issueToken = '';
@@ -137,9 +135,5 @@ export class AppComponent implements OnInit {
       }
     }
     return schema;
-  }
-
-  doLogin(): void {
-    // Login
   }
 }

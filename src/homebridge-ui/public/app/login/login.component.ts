@@ -46,13 +46,11 @@ export class LoginComponent implements OnInit {
     });
 
     this.homebridge?.addEventListener('username', async () => {
-      // TODO: restart on bad username
       this.progress = 40;
       await this.homebridge.request('/username', this.autoForm?.controls.email.value);
     });
 
     this.homebridge?.addEventListener('password', async () => {
-      // TODO: restart on bad password
       this.progress = 60;
       await this.homebridge.request('/password', this.autoForm?.controls.password.value);
     });

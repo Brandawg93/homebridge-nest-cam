@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 const { pathsToModuleNameMapper } = require('ts-jest/utils');
 const { compilerOptions } = require('./tsconfig');
 
@@ -96,20 +97,21 @@ module.exports = {
   // Run tests from one or more projects
   projects: [
     {
-      displayName: "homebridge-nest-cam",
-      preset: "ts-jest",
-      testMatch: ["<rootDir>/test/*.spec.ts"],
+      displayName: 'homebridge-nest-cam',
+      preset: 'ts-jest',
+      testMatch: ['<rootDir>/test/*.spec.ts'],
       testEnvironment: 'node',
-    }, {
-      displayName: "homebridge-ui",
-      preset: "jest-preset-angular",
-      testMatch: ["<rootDir>/src/homebridge-ui/**/*.spec.ts"],
+    },
+    {
+      displayName: 'homebridge-ui',
+      preset: 'jest-preset-angular',
+      testMatch: ['<rootDir>/src/homebridge-ui/**/*.spec.ts'],
       testEnvironment: 'jsdom',
       setupFilesAfterEnv: ['<rootDir>/src/homebridge-ui/public/test.ts'],
       moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths || {}, {
-        prefix: '<rootDir>/'
-      })    
-    }
+        prefix: '<rootDir>/',
+      }),
+    },
   ],
 
   // Use this configuration option to add custom reporters to Jest
