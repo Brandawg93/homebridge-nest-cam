@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "6.0.0-test.2",
+  "version": "6.0.0-test.4",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -39,7 +39,7 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean",
-    "install": "node dist/postinstall.js",
+    "install": "node install.js",
     "ng-start": "ng serve",
     "ng-build": "ng build"
   },
@@ -64,17 +64,18 @@
     "LICENSE",
     "dist/**/*",
     "images/offline.jpg",
-    "config.schema.json"
+    "config.schema.json",
+    "install.js"
   ],
   "dependencies": {
-    "@angular/animations": "~10.2.3",
-    "@angular/common": "~10.2.3",
-    "@angular/compiler": "~10.2.3",
-    "@angular/core": "~10.2.3",
-    "@angular/forms": "~10.2.3",
-    "@angular/platform-browser": "~10.2.3",
-    "@angular/platform-browser-dynamic": "~10.2.3",
-    "@angular/router": "~10.2.3",
+    "@angular/animations": "~11.0.3",
+    "@angular/common": "~11.0.3",
+    "@angular/compiler": "~11.0.3",
+    "@angular/core": "~11.0.3",
+    "@angular/forms": "~11.0.3",
+    "@angular/platform-browser": "~11.0.3",
+    "@angular/platform-browser-dynamic": "~11.0.3",
+    "@angular/router": "~11.0.3",
     "@homebridge/plugin-ui-utils": "^0.0.17",
     "axios": "^0.21.0",
     "execa": "^5.0.0",
@@ -92,17 +93,17 @@
   },
   "devDependencies": {
     "@angular-builders/jest": "^10.0.1",
-    "@angular-devkit/build-angular": "~0.1002.0",
-    "@angular/cli": "~10.2.0",
-    "@angular/compiler-cli": "~10.2.3",
+    "@angular-devkit/build-angular": "~0.1100.3",
+    "@angular/cli": "~11.0.3",
+    "@angular/compiler-cli": "~11.0.3",
     "@types/jest": "^26.0.16",
     "@types/node": "^14.14.10",
     "@types/pbf": "^3.0.2",
     "@types/puppeteer": "^5.4.1",
     "@types/puppeteer-core": "^2.0.0",
     "@types/ws": "^7.4.0",
-    "@typescript-eslint/eslint-plugin": "^4.8.2",
-    "@typescript-eslint/parser": "^4.8.2",
+    "@typescript-eslint/eslint-plugin": "^4.9.0",
+    "@typescript-eslint/parser": "^4.9.0",
     "babel-minify": "^0.5.1",
     "eslint": "^7.15.0",
     "eslint-config-prettier": "^7.0.0",
@@ -114,7 +115,6 @@
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
     "ts-jest": "^26.4.4",
-    "ts-node": "^9.1.0",
-    "typescript": "^4.0.5"
+    "ts-node": "~9.1.0"
   }
 }
