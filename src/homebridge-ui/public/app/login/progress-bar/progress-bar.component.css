@@ -1,0 +1,19 @@
+.progress-bar-container {
+   background-color: #eee;
+   border-radius: 3px;
+}
+.progress-bar {    
+    height: 6px;
+    width: 0;
+    border-radius: 3px;
+ }
+ .progress-bar.green {
+    background-color: green;
+ }
+ .progress-bar.blue {
+    background-color: blue;
+ }
+ .progress-bar.red {
+    background-color: red;
+ }
+ 

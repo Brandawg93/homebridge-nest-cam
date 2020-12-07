@@ -4,11 +4,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { AppComponent } from './app.component';
 import { LoginComponent } from './login/login.component';
+import { ProgressBarComponent } from './login/progress-bar/progress-bar.component';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent],
+  declarations: [AppComponent, LoginComponent, ProgressBarComponent],
   imports: [BrowserModule, FormsModule, ReactiveFormsModule],
-  providers: [AppComponent],
+  providers: [],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

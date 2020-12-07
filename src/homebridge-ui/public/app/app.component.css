@@ -1,0 +1,15 @@
+.profile-img {
+    border-radius: 18px;
+}
+
+.profile-name {
+    font-weight: bolder;
+}
+
+.profile-email {
+    font-size: small;
+}
+
+.profile-container {
+    float: right;
+}

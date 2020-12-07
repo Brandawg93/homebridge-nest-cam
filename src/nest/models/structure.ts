@@ -16,3 +16,14 @@ export interface Face {
   person_last_seen_sec: number;
   timestamp_sec: number;
 }
+
+export interface Member {
+  email: string;
+  is_merged_with_gaia: string;
+  merged_with_gaia_at: string;
+  name: string;
+  profile_image_url: string;
+  roles: Array<string>;
+  short_name: string;
+  user_id: string;
+}
