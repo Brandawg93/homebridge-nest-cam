@@ -61,10 +61,12 @@ export class AppComponent implements OnInit {
     // stop listening to change events and hide the form
     this.form?.end();
     const config = (await this.homebridge.getPluginConfig())[0];
-    config.googleAuth.issueToken = '';
-    config.googleAuth.cookies = '';
-    await self.homebridge.updatePluginConfig([config]);
-    await this.homebridge.savePluginConfig();
+    if (config && config.googleAuth) {
+      config.googleAuth.issueToken = '';
+      config.googleAuth.cookies = '';
+      await self.homebridge.updatePluginConfig([config]);
+      await this.homebridge.savePluginConfig();
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -72,6 +74,11 @@ export class AppComponent implements OnInit {
       return;
     }
     const config = (await this.homebridge.getPluginConfig())[0];
+    if (!config) {
+      this.authenticated = false;
+      this.homebridge?.hideSpinner();
+      return;
+    }
     const issueToken = config.googleAuth?.issueToken;
     const cookies = config.googleAuth?.cookies;
     if (issueToken && cookies) {
