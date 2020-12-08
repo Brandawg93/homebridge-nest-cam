@@ -1,26 +1,19 @@
-import { Logging, PlatformConfig } from 'homebridge';
-import { Logger } from 'homebridge/lib/logger';
 import { NestSession } from '../src/nest/session';
-import { Connection } from '../src/nest/connection';
-
-const log: Logging = Logger.withPrefix('[test]');
+import { NestConfig } from '../src/nest/models/config';
+import { auth } from '../src/nest/connection';
 
 test('getSessionInfo works as expected', async () => {
   expect.assertions(1);
-  const config: PlatformConfig = {
-    platform: 'test',
-    googleAuth: {
-      issueToken: process.env.ISSUE_TOKEN,
-      cookies: process.env.COOKIES,
-    },
-    options: {
+  const issueToken = process.env.ISSUE_TOKEN || '';
+  const cookies = process.env.COOKIES || '';
+  const accessToken = await auth(issueToken, cookies);
+  if (accessToken) {
+    const config: NestConfig = {
+      platform: 'test',
       fieldTest: false,
-    },
-  };
-  const connection = new Connection(config, log);
-  const connected = await connection.auth();
-  if (connected) {
-    const user = new NestSession(config, log);
+      access_token: accessToken,
+    };
+    const user = new NestSession(config);
     const session = await user.getSessionInfo();
     return expect(session).toBeDefined();
   } else {

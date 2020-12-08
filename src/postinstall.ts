@@ -215,4 +215,8 @@ async function runCommandWithOutput(installCommand: [string, Array<string>]): Pr
   });
 }
 
-main();
+try {
+  (async (): Promise<void> => {
+    await main();
+  })();
+} catch (e) {}

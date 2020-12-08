@@ -4,3 +4,6 @@ dist
 *.tgz
 coverage
 .vscode
+out-tsc
+.DS_Store
+Thumbs.db

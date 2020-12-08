@@ -111,7 +111,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   handleSnapshotRequest(request: SnapshotRequest, callback: SnapshotRequestCallback): void {
     if (this.camera.info.properties['streaming.enabled']) {
       this.camera
-        .getSnapshot(request.width)
+        .getSnapshot(request.height)
         .then((snapshot) => {
           callback(undefined, snapshot);
         })
@@ -193,7 +193,9 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const videoSsrc = sessionInfo.videoSSRC;
     const videoSRTP = sessionInfo.videoSRTP.toString('base64');
     const address = sessionInfo.address;
-    const fps = info.fps;
+    // Multiply the bitrate because homekit requests extremely low bitrates
+    const bitrate = info.max_bit_rate * 4;
+    // const fps = info.fps;
 
     const videoPayloadType = info.pt;
     const mtu = info.mtu; // maximum transmission unit
@@ -204,17 +206,27 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '-use_wallclock_as_timestamps',
       '1',
       '-r',
-      `${fps}`,
+      '15',
       '-i',
       'pipe:',
       '-c:v',
       this.ffmpegCodec,
+      '-bf',
+      '0',
+      '-b:v',
+      `${bitrate}k`,
+      '-bufsize',
+      `${bitrate}k`,
+      '-maxrate',
+      `${2 * bitrate}k`,
       '-pix_fmt',
       'yuv420p',
+      '-an',
     ];
 
+    const index = command.indexOf(this.ffmpegCodec) + 1;
     if (this.ffmpegCodec === 'libx264') {
-      command.splice(10, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
+      command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
     }
 
     if (!this.camera.info.properties['streaming.enabled']) {
@@ -227,10 +239,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         this.ffmpegCodec,
         '-pix_fmt',
         'yuv420p',
+        '-an',
       ];
 
       if (this.ffmpegCodec === 'libx264') {
-        command.splice(8, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
+        command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
       }
     }
 
@@ -277,6 +290,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       'aac_eld',
       '-ac',
       '1',
+      '-vn',
       '-ar',
       `${sampleRate}k`,
       '-b:a',
@@ -320,6 +334,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '4',
       '-ac',
       '1',
+      '-vn',
       '-ar',
       `16k`,
       '-f',
@@ -422,11 +437,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           const streamer = new NexusStreamer(
             this.camera.info,
             this.config.access_token,
-            this.log,
-            this.config,
+            this.config.options?.streamQuality || 3,
             ffmpegVideo,
             ffmpegAudio,
             ffmpegReturnAudio,
+            this.log,
           );
           streamer.startPlayback();
           this.ongoingStreams[sessionId] = streamer;

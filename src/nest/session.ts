@@ -50,10 +50,10 @@ const delay = function (time: number): Promise<void> {
 export class NestSession {
   private endpoints: NestEndpoints;
   private readonly config: NestConfig;
-  private readonly log: Logging;
+  private readonly log: Logging | undefined;
   private subscribeFailures = 0;
 
-  constructor(config: NestConfig, log: Logging) {
+  constructor(config: NestConfig, log?: Logging) {
     this.endpoints = new NestEndpoints(config.fieldTest);
     this.config = config;
     this.log = log;
@@ -140,7 +140,7 @@ export class NestSession {
               const uuid = object.object_key.split('.')[1];
               const camera = cameras.find((x) => x.info.uuid === uuid);
               if (camera) {
-                this.log.debug(`Updating info for ${camera.info.name}`);
+                this.log?.debug(`Updating info for ${camera.info.name}`);
                 const curr_streaming = camera.info.properties['streaming.enabled'];
                 const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
                 const curr_audio = camera.info.properties['audio.enabled'];

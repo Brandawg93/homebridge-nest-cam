@@ -1,0 +1,15 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "src/homebridge-ui/public/main.ts",
+    "src/homebridge-ui/public/polyfills.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts",
+  ]
+}

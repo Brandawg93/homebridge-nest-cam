@@ -1,0 +1,27 @@
+<div *ngIf="initialized">
+  <p class="mb-0">Instructions for setting up the config can be found on the <a target="_blank" href="https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson">Github</a>.</p>
+  <hr />
+</div>
+<div class="content hb-plugin-settings-modal">
+  <div *ngIf="!authenticated; else loggedIn" class="card card-body">
+    <app-login (authEvent)="setAuthenticated($event)"></app-login>
+  </div>
+  <ng-template #loggedIn>
+    <div *ngIf="initialized" class="container-fluid">
+      <div class="profile-container">
+        <div class="row text-right">
+          <div class="col">
+            <p class="profile-name m-0">{{profile.name}}</p>
+            <p class="profile-email m-0">{{profile.email}}</p>
+          </div>
+          <div class="col">
+            <img src="{{profile.img}}" class="profile-img" width="36" height="36"/>  
+          </div>
+          <div class="col">
+            <button class="btn btn-danger m-0" (click)="signout()"><i class="fas fa-sign-out-alt"></i></button>
+          </div>
+        </div>  
+      </div>
+    </div>
+  </ng-template>
+</div>
