@@ -80,10 +80,12 @@ export class UiServer extends HomebridgePluginUiServer {
 
     if (config) {
       const cameras = await getCameras(config);
-      const structure = new NestStructure(cameras[0], config);
-      const members = await structure.getMembers();
-      const owner = members.find((m) => m.roles.includes('owner'));
-      return owner;
+      if (cameras && cameras.length > 0) {
+        const structure = new NestStructure(cameras[0], config);
+        const members = await structure.getMembers();
+        const owner = members.find((m) => m.roles.includes('owner'));
+        return owner;
+      }
     }
   }
 

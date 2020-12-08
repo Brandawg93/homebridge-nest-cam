@@ -82,12 +82,14 @@ export class AppComponent implements OnInit {
       if (this.authenticated) {
         await this.showForm(config);
         const owner = await this.homebridge.request('/owner');
-        this.profile = {
-          name: owner.name,
-          email: owner.email,
-          img: owner.profile_image_url,
-        };
-        this.initialized = true;
+        if (owner) {
+          this.profile = {
+            name: owner.name,
+            email: owner.email,
+            img: owner.profile_image_url,
+          };
+          this.initialized = true;
+        }
       } else {
         this.homebridge?.hideSpinner();
         this.initialized = true;
@@ -100,37 +102,43 @@ export class AppComponent implements OnInit {
 
   async modifySchema(schema: Record<string, any>): Promise<Record<string, any>> {
     const cameras = (await this.homebridge.request('/cameras')) as Array<CameraInfo>;
-    const structures = await this.homebridge.request('/structures');
+    if (cameras && cameras.length > 0) {
+      const structures = await this.homebridge.request('/structures');
 
-    const hasDoorbell = cameras ? cameras.some((c) => c.capabilities.includes('indoor_chime')) : false;
-    const hasMotion = cameras ? cameras.some((c) => c.capabilities.includes('detectors.on_camera')) : false;
-    const hasStrangerDetection = cameras ? cameras.some((c) => c.capabilities.includes('stranger_detection')) : false;
+      const hasDoorbell = cameras ? cameras.some((c) => c.capabilities.includes('indoor_chime')) : false;
+      const hasMotion = cameras ? cameras.some((c) => c.capabilities.includes('detectors.on_camera')) : false;
+      const hasStrangerDetection = cameras ? cameras.some((c) => c.capabilities.includes('stranger_detection')) : false;
 
-    if (schema && schema.options && schema.options.properties) {
-      if (!hasDoorbell) {
-        delete schema.options.properties.doorbellAlerts;
-        delete schema.options.properties.doorbellSwitch;
-        delete schema.options.properties.chimeSwitch;
-      }
-      if (!hasMotion) {
-        delete schema.options.properties.alertCheckRate;
-        delete schema.options.properties.alertCooldownRate;
-        delete schema.options.properties.alertTypes;
-        delete schema.options.properties.importantOnly;
-        delete schema.options.properties.motionDetection;
-      }
-      if (!hasStrangerDetection) {
-        const oneOf = schema.options.properties.alertTypes.items.oneOf;
-        schema.options.properties.alertTypes.items.oneOf = oneOf.filter((obj: any) => {
-          const title = obj.title;
-          return title !== 'Package Retrieved' && title !== 'Package Delivered' && title !== 'Face';
-        });
-      }
-      if (schema.options.properties.structures && schema.options.properties.structures.items) {
-        if (structures && structures.length > 1) {
-          schema.options.properties.structures.items.oneOf = structures;
-        } else {
-          delete schema.options.properties.structures;
+      if (schema && schema.options && schema.options.properties) {
+        if (!hasDoorbell) {
+          delete schema.options.properties.doorbellAlerts;
+          delete schema.options.properties.doorbellSwitch;
+          delete schema.options.properties.chimeSwitch;
+        }
+        if (!hasMotion) {
+          delete schema.options.properties.alertCheckRate;
+          delete schema.options.properties.alertCooldownRate;
+          delete schema.options.properties.alertTypes;
+          delete schema.options.properties.importantOnly;
+          delete schema.options.properties.motionDetection;
+        }
+        if (
+          !hasStrangerDetection &&
+          schema.options.properties.alertTypes &&
+          schema.options.properties.alertTypes.items
+        ) {
+          const oneOf = schema.options.properties.alertTypes.items.oneOf;
+          schema.options.properties.alertTypes.items.oneOf = oneOf.filter((obj: any) => {
+            const title = obj.title;
+            return title !== 'Package Retrieved' && title !== 'Package Delivered' && title !== 'Face';
+          });
+        }
+        if (schema.options.properties.structures && schema.options.properties.structures.items) {
+          if (structures && structures.length > 1) {
+            schema.options.properties.structures.items.oneOf = structures;
+          } else {
+            delete schema.options.properties.structures;
+          }
         }
       }
     }
