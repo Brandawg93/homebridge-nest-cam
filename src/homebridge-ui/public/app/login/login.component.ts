@@ -102,7 +102,7 @@ export class LoginComponent implements OnInit {
       this.progress = 100;
       this.color = 'green';
       await delay(500);
-      const config = (await this.homebridge.getPluginConfig())[0];
+      const config = (await this.homebridge.getPluginConfig())[0] || {};
       config.googleAuth = googleAuth;
       await this.homebridge.updatePluginConfig([config]);
       await this.homebridge.savePluginConfig();
