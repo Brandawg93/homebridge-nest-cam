@@ -91,7 +91,6 @@ export interface CameraInfo {
   full_camera_enabled: boolean;
   has_bundle: boolean;
   high_security: boolean;
-  homebridge_uuid: string;
   hours_of_free_tier_history: number;
   hours_of_recording_max: number;
   id: number;

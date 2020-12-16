@@ -21,6 +21,12 @@ enum StreamQuality {
   'HIGH' = 3,
 }
 
+const generateDeviceId = (): string => {
+  return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace('x', () => {
+    return Math.floor(Math.random() * 16).toString(16);
+  });
+};
+
 export class NexusStreamer {
   private ffmpegVideo: FfmpegProcess;
   private ffmpegAudio: FfmpegProcess | undefined;
@@ -218,7 +224,7 @@ export class NexusStreamer {
     const request = {
       protocol_version: Hello.ProtocolVersion.VERSION_3,
       uuid: this.cameraInfo.uuid,
-      device_id: this.cameraInfo.homebridge_uuid,
+      device_id: generateDeviceId(),
       require_connected_camera: false,
       user_agent: NestEndpoints.USER_AGENT_STRING,
       client_type: Hello.ClientType.WEB,

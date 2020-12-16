@@ -223,9 +223,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     const filteredCameras = await this.filterCameras(cameras);
     filteredCameras.forEach((cameraInfo: CameraInfo) => {
       const uuid = hap.uuid.generate(cameraInfo.uuid);
+      // Parenthesis in the name breaks HomeKit for some reason
       const displayName = cameraInfo.name.replace('(', '').replace(')', '');
       const accessory = new Accessory(displayName, uuid);
-      cameraInfo.homebridge_uuid = uuid;
       accessory.context.cameraInfo = cameraInfo;
 
       const model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : 'Unknown';
