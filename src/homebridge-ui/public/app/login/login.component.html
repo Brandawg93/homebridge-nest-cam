@@ -1,6 +1,6 @@
 <p class="help-block"><strong>Note: </strong>This plugin only works with Google accounts. Please visit this <a target="_blank" href="https://nest.com/whats-happening/">blog post</a> for more info.</p>
-<div *ngIf="!waiting; else loading">
-    <div *ngIf="manualLogin; else autoLogin">
+<div @opacity *ngIf="!waiting">
+    <div [hidden]="!manualLogin">
         <div [formGroup]="manualForm">
             <div class="schema-form-text form-group">
                 <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
@@ -12,13 +12,13 @@
             </div>
             <div class="text-center">
                 <p class="help-block"><small>&nbsp;</small></p>
-                <button type="button" class="btn btn-primary" [disabled]="!manualForm.valid" (click)="doManualLogin()">Log In</button>
+                <button type="button" class="btn btn-primary" [disabled]="!manualForm?.valid" (click)="doManualLogin()">Log In</button>
                 <p><a href="#" (click)="toggleLogin()"><small>...or login automatically.</small></a></p>
             </div>
         </div>
     </div>
     
-    <ng-template #autoLogin>
+    <div [hidden]="manualLogin">
         <div [formGroup]="autoForm">
             <div class="schema-form-text form-group">
                 <label class="control-label">Email <strong class="text-danger">*</strong></label>
@@ -30,13 +30,13 @@
             </div>
             <div class="text-center">
                 <p class="help-block"><small>Your email and password will be sent directly to Google and will not be stored anywhere.</small></p>
-                <button type="submit" class="btn btn-primary" [disabled]="!autoForm.valid" (click)="doAutoLogin()">Log In</button>
+                <button type="submit" class="btn btn-primary" [disabled]="!autoForm?.valid" (click)="doAutoLogin()">Log In</button>
                 <p><a href="#" (click)="toggleLogin()"><small>...or login manually.</small></a></p>
             </div>
         </div>
-    </ng-template>
+    </div>
 </div>
-<ng-template #loading>
+<div @opacity *ngIf="waiting">
     <div class="text-center">
         <progress-bar [progress]="progress" [color]="color"></progress-bar>
         <div class="schema-form-text form-group" *ngIf="totpRequired; else loggingIn">
@@ -52,4 +52,4 @@
         <p class="text-danger">{{errMsg}}</p>
         <button class="btn btn-danger" (click)="restart()">Restart <i class="fas fa-undo-alt"></i></button>
     </div>
-</ng-template>
+</div>

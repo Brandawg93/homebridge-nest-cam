@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { CameraInfo } from '../../../nest/models/camera';
 import { IHomebridgeUiFormHelper } from '@homebridge/plugin-ui-utils/dist/ui.interface';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
@@ -12,6 +13,13 @@ interface Profile {
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
+  animations: [
+    trigger('profileTrigger', [
+      transition(':enter', [style({ height: 0, opacity: 0 }), animate('200ms', style({ height: 43, opacity: 1 }))]),
+      transition(':leave', [animate('200ms', style({ height: 0, opacity: 0 }))]),
+    ]),
+    trigger('opacity', [transition(':enter', [style({ opacity: 0 }), animate('200ms', style({ opacity: 1 }))])]),
+  ],
 })
 export class AppComponent implements OnInit {
   public title = 'homebridge-ui';
@@ -26,10 +34,20 @@ export class AppComponent implements OnInit {
   }
 
   async setAuthenticated(authenticated: boolean): Promise<void> {
+    this.initialized = false;
     this.authenticated = authenticated;
     if (authenticated) {
       await this.showForm();
+      const owner = await this.homebridge.request('/owner');
+      if (owner) {
+        this.profile = {
+          name: owner.name,
+          email: owner.email,
+          img: owner.profile_image_url,
+        };
+      }
     }
+    this.initialized = true;
   }
 
   async showForm(config?: Record<string, any> | undefined): Promise<void> {
@@ -67,6 +85,7 @@ export class AppComponent implements OnInit {
       await self.homebridge.updatePluginConfig([config]);
       await this.homebridge.savePluginConfig();
     }
+    await this.homebridge.request('/logout');
   }
 
   async ngOnInit(): Promise<void> {
@@ -95,16 +114,15 @@ export class AppComponent implements OnInit {
             email: owner.email,
             img: owner.profile_image_url,
           };
-          this.initialized = true;
         }
       } else {
         this.homebridge?.hideSpinner();
-        this.initialized = true;
       }
     } else {
       this.authenticated = false;
       this.homebridge?.hideSpinner();
     }
+    this.initialized = true;
   }
 
   async modifySchema(schema: Record<string, any>): Promise<Record<string, any>> {

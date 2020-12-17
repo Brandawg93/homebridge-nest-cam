@@ -3,11 +3,11 @@
   <hr />
 </div>
 <div class="content hb-plugin-settings-modal">
-  <div *ngIf="!authenticated; else loggedIn" class="card card-body">
+  <div @opacity *ngIf="!authenticated" class="card card-body">
     <app-login (authEvent)="setAuthenticated($event)"></app-login>
   </div>
-  <ng-template #loggedIn>
-    <div *ngIf="initialized" class="container-fluid">
+  <div *ngIf="authenticated">
+    <div @profileTrigger *ngIf="initialized" class="container-fluid overflow-hidden">
       <div class="profile-container">
         <div class="row text-right">
           <div class="col">
@@ -23,5 +23,5 @@
         </div>  
       </div>
     </div>
-  </ng-template>
+  </div>
 </div>

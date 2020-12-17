@@ -1,4 +1,5 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
@@ -15,6 +16,9 @@ function delay(ms: number): Promise<void> {
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
+  animations: [
+    trigger('opacity', [transition(':enter', [style({ opacity: 0 }), animate('200ms', style({ opacity: 1 }))])]),
+  ],
 })
 export class LoginComponent implements OnInit {
   public manualForm?: FormGroup;
