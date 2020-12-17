@@ -10,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: hramos/respond-to-issue-based-on-label@v1
+      - uses: hramos/respond-to-issue-based-on-label@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
