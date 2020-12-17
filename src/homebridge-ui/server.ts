@@ -13,6 +13,7 @@ interface Structure {
 
 export class UiServer extends HomebridgePluginUiServer {
   private accessToken?: string;
+  private cameras?: Array<CameraInfo>;
   private issueToken?: string;
   private login: AutoLogin;
   private usernameRequested = false;
@@ -23,6 +24,7 @@ export class UiServer extends HomebridgePluginUiServer {
 
     this.login = new AutoLogin();
     this.onRequest('/login', this.handleLoginRequest.bind(this));
+    this.onRequest('/logout', this.handleLogoutRequest.bind(this));
     this.onRequest('/stop', this.handleStopRequest.bind(this));
     this.onRequest('/auth', this.handleAuthRequest.bind(this));
     this.onRequest('/structures', this.handleStructureRequest.bind(this));
@@ -30,9 +32,6 @@ export class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/owner', this.handleOwnerRequest.bind(this));
 
     this.ready();
-    // setTimeout(() => {
-    //   this.pushEvent('auth-error', { message: 'Something went wrong.' });
-    // }, 2000);
   }
 
   private generateConfig(): NestConfig | undefined {
@@ -61,7 +60,8 @@ export class UiServer extends HomebridgePluginUiServer {
 
     if (config) {
       const structures: Array<Structure> = [];
-      const cameras = await getCameras(config);
+      const cameras = this.cameras || (await getCameras(config));
+      this.cameras = cameras;
       cameras.forEach((cameraInfo) => {
         const exists = structures.find((x) => x.id === cameraInfo.nest_structure_id.replace('structure.', ''));
         if (!exists) {
@@ -79,7 +79,8 @@ export class UiServer extends HomebridgePluginUiServer {
     const config = this.generateConfig();
 
     if (config) {
-      const cameras = await getCameras(config);
+      const cameras = this.cameras || (await getCameras(config));
+      this.cameras = cameras;
       if (cameras && cameras.length > 0) {
         const structure = new NestStructure(cameras[0], config);
         const members = await structure.getMembers();
@@ -92,13 +93,18 @@ export class UiServer extends HomebridgePluginUiServer {
   async handleCamerasRequest(): Promise<Array<CameraInfo> | undefined> {
     const config = this.generateConfig();
     if (config) {
-      const cameras = await getCameras(config);
+      const cameras = this.cameras || (await getCameras(config));
+      this.cameras = cameras;
       return cameras;
     }
   }
 
   async handleLoginRequest(): Promise<void> {
     this.doLogin();
+  }
+
+  async handleLogoutRequest(): Promise<void> {
+    this.cameras = undefined;
   }
 
   async handleStopRequest(): Promise<void> {
