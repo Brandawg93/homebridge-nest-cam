@@ -4,7 +4,7 @@
 
 # homebridge-nest-cam
 
-View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/homebridge) with this plugin.
+View your Nest cams in HomeKit using [Homebridge](https://github.com/homebridge/homebridge) with this plugin.
 
 [![NPM](https://nodei.co/npm/homebridge-nest-cam.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam/)
 
@@ -28,7 +28,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/nfarina/hom
 ## Installation
 1. Install this plugin using: `npm install -g --unsafe-perm homebridge-nest-cam`
 2. Add google authentication to `config.json`
-3. Run [Homebridge](https://github.com/nfarina/homebridge)
+3. Run [Homebridge](https://github.com/homebridge/homebridge)
 4. Login with [homebridge-config-ui-x](https://www.npmjs.com/package/homebridge-config-ui-x) or use the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
 
 ### FFmpeg
