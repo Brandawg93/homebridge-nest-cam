@@ -144,6 +144,11 @@ export class NexusStreamer {
       self.log?.error(`[NexusStreamer] Websocket error: ${error.message}`);
       self.stopPlayback();
     });
+
+    this.socket.on('unexpected-response', (request, response) => {
+      self.log?.error(`[NexusStreamer] Websocket unexpected response: ${response.statusCode}`);
+      self.stopPlayback();
+    });
   }
 
   /**
@@ -379,7 +384,7 @@ export class NexusStreamer {
       // H264 NAL Units require 0001 added to beginning
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
       const stdin = this.ffmpegVideo.getStdin();
-      if (this.videoStarted) {
+      if (this.videoStarted && !stdin?.writableEnded) {
         stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]), () => {
           // Do nothing
         });
@@ -387,7 +392,7 @@ export class NexusStreamer {
     }
     if (packet.channel_id === this.audioChannelID) {
       const stdin = this.ffmpegAudio?.getStdin();
-      if (this.videoStarted) {
+      if (this.videoStarted && !stdin?.writableEnded) {
         stdin?.write(Buffer.from(packet.payload), () => {
           // Do nothing
         });

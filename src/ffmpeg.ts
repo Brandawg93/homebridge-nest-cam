@@ -106,6 +106,7 @@ export class FfmpegProcess {
 
   public stop(): void {
     // Attempt to gracefully kill, but forcefully kill after 2 seconds
+    this.ff?.stdin?.end();
     this.ff?.kill('SIGTERM', {
       forceKillAfterTimeout: 2000,
     });
