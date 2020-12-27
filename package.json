@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -18,6 +18,10 @@
     {
       "type": "github",
       "url": "https://github.com/sponsors/Brandawg93"
+    },
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url"
     }
   ],
   "bin": {
@@ -72,11 +76,11 @@
     "puppeteer-core": "^5.5.0",
     "puppeteer-extra": "^3.1.15",
     "puppeteer-extra-plugin-stealth": "^2.6.5",
-    "systeminformation": "^4.33.1",
+    "systeminformation": "^4.33.3",
     "ws": "^7.4.1"
   },
   "devDependencies": {
-    "@angular-builders/jest": "^10.0.1",
+    "@angular-builders/jest": "^11.0.0",
     "@angular-devkit/build-angular": "~0.1100.5",
     "@angular/animations": "~11.0.5",
     "@angular/cli": "~11.0.5",
