@@ -7,8 +7,8 @@ import { CameraInfo } from '../nest/models/camera';
 import { AutoLogin, getChromiumBrowser } from '../util/login';
 
 interface Structure {
-  name: string;
-  id: string;
+  title: string;
+  enum: Array<string>;
 }
 
 export class UiServer extends HomebridgePluginUiServer {
@@ -63,11 +63,11 @@ export class UiServer extends HomebridgePluginUiServer {
       const cameras = this.cameras || (await getCameras(config));
       this.cameras = cameras;
       cameras.forEach((cameraInfo) => {
-        const exists = structures.find((x) => x.id === cameraInfo.nest_structure_id.replace('structure.', ''));
+        const exists = structures.find((x) => x.enum[0] === cameraInfo.nest_structure_id.replace('structure.', ''));
         if (!exists) {
           structures.push({
-            name: cameraInfo.nest_structure_name,
-            id: cameraInfo.nest_structure_id.replace('structure.', ''),
+            title: cameraInfo.nest_structure_name,
+            enum: [cameraInfo.nest_structure_id.replace('structure.', '')],
           });
         }
       });
