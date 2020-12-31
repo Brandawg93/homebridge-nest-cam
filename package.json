@@ -76,8 +76,8 @@
     "puppeteer-core": "^5.5.0",
     "puppeteer-extra": "^3.1.15",
     "puppeteer-extra-plugin-stealth": "^2.6.5",
-    "systeminformation": "^4.33.4",
-    "ws": "^7.4.1"
+    "systeminformation": "^4.33.5",
+    "ws": "^7.4.2"
   },
   "devDependencies": {
     "@angular-builders/jest": "^11.0.0",
@@ -93,13 +93,13 @@
     "@angular/platform-browser-dynamic": "~11.0.5",
     "@angular/router": "~11.0.5",
     "@types/jest": "^26.0.19",
-    "@types/node": "^14.14.16",
+    "@types/node": "^14.14.17",
     "@types/pbf": "^3.0.2",
     "@types/puppeteer": "^5.4.2",
     "@types/puppeteer-core": "^5.4.0",
     "@types/ws": "^7.4.0",
-    "@typescript-eslint/eslint-plugin": "^4.11.0",
-    "@typescript-eslint/parser": "^4.11.0",
+    "@typescript-eslint/eslint-plugin": "^4.11.1",
+    "@typescript-eslint/parser": "^4.11.1",
     "eslint": "^7.16.0",
     "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-jest": "^24.1.3",
