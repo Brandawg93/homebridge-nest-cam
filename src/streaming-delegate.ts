@@ -62,7 +62,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
   private ongoingStreams: Record<string, NexusStreamer> = {};
 
-  constructor(hap: HAP, camera: any, config: NestConfig, log: Logging) {
+  constructor(hap: HAP, camera: NestCam, config: NestConfig, log: Logging) {
     this.hap = hap;
     this.log = log;
     this.config = config;
