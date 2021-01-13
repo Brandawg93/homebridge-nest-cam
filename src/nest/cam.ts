@@ -56,7 +56,7 @@ export class NestCam extends EventEmitter {
     if (this.alertInterval > 60000) {
       this.alertInterval = 60000;
     }
-    this.endpoints = new NestEndpoints(config.fieldTest);
+    this.endpoints = new NestEndpoints(config.options?.fieldTest);
 
     const alertTypes = config.options?.alertTypes;
     if (typeof alertTypes !== 'undefined') {

@@ -19,7 +19,7 @@ export class NestStructure {
     this.apiHost = cameraInfo.nexus_api_nest_domain_host;
     this.config = config;
     this.log = log;
-    this.endpoints = new NestEndpoints(config.fieldTest);
+    this.endpoints = new NestEndpoints(config.options?.fieldTest);
   }
 
   async getFaces(): Promise<Array<Face>> {

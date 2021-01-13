@@ -36,8 +36,8 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/homebridge/
 By default, `libx264` is used as the h264 encoder. If you would like to use a hardware-accelerated encoder instead, refer to the [h264 Hardware Encoders Wiki](https://github.com/Brandawg93/homebridge-nest-cam/wiki/h264-Hardware-Encoders).
 
 ### Setting up the Config.json
-#### googleAuth
-Google Accounts are configured using the `"googleAuth"` object in `config.json`, which contains two fields, `"issueToken"` and `"cookies"`. An example is shown below. These fields will be generated automatically when using [homebridge-config-ui-x](https://www.npmjs.com/package/homebridge-config-ui-x), otherwise, they can be found in your Nest account using the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
+#### refreshToken
+Google Accounts are configured using a `"refreshToken"` string in `config.json`. An example is shown below. The field will be generated automatically when using [homebridge-config-ui-x](https://www.npmjs.com/package/homebridge-config-ui-x), otherwise, it can be found in your Nest account using the [manual authentication method](https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication).
 
 ```
 {
@@ -48,10 +48,7 @@ Google Accounts are configured using the `"googleAuth"` object in `config.json`,
       "streamingSwitch": true,
       "disableAudio": false
     },
-    "googleAuth": {
-        "issueToken": "https://accounts.google.com/o/oauth2/iframerpc?action=issueToken...",
-        "cookies": "SMSV=ADHTe..."
-    }
+    "refreshToken": "1//01T_..."
 }
 ```
 

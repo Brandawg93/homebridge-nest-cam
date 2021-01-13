@@ -73,11 +73,11 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     // Get the correct video codec
     getCodecsOutput(this.videoProcessor)
       .then((output) => {
-        const codec = config.options?.ffmpegCodec || config.ffmpegCodec;
+        const codec = config.options?.ffmpegCodec;
         if (codec === 'copy' || (codec && output.includes(codec))) {
           this.ffmpegCodec = codec;
         } else {
-          this.log.error(`Unknown video codec ${config.ffmpegCodec}. Defaulting to libx264.`);
+          this.log.error(`Unknown video codec ${codec}. Defaulting to libx264.`);
         }
         this.ffmpegSupportsLibfdk_acc = output.includes('libfdk_aac');
         this.ffmpegSupportsLibspeex = output.includes('libspeex');

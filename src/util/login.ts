@@ -7,8 +7,8 @@ import * as readline from 'readline';
 import * as path from 'path';
 import * as fs from 'fs';
 import { UiServer } from '../homebridge-ui/server';
-import querystring from 'querystring';
 import execa from 'execa';
+import { generateToken, getRefreshToken } from '../nest/connection';
 
 export async function getChromiumBrowser(): Promise<string> {
   const platform = os.platform();
@@ -93,8 +93,6 @@ export class AutoLogin {
 
   async login(email?: string, password?: string, uix?: UiServer): Promise<void> {
     this.running = true;
-    let clientId: string | Array<string> | undefined;
-    let loginHint: string | Array<string> | undefined;
     const executablePath = await getChromiumBrowser();
 
     if (!executablePath) {
@@ -108,7 +106,10 @@ export class AutoLogin {
     puppeteer.use(pluginStealth());
 
     const headless = !process.argv.includes('-h');
-    const homeUrl = process.argv.includes('-ft') ? 'https://home.ft.nest.com' : 'https://home.nest.com';
+    const ft = process.argv.includes('-ft');
+    const token = generateToken(ft);
+    const homeUrl = token.url;
+    const code_verifier = token.code;
 
     const prompt = (key: 'username' | 'password' | 'totp', query: string, hidden = false): Promise<string> =>
       new Promise(async (resolve, reject) => {
@@ -240,76 +241,43 @@ export class AutoLogin {
         Object.setPrototypeOf(navigator, newProto);
       });
       await page.goto(homeUrl, { waitUntil: 'networkidle2' });
-      await page.setRequestInterception(true);
-      page.on('request', async (request: Browser.Request) => {
-        const url = request.url();
-
-        // Getting issueToken
-        if (url.includes('iframerpc?action=issueToken') || (loginHint && clientId)) {
-          const cookies = (await page.cookies('https://accounts.google.com'))
-            .map((cookie: any) => {
-              return `${cookie.name}=${cookie.value}`;
-            })
-            .join('; ');
-
-          const issueToken =
-            loginHint && clientId
-              ? `https://accounts.google.com/o/oauth2/iframerpc?action=issueToken&response_type=token%20id_token&login_hint=${loginHint}&client_id=${clientId}&origin=${encodeURIComponent(
-                  homeUrl,
-                )}&scope=openid%20profile%20email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fnest-account&ss_domain=${encodeURIComponent(
-                  homeUrl,
-                )}`
-              : url;
-          const auth = {
-            issueToken: issueToken,
-            cookies: cookies,
-          };
-
-          if (uix) {
-            uix.setCredentials(auth);
-          } else {
-            console.log('"googleAuth":', JSON.stringify(auth, null, 4));
-          }
-          this.stop();
-        }
+      page.on('response', async (response: Browser.Response) => {
+        const url = response.url();
+        const req = response.request();
+        const orig = req.url();
 
         // Auth didn't work
-        if (url.includes('app_launch')) {
+        if (orig.includes('www.google.')) {
           if (uix) {
-            uix.showError('Could not generate "googleAuth" object.');
+            uix.showError('Could not generate refresh token');
           } else {
-            console.log('Could not generate "googleAuth" object.');
+            console.log('Could not generate refresh token');
           }
           this.stop();
         }
 
-        request.continue();
-      });
-
-      page.on('response', async (response: Browser.Response) => {
-        // Building issueToken
-        if (response.url().includes('consent?')) {
-          const headers = response.headers();
-          if (headers.location) {
-            const queries = querystring.parse(headers.location);
-            loginHint = queries.login_hint;
-            clientId = queries.client_id;
+        // Getting code
+        if (url.includes('approval?authuser=0')) {
+          try {
+            const text = unescape(await response.text());
+            const query = text.split('?')[1].split('"')[0];
+            const refreshToken = await getRefreshToken(query, code_verifier, ft);
+            if (uix) {
+              uix.setCredentials(refreshToken);
+            } else {
+              console.log(`"refreshToken": ${refreshToken}`);
+            }
+            this.stop();
+          } catch (error) {
+            console.error(`Invalid request url.`);
+            if (uix) {
+              uix.showError(`Invalid request url.`);
+            }
           }
         }
       });
 
       if (headless) {
-        try {
-          await page.waitForSelector('button[data-test="google-button-login"]');
-          await page.click('button[data-test="google-button-login"]');
-        } catch (error) {
-          console.error(`Unable to find login button.`);
-          if (uix) {
-            uix.showError(`Unable to find login button.`);
-          }
-          return;
-        }
-
         if (!(await inputData('#identifierId', 'username', 'Email or phone: ', email, page))) {
           return;
         }
@@ -345,10 +313,22 @@ export class AutoLogin {
               'figure[data-illustration="authzenGmailApp"],figure[data-illustration="authzenHiddenPin"]',
               { timeout: 1000 },
             );
-            if (uix) {
-              uix.showNotice('Open the Gmail app and tap Yes on the prompt to sign in.');
-            } else {
-              console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
+            // Check for extra protection
+            try {
+              await page.waitForSelector('div[data-form-action-uri] samp', { timeout: 1000 });
+              const element = await page.$('div[data-form-action-uri] samp');
+              const num = await page.evaluate((el) => el.textContent, element);
+              if (uix) {
+                uix.showNotice(`Open the Gmail app, tap Yes on the prompt to sign in, and select '${num}'.`);
+              } else {
+                console.log(`Open the Gmail app, tap Yes on the prompt to sign in, and select '${num}'.`);
+              }
+            } catch (err) {
+              if (uix) {
+                uix.showNotice('Open the Gmail app and tap Yes on the prompt to sign in.');
+              } else {
+                console.log('Open the Gmail app and tap Yes on the prompt to sign in.');
+              }
             }
           } catch (error) {
             // Gmail 2FA is not enabled
@@ -365,6 +345,17 @@ export class AutoLogin {
               // Login did not fail because of too many attempts
             }
           }
+        }
+
+        try {
+          await page.waitForSelector('div[data-primary-action-label="Allow"] button', { timeout: 30000 });
+          await page.click('div[data-primary-action-label="Allow"] button');
+        } catch (error) {
+          console.error(`Unable to find login button.`);
+          if (uix) {
+            uix.showError(`Unable to find login button.`);
+          }
+          this.stop();
         }
       }
     } catch (err) {

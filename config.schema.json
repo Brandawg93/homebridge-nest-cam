@@ -7,23 +7,11 @@
   "headerDisplay": "Instructions for setting up the config can be found on the [Github](https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson).",
   "accountLinkingHeader": "Please supply your Google account credentials.  These will be used to generate a unique access token for your account.  Your email and password will be sent directly to Google and will not be stored anywhere.",
   "schema": {
-    "googleAuth": {
-      "title": "Google Authentication",
-      "type": "object",
-      "properties": {
-        "issueToken": {
-          "title": "Issue Token",
-          "type": "string",
-          "default": "",
-          "required": true
-        },
-        "cookies": {
-          "title": "Cookies",
-          "type": "string",
-          "default": "",
-          "required": true
-        }
-      }
+    "refreshToken": {
+      "title": "Refresh Token",
+      "type": "string",
+      "default": "",
+      "required": true
     },
     "options": {
       "title": "Advanced Settings",
@@ -137,6 +125,12 @@
           "title": "Audio Switch",
           "type": "boolean",
           "default": true
+        },
+        "fieldTest": {
+          "title": "Field Test",
+          "description": "Enable this if you have a field test account. Leave blank if you are not sure.",
+          "type": "boolean",
+          "default": false
         },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",

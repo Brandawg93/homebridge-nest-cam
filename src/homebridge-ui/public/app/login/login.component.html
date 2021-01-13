@@ -3,12 +3,8 @@
     <div [hidden]="!manualLogin">
         <div [formGroup]="manualForm">
             <div class="schema-form-text form-group">
-                <label class="control-label">Issue Token <strong class="text-danger">*</strong></label>
-                <input type="text" class="form-control" formControlName="issueToken" placeholder="https://accounts.google.com/o/oauth2/iframerpc?action=issueToken..." />
-            </div>
-            <div class="schema-form-text form-group">
-                <label class="control-label">Cookies <strong class="text-danger">*</strong></label>
-                <input type="text" class="form-control" formControlName="cookies" placeholder="SMSV=ADHTe..." />
+                <label class="control-label">Refresh Token <strong class="text-danger">*</strong></label>
+                <input type="text" class="form-control" formControlName="refreshToken" />
             </div>
             <div class="text-center">
                 <p class="help-block"><small>&nbsp;</small></p>

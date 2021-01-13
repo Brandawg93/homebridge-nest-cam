@@ -2,14 +2,9 @@ import { PlatformConfig } from 'homebridge';
 
 type AlertType = 'Motion' | 'Sound' | 'Person' | 'Package Delivered' | 'Package Retrieved' | 'Face' | 'Zone';
 
-interface GoogleAuth {
-  apiKey?: string;
-  issueToken?: string;
-  cookies?: string;
-}
-
 interface Options {
   ffmpegCodec?: string;
+  fieldTest?: boolean;
   streamQuality?: number;
   alertCheckRate?: number;
   alertCooldownRate?: number;
@@ -26,9 +21,7 @@ interface Options {
 }
 
 export interface NestConfig extends PlatformConfig {
-  googleAuth?: GoogleAuth;
-  ffmpegCodec?: string; // Leaving for backwards compatibility
+  refreshToken?: string;
   options?: Options;
   access_token?: string;
-  fieldTest?: boolean;
 }

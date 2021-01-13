@@ -54,7 +54,7 @@ export class NestSession {
   private subscribeFailures = 0;
 
   constructor(config: NestConfig, log?: Logging) {
-    this.endpoints = new NestEndpoints(config.fieldTest);
+    this.endpoints = new NestEndpoints(config.options?.fieldTest);
     this.config = config;
     this.log = log;
   }

@@ -73,7 +73,7 @@ export class NestEndpoints {
     };
 
     if (method === 'POST') {
-      headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=utf-8';
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
 
     if (accessToken) {

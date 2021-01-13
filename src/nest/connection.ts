@@ -5,6 +5,13 @@ import { AxiosRequestConfig } from 'axios';
 import { NestConfig } from './models/config';
 import { CameraInfo } from './models/camera';
 import querystring from 'querystring';
+import crypto from 'crypto';
+import base64url from 'base64url';
+
+type Token = {
+  url: string;
+  code: string;
+};
 
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
@@ -16,11 +23,27 @@ const delay = function (time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, time));
 };
 
+const randomStr = (len: number): string => {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  for (let i = 0; i < len; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
+
+const codeChallenge = (str: string): string => {
+  const hash = crypto.createHash('sha256');
+  hash.update(str);
+  return base64url(hash.digest());
+};
+
 /**
  * Get info on all cameras
  */
 export async function getCameras(config: NestConfig, log?: Logging): Promise<Array<CameraInfo>> {
-  const endpoints = new NestEndpoints(config.fieldTest);
+  const endpoints = new NestEndpoints(config.options?.fieldTest);
   let cameras: Array<CameraInfo> = [];
   try {
     const response = await endpoints.sendRequest(
@@ -39,46 +62,82 @@ export async function getCameras(config: NestConfig, log?: Logging): Promise<Arr
 }
 
 /**
- * Attempt to authenticate Nest via Google account
+ * Generate url required to retrieve a refresh token
  */
-export async function auth(issueToken: string, cookies: string, apiKey?: string, log?: Logging): Promise<string> {
+export function generateToken(ft = false): Token {
+  const code = randomStr(43); // This is the code verifier
+  const data = {
+    nonce: randomStr(43),
+    audience: ft
+      ? '384529615266-fs1uiloq0rbmjtun2njct601pnuhqddo.apps.googleusercontent.com'
+      : '733249279899-spjd3qvje0svjorc6j5lit5m5u8dn32e.apps.googleusercontent.com',
+    response_type: 'code',
+    code_challenge_method: 'S256',
+    scope: 'openid profile email https://www.googleapis.com/auth/nest-account',
+    code_challenge: codeChallenge(code),
+    redirect_uri: ft
+      ? 'com.googleusercontent.apps.384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs:/oauth2callback'
+      : 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback',
+    client_id: ft
+      ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
+      : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+    state: randomStr(43),
+  };
+  return { url: `https://accounts.google.com/o/oauth2/v2/auth?${querystring.stringify(data)}`, code: code };
+}
+
+export async function getRefreshToken(requestUrl: string, code_verifier: string, ft = false): Promise<string> {
+  const code = querystring.parse(requestUrl).code;
+  const req: AxiosRequestConfig = {
+    method: 'POST',
+    url: 'https://oauth2.googleapis.com/token',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': NestEndpoints.USER_AGENT_STRING,
+    },
+    data: querystring.stringify({
+      code: code,
+      code_verifier: code_verifier,
+      redirect_uri: ft
+        ? 'com.googleusercontent.apps.384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs:/oauth2callback'
+        : 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback',
+      client_id: ft
+        ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
+        : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+      grant_type: 'authorization_code',
+    }),
+  };
+  const result = (await axios(req)).data;
+  return result.refresh_token;
+}
+
+export async function auth(refreshToken: string, ft = false, log?: Logging): Promise<string> {
   let req: AxiosRequestConfig;
+  const apiKey = ft ? 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U' : 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4';
 
-  //Only doing google auth from now on
-  issueToken = issueToken.replace('Request URL: ', '');
-  cookies = cookies.replace('cookie: ', '');
-  const referer = querystring.parse(issueToken).ss_domain;
-  if (!referer) {
-    log?.error('issueToken is invalid');
-    return '';
-  }
-  const fieldTest = referer !== 'https://home.nest.com';
-
-  apiKey =
-    apiKey?.replace('x-goog-api-key: ', '') ||
-    (fieldTest ? 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U' : 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4');
-
-  log?.debug('Authenticating via Google.');
+  log?.debug('Authenticating via Google refresh token.');
   let result;
   try {
     req = {
-      method: 'GET',
+      method: 'POST',
       timeout: API_TIMEOUT_SECONDS * 1000,
-      url: issueToken,
+      url: 'https://oauth2.googleapis.com/token',
       headers: {
-        'Sec-Fetch-Mode': 'cors',
+        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': NestEndpoints.USER_AGENT_STRING,
-        'X-Requested-With': 'XmlHttpRequest',
-        Referer: 'https://accounts.google.com/o/oauth2/iframe',
-        cookie: cookies,
       },
+      data: querystring.stringify({
+        refresh_token: refreshToken,
+        client_id: ft
+          ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
+          : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+        grant_type: 'refresh_token',
+      }),
     };
     result = (await axios(req)).data;
     const googleAccessToken = result.access_token;
     if (result.error) {
-      log?.error(
-        'Google authentication was unsuccessful. Make sure you did not log out of your Google account after getting your googleAuth parameters.',
-      );
+      log?.error('Google authentication was unsuccessful.');
       throw result;
     }
     req = {
@@ -95,18 +154,17 @@ export async function auth(issueToken: string, cookies: string, apiKey?: string,
         Authorization: 'Bearer ' + googleAccessToken,
         'User-Agent': NestEndpoints.USER_AGENT_STRING,
         'x-goog-api-key': apiKey,
-        Referer: referer,
       },
     };
     result = (await axios(req)).data;
     return result.jwt;
   } catch (error) {
     error.status = error.response && error.response.status;
-    log?.error('Access token acquisition via googleAuth failed (code ' + (error.status || error.code) + ').');
+    log?.error('Access token acquisition via refresh token failed (code ' + (error.status || error.code) + ').');
     if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
       log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
       await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
-      return await auth(issueToken, cookies);
+      return await auth(refreshToken, ft, log);
     } else {
       return '';
     }

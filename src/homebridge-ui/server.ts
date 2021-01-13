@@ -14,7 +14,7 @@ interface Structure {
 export class UiServer extends HomebridgePluginUiServer {
   private accessToken?: string;
   private cameras?: Array<CameraInfo>;
-  private issueToken?: string;
+  private ft = false;
   private login: AutoLogin;
   private usernameRequested = false;
   private passwordRequested = false;
@@ -35,10 +35,10 @@ export class UiServer extends HomebridgePluginUiServer {
   }
 
   private generateConfig(): NestConfig | undefined {
-    if (this.issueToken && this.accessToken) {
+    if (this.accessToken) {
       const config: NestConfig = {
         platform: 'Nest-cam',
-        fieldTest: this.issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com'),
+        fieldTest: this.ft,
         access_token: this.accessToken,
       };
       return config;
@@ -46,13 +46,9 @@ export class UiServer extends HomebridgePluginUiServer {
   }
 
   async handleAuthRequest(payload: any): Promise<boolean> {
-    this.accessToken = await auth(payload.issueToken, payload.cookies);
-    if (this.accessToken) {
-      this.issueToken = payload.issueToken;
-      return true;
-    } else {
-      return false;
-    }
+    this.accessToken = await auth(payload.refreshToken, payload.ft);
+    this.ft = payload.ft;
+    return this.accessToken ? true : false;
   }
 
   async handleStructureRequest(): Promise<Array<Structure> | undefined> {
@@ -178,7 +174,7 @@ export class UiServer extends HomebridgePluginUiServer {
     await this.pushEvent('started', {});
   }
 
-  async setCredentials(credentials: any): Promise<void> {
+  async setCredentials(credentials: string): Promise<void> {
     await this.sendToParent({ action: 'credentials', payload: credentials });
   }
 

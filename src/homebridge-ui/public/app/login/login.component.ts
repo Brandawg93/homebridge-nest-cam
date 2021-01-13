@@ -3,11 +3,6 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
-interface GoogleAuth {
-  issueToken: string;
-  cookies: string;
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -78,8 +73,7 @@ export class LoginComponent implements OnInit {
 
   generateForm(): void {
     this.manualForm = new FormGroup({
-      issueToken: new FormControl('', Validators.required),
-      cookies: new FormControl('', Validators.required),
+      refreshToken: new FormControl('', Validators.required),
     });
 
     this.autoForm = new FormGroup({
@@ -100,35 +94,30 @@ export class LoginComponent implements OnInit {
     this.manualLogin = !this.manualLogin;
   }
 
-  private async checkAuthentication(googleAuth: GoogleAuth): Promise<void> {
-    const authenticated = await this.homebridge.request('/auth', googleAuth);
+  private async checkAuthentication(refreshToken: string): Promise<void> {
+    const authenticated = await this.homebridge.request('/auth', refreshToken);
     if (authenticated) {
       this.progress = 100;
       this.color = 'green';
       await delay(500);
       const config = (await this.homebridge.getPluginConfig())[0] || {};
-      config.googleAuth = googleAuth;
+      config.refreshToken = refreshToken;
       await this.homebridge.updatePluginConfig([config]);
       await this.homebridge.savePluginConfig();
       this.authEvent.emit(true);
       this.waiting = false;
       this.homebridge.showSpinner();
     } else {
-      this.errMsg = 'Unable to authenticate via the provided googleAuth object';
+      this.errMsg = 'Unable to authenticate via the provided refresh token';
       this.color = 'red';
     }
   }
 
   async doManualLogin(): Promise<void> {
     this.resetLoginUI();
-    const issueToken = this.manualForm?.controls.issueToken.value;
-    const cookies = this.manualForm?.controls.cookies.value;
-    if (issueToken && cookies) {
-      const googleAuth = {
-        issueToken: issueToken,
-        cookies: cookies,
-      };
-      await this.checkAuthentication(googleAuth);
+    const refreshToken = this.manualForm?.controls.refreshToken.value;
+    if (refreshToken) {
+      await this.checkAuthentication(refreshToken);
     }
   }
 

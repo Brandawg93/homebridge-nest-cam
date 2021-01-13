@@ -251,29 +251,20 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   async didFinishLaunching(): Promise<void> {
     const self = this;
-    if (!this.config.googleAuth) {
-      this.log.error('You did not specify your Google account credentials, googleAuth, in config.json');
+    const refreshToken = this.config.refreshToken;
+
+    if (!refreshToken) {
+      this.log.error('You must provide a refreshToken in config.json. Please see README.md for instructions');
       return;
     }
 
-    const issueToken = this.config.googleAuth.issueToken;
-    const cookies = this.config.googleAuth.cookies;
-    const apiKey = this.config.googleAuth.apiKey;
-
-    if (!issueToken || !cookies) {
-      this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
-      return;
-    }
-
-    this.config.fieldTest = issueToken?.endsWith('https%3A%2F%2Fhome.ft.nest.com');
-    this.log.debug(`Setting Field Test to ${this.config.fieldTest}`);
-    const accessToken = await auth(issueToken, cookies, apiKey, this.log);
+    const accessToken = await auth(refreshToken, this.config.options?.fieldTest, this.log);
     if (accessToken) {
       this.config.access_token = accessToken;
       // Nest needs to be reauthenticated about every hour
       setInterval(async () => {
         self.log.debug('Reauthenticating with config credentials');
-        this.config.access_token = await auth(issueToken, cookies, apiKey, this.log);
+        this.config.access_token = await auth(refreshToken, this.config.options?.fieldTest, this.log);
       }, 3480000); // 58 minutes
 
       const cameras = await getCameras(this.config, this.log);

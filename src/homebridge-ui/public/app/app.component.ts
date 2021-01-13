@@ -79,9 +79,8 @@ export class AppComponent implements OnInit {
     // stop listening to change events and hide the form
     this.form?.end();
     const config = (await this.homebridge.getPluginConfig())[0];
-    if (config && config.googleAuth) {
-      config.googleAuth.issueToken = '';
-      config.googleAuth.cookies = '';
+    if (config) {
+      config.refreshToken = '';
       await self.homebridge.updatePluginConfig([config]);
       await this.homebridge.savePluginConfig();
     }
@@ -98,12 +97,12 @@ export class AppComponent implements OnInit {
       this.homebridge?.hideSpinner();
       return;
     }
-    const issueToken = config.googleAuth?.issueToken;
-    const cookies = config.googleAuth?.cookies;
-    if (issueToken && cookies) {
+    const refreshToken = config.refreshToken;
+    const ft = config.options?.fieldTest;
+    if (refreshToken) {
       this.authenticated = await this.homebridge.request('/auth', {
-        issueToken: issueToken,
-        cookies: cookies,
+        refreshToken: refreshToken,
+        ft: ft,
       });
       if (this.authenticated) {
         await this.showForm(config);

@@ -200,4 +200,7 @@ module.exports = {
 
   // Whether to use watchman for file crawling
   // watchman: true,
+
+  // Modify timeout to 10 seconds
+  testTimeout: 10000,
 };
