@@ -95,12 +95,15 @@ export class LoginComponent implements OnInit {
   }
 
   private async checkAuthentication(refreshToken: string): Promise<void> {
-    const authenticated = await this.homebridge.request('/auth', refreshToken);
+    const config = (await this.homebridge.getPluginConfig())[0] || {};
+    const authenticated = await this.homebridge.request('/auth', {
+      refreshToken: refreshToken,
+      ft: config.options?.ft,
+    });
     if (authenticated) {
       this.progress = 100;
       this.color = 'green';
       await delay(500);
-      const config = (await this.homebridge.getPluginConfig())[0] || {};
       config.refreshToken = refreshToken;
       await this.homebridge.updatePluginConfig([config]);
       await this.homebridge.savePluginConfig();
