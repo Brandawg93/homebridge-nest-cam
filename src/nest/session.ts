@@ -1,8 +1,6 @@
 import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
 import { NestCam, NestCamEvents } from './cam';
-import axios from 'axios';
-import { AxiosRequestConfig } from 'axios';
 import { Session, AppLaunch } from './models/session';
 import { NestConfig } from './models/config';
 
@@ -52,6 +50,7 @@ export class NestSession {
   private readonly config: NestConfig;
   private readonly log: Logging | undefined;
   private subscribeFailures = 0;
+  private nestUserID = '';
 
   constructor(config: NestConfig, log?: Logging) {
     this.endpoints = new NestEndpoints(config.options?.fieldTest);
@@ -59,47 +58,42 @@ export class NestSession {
     this.log = log;
   }
 
-  async getSessionInfo(): Promise<Session | undefined> {
+  async getUserID(): Promise<string> {
     try {
-      const currDate = new Date();
-      currDate.setMinutes(currDate.getMinutes() - 1);
-      const epoch = Math.round(currDate.getTime() / 1000);
-      const req: AxiosRequestConfig = {
-        method: 'GET',
-        url: `${this.endpoints.NEST_API_HOSTNAME}/session?_=${epoch}`,
-        headers: {
-          Authorization: 'Basic ' + this.config.access_token,
-          'User-Agent': NestEndpoints.USER_AGENT_STRING,
-          Referer: this.endpoints.NEST_API_HOSTNAME,
-          Cookie: `user_token=${this.config.access_token}`,
-        },
-      };
-      return (await axios(req)).data as Session;
+      const session: Session = await this.endpoints.sendRequest(
+        this.config.access_token,
+        this.endpoints.CAMERA_API_HOSTNAME,
+        '/api/v1/users.get_current',
+        'GET',
+      );
+      const userId = session.items[0].nest_user_id;
+      this.nestUserID = userId;
+      return userId;
     } catch (error) {
       handleError(this.log, error, 'Error fetching session');
+      return '';
     }
   }
 
-  async getAppLaunch(session: Session | undefined): Promise<AppLaunch | undefined> {
-    if (session) {
+  async getAppLaunch(): Promise<AppLaunch | undefined> {
+    const userId = this.nestUserID || (await this.getUserID());
+    if (userId) {
       const data = {
         known_bucket_types: KNOWN_BUCKET_TYPES,
         known_bucket_versions: [],
       };
 
       try {
-        const req: AxiosRequestConfig = {
-          method: 'POST',
-          url: `${this.endpoints.NEST_API_HOSTNAME}/api/0.1/user/${session.userid}/app_launch`,
-          headers: {
-            Authorization: 'Basic ' + this.config.access_token,
-            'User-Agent': NestEndpoints.USER_AGENT_STRING,
-            Referer: this.endpoints.NEST_API_HOSTNAME,
-            Cookie: `user_token=${this.config.access_token}`,
-          },
-          data: data,
-        };
-        return (await axios(req)).data as AppLaunch;
+        const appLaunch: AppLaunch = await this.endpoints.sendRequest(
+          this.config.access_token,
+          this.endpoints.NEST_API_HOSTNAME,
+          `/api/0.1/user/${userId}/app_launch`,
+          'POST',
+          'json',
+          'application/json,text/json,text/javascript',
+          data,
+        );
+        return appLaunch;
       } catch (error) {
         handleError(this.log, error, 'Error fetching app_launch');
       }
@@ -107,8 +101,8 @@ export class NestSession {
   }
 
   async subscribe(cameras: Array<NestCam>): Promise<void> {
-    const session = await this.getSessionInfo();
-    const appLaunch = await this.getAppLaunch(session);
+    const appLaunch = await this.getAppLaunch();
+    const userId = this.nestUserID || (await this.getUserID());
     if (appLaunch) {
       const currDate = new Date();
       const epoch = Math.round(currDate.getTime() / 1000);
@@ -116,22 +110,20 @@ export class NestSession {
       const data = {
         objects: appLaunch.updated_buckets,
         timeout: SUBSCRIBE_TIMEOUT,
-        sessionID: `${session?.userid}.${String(Math.random()).substr(2, 5)}.${epoch}`,
+        sessionID: `ios-${userId}.${String(Math.random()).substr(2, 5)}.${epoch}`,
       };
 
       try {
-        const req: AxiosRequestConfig = {
-          method: 'POST',
-          timeout: SUBSCRIBE_TIMEOUT * 1e3,
-          url: `${appLaunch.service_urls.urls.transport_url}/v5/subscribe`,
-          headers: {
-            Authorization: 'Basic ' + this.config.access_token,
-            'User-Agent': NestEndpoints.USER_AGENT_STRING,
-            Referer: this.endpoints.NEST_API_HOSTNAME,
-          },
-          data: data,
-        };
-        const response = (await axios(req)).data;
+        const response: any = await this.endpoints.sendRequest(
+          this.config.access_token,
+          appLaunch.service_urls.urls.transport_url,
+          '/v6/subscribe',
+          'POST',
+          'json',
+          'application/json,text/json,text/javascript',
+          data,
+        );
+
         this.subscribeFailures = 0;
         const objects = response.objects;
         if (objects && Array.isArray(objects)) {

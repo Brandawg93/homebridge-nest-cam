@@ -20,12 +20,6 @@ interface Bucket {
   value: any;
 }
 
-interface Weave {
-  service_config: string;
-  pairing_token: string;
-  access_token: string;
-}
-
 interface Limits {
   thermostats_per_structure: number;
   structures: number;
@@ -34,20 +28,13 @@ interface Limits {
   thermostats: number;
 }
 
+interface User {
+  id: string;
+  nest_user_id: string;
+}
+
 export interface Session {
-  '2fa_state': string;
-  access_token: string;
-  email: string;
-  expires_in: Date;
-  urls: Urls;
-  '2fa_enabled': boolean;
-  userid: string;
-  is_superuser: boolean;
-  language: string;
-  weave: Weave;
-  limits: Limits;
-  user: string;
-  is_staff: boolean;
+  items: Array<User>;
 }
 
 export interface AppLaunch {

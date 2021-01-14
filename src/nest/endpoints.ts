@@ -57,6 +57,7 @@ export class NestEndpoints {
    * @param {string} endpoint     The endpoint to send the request
    * @param {Method} method       Usually 'GET' or 'POST'
    * @param {ResponseType} type   The type of return object (Usually 'json')
+   * @param {string} contentType  The content type of the request
    * @param {any} data            The body of the request or null if a 'GET'
    */
   async sendRequest(
@@ -65,6 +66,7 @@ export class NestEndpoints {
     endpoint: string,
     method: Method,
     type: ResponseType = 'json',
+    contentType = '',
     data?: any,
   ): Promise<any> {
     const headers: any = {
@@ -72,12 +74,12 @@ export class NestEndpoints {
       Referer: this.NEST_API_HOSTNAME,
     };
 
-    if (method === 'POST') {
-      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    if (contentType) {
+      headers['Content-Type'] = contentType;
     }
 
     if (accessToken) {
-      headers.Cookie = `user_token=${accessToken}`;
+      headers.Authorization = `Basic ${accessToken}`;
     }
 
     const url = hostname + endpoint;

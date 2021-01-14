@@ -82,6 +82,7 @@ export class NestCam extends EventEmitter {
       '/api/dropcams.set_properties',
       'POST',
       'json',
+      'application/x-www-form-urlencoded',
       query,
     );
 
