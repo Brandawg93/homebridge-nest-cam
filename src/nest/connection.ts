@@ -13,6 +13,17 @@ type Token = {
   code: string;
 };
 
+const REDIRECT_URI = 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback';
+const REDIRECT_URI_FT = 'com.googleusercontent.apps.384529615266-57v6vaptkmhm64n9hn5dcmkr4at14p8j:/oauthredirect';
+const CLIENT_ID = '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com';
+const CLIENT_ID_FT = '384529615266-57v6vaptkmhm64n9hn5dcmkr4at14p8j.apps.googleusercontent.com';
+const AUDIENCE = '733249279899-spjd3qvje0svjorc6j5lit5m5u8dn32e.apps.googleusercontent.com';
+const AUDIENCE_FT = '384529615266-fs1uiloq0rbmjtun2njct601pnuhqddo.apps.googleusercontent.com';
+const APIKEY = 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4';
+const APIKEY_FT = 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U';
+const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const ISSUE_JWT_URL = 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt';
+
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
 
@@ -68,21 +79,16 @@ export function generateToken(ft = false): Token {
   const code = randomStr(43); // This is the code verifier
   const data = {
     nonce: randomStr(43),
-    audience: ft
-      ? '384529615266-fs1uiloq0rbmjtun2njct601pnuhqddo.apps.googleusercontent.com'
-      : '733249279899-spjd3qvje0svjorc6j5lit5m5u8dn32e.apps.googleusercontent.com',
+    audience: ft ? AUDIENCE_FT : AUDIENCE,
     response_type: 'code',
     code_challenge_method: 'S256',
     scope: 'openid profile email https://www.googleapis.com/auth/nest-account',
     code_challenge: codeChallenge(code),
-    redirect_uri: ft
-      ? 'com.googleusercontent.apps.384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs:/oauth2callback'
-      : 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback',
-    client_id: ft
-      ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
-      : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+    redirect_uri: ft ? REDIRECT_URI_FT : REDIRECT_URI,
+    client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
     state: randomStr(43),
   };
+  console.log(`code is: ${code}`);
   return { url: `https://accounts.google.com/o/oauth2/v2/auth?${querystring.stringify(data)}`, code: code };
 }
 
@@ -90,7 +96,7 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
   const code = querystring.parse(requestUrl).code;
   const req: AxiosRequestConfig = {
     method: 'POST',
-    url: 'https://oauth2.googleapis.com/token',
+    url: TOKEN_URL,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': NestEndpoints.USER_AGENT_STRING,
@@ -98,12 +104,8 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
     data: querystring.stringify({
       code: code,
       code_verifier: code_verifier,
-      redirect_uri: ft
-        ? 'com.googleusercontent.apps.384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs:/oauth2callback'
-        : 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback',
-      client_id: ft
-        ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
-        : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+      redirect_uri: ft ? REDIRECT_URI_FT : REDIRECT_URI,
+      client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
       grant_type: 'authorization_code',
     }),
   };
@@ -113,7 +115,7 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
 
 export async function auth(refreshToken: string, ft = false, log?: Logging): Promise<string> {
   let req: AxiosRequestConfig;
-  const apiKey = ft ? 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U' : 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4';
+  const apiKey = ft ? APIKEY_FT : APIKEY;
 
   log?.debug('Authenticating via Google refresh token.');
   let result;
@@ -121,16 +123,14 @@ export async function auth(refreshToken: string, ft = false, log?: Logging): Pro
     req = {
       method: 'POST',
       timeout: API_TIMEOUT_SECONDS * 1000,
-      url: 'https://oauth2.googleapis.com/token',
+      url: TOKEN_URL,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': NestEndpoints.USER_AGENT_STRING,
       },
       data: querystring.stringify({
         refresh_token: refreshToken,
-        client_id: ft
-          ? '384529615266-a5l613pgqst2eudb8gj36s2mavjphbvs.apps.googleusercontent.com'
-          : '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com',
+        client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
         grant_type: 'refresh_token',
       }),
     };
@@ -143,7 +143,7 @@ export async function auth(refreshToken: string, ft = false, log?: Logging): Pro
     req = {
       method: 'POST',
       timeout: API_TIMEOUT_SECONDS * 1000,
-      url: 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt',
+      url: ISSUE_JWT_URL,
       data: {
         embed_google_oauth_access_token: true,
         expire_after: '3600s', //expire the access token in 1 hour

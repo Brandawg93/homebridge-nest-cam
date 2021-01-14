@@ -126,12 +126,6 @@
           "type": "boolean",
           "default": true
         },
-        "fieldTest": {
-          "title": "Field Test",
-          "description": "Enable this if you have a field test account. Leave blank if you are not sure.",
-          "type": "boolean",
-          "default": false
-        },
         "pathToFfmpeg": {
           "title": "Path to FFMPEG",
           "description": "In order to use a custom FFMPEG build, add the path to the FFMPEG binary here. Otherwise, leave blank.",
@@ -146,6 +140,12 @@
             "title": "Structure Name",
             "type": "string"
           }
+        },
+        "fieldTest": {
+          "title": "Field Test",
+          "description": "Enable this if you have a field test account. Leave blank if you are not sure.",
+          "type": "boolean",
+          "default": false
         }
       }
     }

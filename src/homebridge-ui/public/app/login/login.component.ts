@@ -1,6 +1,7 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { NestConfig } from '../../../../nest/models/config';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
 function delay(ms: number): Promise<void> {
@@ -95,10 +96,10 @@ export class LoginComponent implements OnInit {
   }
 
   private async checkAuthentication(refreshToken: string): Promise<void> {
-    const config = (await this.homebridge.getPluginConfig())[0] || {};
+    const config = ((await this.homebridge.getPluginConfig())[0] || {}) as NestConfig;
     const authenticated = await this.homebridge.request('/auth', {
       refreshToken: refreshToken,
-      ft: config.options?.ft,
+      ft: config.options?.fieldTest,
     });
     if (authenticated) {
       this.progress = 100;

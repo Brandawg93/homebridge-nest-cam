@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { CameraInfo } from '../../../nest/models/camera';
 import { IHomebridgeUiFormHelper } from '@homebridge/plugin-ui-utils/dist/ui.interface';
+import { NestConfig } from '../../../nest/models/config';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
 interface Profile {
@@ -25,6 +26,7 @@ export class AppComponent implements OnInit {
   public title = 'homebridge-ui';
   public authenticated = true;
   public initialized = false;
+  public ft = false;
   public profile: Profile | undefined;
   public form: IHomebridgeUiFormHelper | undefined;
   private homebridge = window.homebridge;
@@ -50,11 +52,11 @@ export class AppComponent implements OnInit {
     this.initialized = true;
   }
 
-  async showForm(config?: Record<string, any> | undefined): Promise<void> {
+  async showForm(config?: NestConfig | undefined): Promise<void> {
     // create the form
     const self = this;
     if (!config) {
-      config = (await this.homebridge.getPluginConfig())[0];
+      config = (await this.homebridge.getPluginConfig())[0] as NestConfig;
     }
     let schema = (await this.homebridge.getPluginConfigSchema()).schema;
     if (schema) {
@@ -78,7 +80,7 @@ export class AppComponent implements OnInit {
     this.authenticated = false;
     // stop listening to change events and hide the form
     this.form?.end();
-    const config = (await this.homebridge.getPluginConfig())[0];
+    const config = (await this.homebridge.getPluginConfig())[0] as NestConfig;
     if (config) {
       config.refreshToken = '';
       await self.homebridge.updatePluginConfig([config]);
@@ -91,18 +93,18 @@ export class AppComponent implements OnInit {
     if (!this.homebridge) {
       return;
     }
-    const config = (await this.homebridge.getPluginConfig())[0];
+    const config = (await this.homebridge.getPluginConfig())[0] as NestConfig;
     if (!config) {
       this.authenticated = false;
       this.homebridge?.hideSpinner();
       return;
     }
     const refreshToken = config.refreshToken;
-    const ft = config.options?.fieldTest;
+    this.ft = config.options?.fieldTest || false;
     if (refreshToken) {
       this.authenticated = await this.homebridge.request('/auth', {
         refreshToken: refreshToken,
-        ft: ft,
+        ft: this.ft,
       });
       if (this.authenticated) {
         await this.showForm(config);

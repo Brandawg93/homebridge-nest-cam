@@ -1,5 +1,12 @@
 <div *ngIf="initialized">
-  <p class="mb-0">Instructions for setting up the config can be found on the <a target="_blank" href="https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson">Github</a>.</p>
+  <div class="row">
+    <div class="col-md">
+      <span class="mb-0">Instructions for setting up the config can be found on the <a target="_blank" href="https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson">Github</a>.</span>
+    </div>
+    <div class="col-md-3 text-right">
+      <span *ngIf="ft">Field Test Mode</span>
+    </div>
+  </div>
   <hr />
 </div>
 <div class="content hb-plugin-settings-modal">
