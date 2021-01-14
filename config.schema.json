@@ -35,7 +35,7 @@
         },    
         "streamQuality": {
           "title": "Stream Quality",
-          "description": "The quality of the stream. (Higher quality means better picture but slower stream)",
+          "description": "The quality of the stream. (Higher quality means better picture but slower stream) Note: Lowering the quality will force doorbells and hubs to stream in 16:9.",
           "type": "integer",
           "default": "HIGH",
           "oneOf": [
