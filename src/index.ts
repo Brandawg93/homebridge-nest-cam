@@ -169,6 +169,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       nestAccessory.removeService(hap.Service.Switch, 'Audio');
     }
 
+    //Update Firmware Revision
+    const accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
+    if (accessoryInformation) {
+      accessoryInformation.setCharacteristic(hap.Characteristic.FirmwareRevision, cameraInfo.combined_software_version);
+    }
+
     this.nestObjects.push({ accessory: accessory, camera: camera });
   }
 
