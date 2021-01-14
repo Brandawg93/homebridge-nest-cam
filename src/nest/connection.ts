@@ -88,7 +88,6 @@ export function generateToken(ft = false): Token {
     client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
     state: randomStr(43),
   };
-  console.log(`code is: ${code}`);
   return { url: `https://accounts.google.com/o/oauth2/v2/auth?${querystring.stringify(data)}`, code: code };
 }
 
