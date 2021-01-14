@@ -114,7 +114,7 @@ export class NestAccessory {
       .getCharacteristic(this.hap.Characteristic.On)
       .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         cb(value);
-        this.log.info(`Setting ${this.accessory.displayName} to ${value ? 'on' : 'off'}`);
+        this.log.info(`Setting ${this.accessory.displayName} ${name} to ${value ? 'on' : 'off'}`);
         callback();
       })
       .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
@@ -189,6 +189,14 @@ export class NestAccessory {
   async toggleChime(enabled: boolean): Promise<void> {
     const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
     const set = await this.camera.setBooleanProperty('doorbell.indoor_chime.enabled', enabled);
+    if (set && service) {
+      service.updateCharacteristic(this.hap.Characteristic.On, enabled);
+    }
+  }
+
+  async toggleAnnouncements(enabled: boolean): Promise<void> {
+    const service = this.accessory.getService(`${this.accessory.displayName} Announcements`);
+    const set = await this.camera.setBooleanProperty('doorbell.chime_assist.enabled', enabled);
     if (set && service) {
       service.updateCharacteristic(this.hap.Characteristic.On, enabled);
     }

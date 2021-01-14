@@ -111,6 +111,11 @@
           "type": "boolean",
           "default": true
         },
+        "announcementsSwitch": {
+          "title": "Visitor Announcements Switch",
+          "type": "boolean",
+          "default": true
+        },
         "doorbellAlerts": {
           "title": "Doorbell Alerts",
           "type": "boolean",

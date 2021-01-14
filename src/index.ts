@@ -21,6 +21,7 @@ class Options {
   doorbellSwitch = true;
   streamingSwitch = true;
   chimeSwitch = true;
+  announcementsSwitch = true;
   audioSwitch = true;
 }
 
@@ -143,6 +144,20 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       });
     } else {
       nestAccessory.removeService(hap.Service.Switch, 'Chime');
+    }
+
+    // Announcements switch configuration
+    if (camera.info.capabilities.includes('indoor_chime') && this.options.announcementsSwitch) {
+      nestAccessory.createSwitchService(
+        'Announcements',
+        hap.Service.Switch,
+        'doorbell.chime_assist.enabled',
+        async (value) => {
+          await nestAccessory.toggleAnnouncements(value as boolean);
+        },
+      );
+    } else {
+      nestAccessory.removeService(hap.Service.Switch, 'Announcements');
     }
 
     // Audio switch configuration

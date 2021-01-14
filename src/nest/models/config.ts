@@ -15,6 +15,7 @@ interface Options {
   doorbellSwitch?: boolean;
   streamingSwitch?: boolean;
   chimeSwitch?: boolean;
+  announcementsSwitch?: boolean;
   audioSwitch?: boolean;
   pathToFfmpeg?: string;
   structures?: Array<string>;
