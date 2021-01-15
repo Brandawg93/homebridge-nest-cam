@@ -33,7 +33,9 @@ const prompt = (query: string): Promise<string> =>
     console.log("4. In the 'Filter' box, enter 'nest-account' and select 'Doc' for the filter type.");
     console.log('5. Login to your Google account.');
     console.log("6. Click on the call beginning with 'nest-account&authuser=...'");
-    let requestUrl = await prompt('7. Copy the entire Request Url here: ');
+    let requestUrl = await prompt(
+      "7. Copy the entire Request Url (beginning with 'com.googleusercontent.apps') here: ",
+    );
     try {
       requestUrl = requestUrl.replace('Request URL: ', '').split('?')[1];
     } catch (err) {
