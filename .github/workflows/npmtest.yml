@@ -2,6 +2,7 @@ name: test
 
 on:
   push:
+    paths: '**.ts' # only run on modified typescript files
     branches: [ master ]
   pull_request:
     branches: [ master ]
@@ -15,6 +16,6 @@ jobs:
           node-version: 12
       - run: npm ci
       - run: npm run test
-      - run: npm run clean
         env:
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
+      - run: npm run clean

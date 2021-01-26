@@ -1,7 +1,15 @@
 import { auth, generateToken } from '../src/nest/connection';
 
+const getRefreshToken = (): string => {
+  const refreshToken = process.env.REFRESH_TOKEN;
+  if (!refreshToken) {
+    throw new Error('Refresh token not found.');
+  }
+  return refreshToken;
+};
+
 test('works as expected', async () => {
-  const refreshToken = process.env.REFRESH_TOKEN || '';
+  const refreshToken = getRefreshToken();
   expect.assertions(1);
   const accessToken = await auth(refreshToken);
   return expect(accessToken.length > 0).toBeTruthy();

@@ -2,9 +2,17 @@ import { NestStructure } from '../src/nest/structure';
 import { NestConfig } from '../src/nest/models/config';
 import { auth, getCameras } from '../src/nest/connection';
 
+const getRefreshToken = (): string => {
+  const refreshToken = process.env.REFRESH_TOKEN;
+  if (!refreshToken) {
+    throw new Error('Refresh token not found.');
+  }
+  return refreshToken;
+};
+
 test('getFaces works as expected', async () => {
   expect.assertions(1);
-  const refreshToken = process.env.REFRESH_TOKEN || '';
+  const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);
   if (accessToken) {
     const config: NestConfig = {
@@ -23,7 +31,7 @@ test('getFaces works as expected', async () => {
 
 test('getMembers works as expected', async () => {
   expect.assertions(1);
-  const refreshToken = process.env.REFRESH_TOKEN || '';
+  const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);
   if (accessToken) {
     const config: NestConfig = {
