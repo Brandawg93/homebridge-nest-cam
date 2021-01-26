@@ -147,7 +147,7 @@ export class NestCam extends EventEmitter {
       const self = this;
       this.alertTimeout = setInterval(async () => {
         await self.checkAlerts();
-      }, this.alertInterval) as NodeJS.Timeout;
+      }, this.alertInterval);
     }
   }
 
@@ -159,7 +159,7 @@ export class NestCam extends EventEmitter {
     }
   }
 
-  async checkAlerts(): Promise<void> {
+  private async checkAlerts(): Promise<void> {
     if (!this.alertsSend) {
       return;
     }

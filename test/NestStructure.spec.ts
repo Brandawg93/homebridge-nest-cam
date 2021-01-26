@@ -23,7 +23,7 @@ test('getFaces works as expected', async () => {
     const cameraInfo = (await getCameras(config))[0];
     const structure = new NestStructure(cameraInfo, config);
     const faces = await structure.getFaces();
-    return expect(faces.length > 0).toBeTruthy();
+    expect(faces.length > 0).toBeTruthy();
   } else {
     throw new Error('Could not connect');
   }
@@ -42,7 +42,7 @@ test('getMembers works as expected', async () => {
     const cameraInfo = (await getCameras(config))[0];
     const structure = new NestStructure(cameraInfo, config);
     const members = await structure.getMembers();
-    return expect(members.length > 0).toBeTruthy();
+    expect(members.length > 0).toBeTruthy();
   } else {
     throw new Error('Could not connect');
   }

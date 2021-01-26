@@ -23,7 +23,7 @@ test('getAppLaunch works as expected', async () => {
     const user = new NestSession(config);
     const app = await user.getAppLaunch();
     if (app) {
-      return expect(app['2fa_enabled']).toBeTruthy();
+      expect(app['2fa_enabled']).toBeTruthy();
     }
   } else {
     throw new Error('Could not connect');

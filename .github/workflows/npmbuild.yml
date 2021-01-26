@@ -16,4 +16,7 @@ jobs:
           node-version: 12
       - run: npm ci
       - run: npm run build
+      - run: npm run test
+        env:
+          REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
       - run: npm run clean

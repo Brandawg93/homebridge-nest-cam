@@ -12,11 +12,11 @@ test('works as expected', async () => {
   const refreshToken = getRefreshToken();
   expect.assertions(1);
   const accessToken = await auth(refreshToken);
-  return expect(accessToken.length > 0).toBeTruthy();
+  expect(accessToken.length > 0).toBeTruthy();
 });
 
 test('can generate token', async () => {
   expect.assertions(1);
   const token = generateToken();
-  return expect(token.url.length > 0).toBeTruthy();
+  expect(token.url.length > 0).toBeTruthy();
 });
