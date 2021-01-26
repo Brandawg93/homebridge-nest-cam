@@ -145,7 +145,7 @@ export class NestCam extends EventEmitter {
   startAlertChecks(): void {
     if (!this.alertTimeout) {
       const self = this;
-      this.alertTimeout = setInterval(async () => {
+      this.alertTimeout = global.setInterval(async () => {
         await self.checkAlerts();
       }, this.alertInterval);
     }

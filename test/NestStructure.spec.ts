@@ -10,8 +10,8 @@ const getRefreshToken = (): string => {
   return refreshToken;
 };
 
-test('getFaces works as expected', async () => {
-  expect.assertions(1);
+test('getFaces and getMembers works as expected', async () => {
+  expect.assertions(2);
   const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);
   if (accessToken) {
@@ -21,28 +21,13 @@ test('getFaces works as expected', async () => {
       access_token: accessToken,
     };
     const cameraInfo = (await getCameras(config))[0];
-    const structure = new NestStructure(cameraInfo, config);
-    const faces = await structure.getFaces();
-    expect(faces.length > 0).toBeTruthy();
-  } else {
-    throw new Error('Could not connect');
-  }
-});
-
-test('getMembers works as expected', async () => {
-  expect.assertions(1);
-  const refreshToken = getRefreshToken();
-  const accessToken = await auth(refreshToken);
-  if (accessToken) {
-    const config: NestConfig = {
-      platform: 'test',
-      fieldTest: false,
-      access_token: accessToken,
-    };
-    const cameraInfo = (await getCameras(config))[0];
-    const structure = new NestStructure(cameraInfo, config);
-    const members = await structure.getMembers();
-    expect(members.length > 0).toBeTruthy();
+    if (cameraInfo) {
+      const structure = new NestStructure(cameraInfo, config);
+      const faces = await structure.getFaces();
+      expect(faces.length > 0).toBeTruthy();
+      const members = await structure.getMembers();
+      expect(members.length > 0).toBeTruthy();
+    }
   } else {
     throw new Error('Could not connect');
   }
