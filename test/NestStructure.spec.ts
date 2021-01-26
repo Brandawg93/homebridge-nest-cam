@@ -14,7 +14,27 @@ test('getFaces works as expected', async () => {
     };
     const cameraInfo = (await getCameras(config))[0];
     const structure = new NestStructure(cameraInfo, config);
-    return expect(structure.getFaces()).resolves.toBeTruthy();
+    const faces = await structure.getFaces();
+    return expect(faces.length > 0).toBeTruthy();
+  } else {
+    throw new Error('Could not connect');
+  }
+});
+
+test('getMembers works as expected', async () => {
+  expect.assertions(1);
+  const refreshToken = process.env.REFRESH_TOKEN || '';
+  const accessToken = await auth(refreshToken);
+  if (accessToken) {
+    const config: NestConfig = {
+      platform: 'test',
+      fieldTest: false,
+      access_token: accessToken,
+    };
+    const cameraInfo = (await getCameras(config))[0];
+    const structure = new NestStructure(cameraInfo, config);
+    const members = await structure.getMembers();
+    return expect(members.length > 0).toBeTruthy();
   } else {
     throw new Error('Could not connect');
   }

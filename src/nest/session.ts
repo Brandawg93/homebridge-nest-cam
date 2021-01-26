@@ -58,7 +58,7 @@ export class NestSession {
     this.log = log;
   }
 
-  async getUserID(): Promise<string> {
+  private async getUserID(): Promise<string> {
     try {
       const session: Session = await this.endpoints.sendRequest(
         this.config.access_token,
