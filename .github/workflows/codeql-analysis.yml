@@ -2,10 +2,10 @@ name: "CodeQL"
 
 on:
   push:
-    paths: '**.ts' # only run on modified typescript files
+    paths: 'src/**' # only run on modified src files
     branches: [master]
   pull_request:
-    paths: '**.ts' # only run on modified typescript files
+    paths: 'src/**' # only run on modified src files
     # The branches below must be a subset of the branches above
     branches: [master]
   schedule:
