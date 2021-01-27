@@ -1,5 +1,5 @@
 import { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils';
-import { auth, getCameras } from '../nest/connection';
+import { auth, getCameras, generateToken, getRefreshToken, Token } from '../nest/connection';
 import { NestConfig } from '../nest/models/config';
 import { Member } from '../nest/models/structure';
 import { NestStructure } from '../nest/structure';
@@ -30,6 +30,8 @@ export class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/structures', this.handleStructureRequest.bind(this));
     this.onRequest('/cameras', this.handleCamerasRequest.bind(this));
     this.onRequest('/owner', this.handleOwnerRequest.bind(this));
+    this.onRequest('/generateToken', this.handleGenerateTokenRequest.bind(this));
+    this.onRequest('/getRefreshToken', this.handleGetRefreshTokenRequest.bind(this));
 
     this.ready();
   }
@@ -190,6 +192,23 @@ export class UiServer extends HomebridgePluginUiServer {
       action: 'notice',
       payload: msg,
     });
+  }
+
+  async handleGenerateTokenRequest(payload: any): Promise<Token> {
+    return generateToken(payload.ft);
+  }
+
+  async handleGetRefreshTokenRequest(payload: any): Promise<string> {
+    if (!payload.code_verifier || !payload.url) {
+      return '';
+    }
+    try {
+      const requestUrl = payload.url.replace('Request URL: ', '').split('?')[1];
+      return await getRefreshToken(requestUrl, payload.code_verifier, payload.ft);
+    } catch (err) {
+      console.error('Invalid request url');
+    }
+    return '';
   }
 }
 

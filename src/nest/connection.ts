@@ -8,7 +8,7 @@ import querystring from 'querystring';
 import crypto from 'crypto';
 import base64url from 'base64url';
 
-type Token = {
+export type Token = {
   url: string;
   code: string;
 };

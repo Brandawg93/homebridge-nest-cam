@@ -1,10 +1,19 @@
 <p class="help-block"><strong>Note: </strong>This plugin only works with Google accounts. Please visit this <a target="_blank" href="https://nest.com/whats-happening/">blog post</a> for more info.</p>
 <div @opacity *ngIf="!waiting">
     <div [hidden]="!manualLogin">
+        <ol>
+            <li>Click <a href="{{token.url}}" target="_blank">HERE</a> to open the Nest login page.</li>
+            <li>Open Developer Tools (View/Developer/Developer Tools).</li>
+            <li>Click on <code>Network</code> tab. Make sure <code>Preserve Log</code> is checked.</li>
+            <li>In the <code>Filter</code> box, enter <code>nest-account</code> and select <code>Doc</code> for the filter type.</li>
+            <li>Login to your Google account.</li>
+            <li>Click on the call beginning with <code>nest-account&authuser=...</code></li>
+            <li>Copy and paste the entire Request Url (beginning with <code>com.googleusercontent.apps</code>) below: </li>
+        </ol>
         <div [formGroup]="manualForm">
             <div class="schema-form-text form-group">
-                <label class="control-label">Refresh Token <strong class="text-danger">*</strong></label>
-                <input type="text" class="form-control" formControlName="refreshToken" />
+                <label class="control-label">Request URL <strong class="text-danger">*</strong></label>
+                <input type="text" class="form-control" formControlName="requestUrl" />
             </div>
             <div class="text-center">
                 <p class="help-block"><small>&nbsp;</small></p>

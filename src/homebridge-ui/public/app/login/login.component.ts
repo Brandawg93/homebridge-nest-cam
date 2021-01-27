@@ -2,6 +2,7 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { NestConfig } from '../../../../nest/models/config';
+import { Token } from '../../../../nest/connection';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
 function delay(ms: number): Promise<void> {
@@ -21,6 +22,11 @@ export class LoginComponent implements OnInit {
   public autoForm?: FormGroup;
   public manualLogin = false;
   public waiting = false;
+  public token: Token = {
+    url: '#',
+    code: '',
+  };
+
   public totpRequired = false;
   public progress = 0;
   public color = 'blue';
@@ -62,6 +68,8 @@ export class LoginComponent implements OnInit {
     this.homebridge?.addEventListener('credentials', async (payload: any) => {
       await this.checkAuthentication(payload.data);
     });
+
+    this.generateForm();
   }
 
   private resetLoginUI(): void {
@@ -74,7 +82,7 @@ export class LoginComponent implements OnInit {
 
   generateForm(): void {
     this.manualForm = new FormGroup({
-      refreshToken: new FormControl('', Validators.required),
+      requestUrl: new FormControl('', Validators.required),
     });
 
     this.autoForm = new FormGroup({
@@ -88,7 +96,9 @@ export class LoginComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    this.generateForm();
+    const config = ((await this.homebridge.getPluginConfig())[0] || {}) as NestConfig;
+    const ft = config.options?.fieldTest;
+    this.token = await this.homebridge.request('/generateToken', { ft: ft });
   }
 
   toggleLogin(): void {
@@ -119,7 +129,15 @@ export class LoginComponent implements OnInit {
 
   async doManualLogin(): Promise<void> {
     this.resetLoginUI();
-    const refreshToken = this.manualForm?.controls.refreshToken.value;
+    const config = ((await this.homebridge.getPluginConfig())[0] || {}) as NestConfig;
+    const ft = config.options?.fieldTest;
+    const code_verifier = this.token?.code;
+    const requestUrl = this.manualForm?.controls.requestUrl.value;
+    const refreshToken = await this.homebridge.request('/getRefreshToken', {
+      url: requestUrl,
+      code_verifier: code_verifier,
+      ft: ft,
+    });
     if (refreshToken) {
       await this.checkAuthentication(refreshToken);
     }
