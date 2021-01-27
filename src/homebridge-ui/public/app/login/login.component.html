@@ -2,7 +2,7 @@
 <div @opacity *ngIf="!waiting">
     <div [hidden]="!manualLogin">
         <ol>
-            <li>Click <a href="{{token.url}}" target="_blank">HERE</a> to open the Nest login page.</li>
+            <li>Click <a href="{{token.url}}" target="_blank" rel="noopener noreferrer">HERE</a> to open the Nest login page.</li>
             <li>Open Developer Tools (View/Developer/Developer Tools).</li>
             <li>Click on <code>Network</code> tab. Make sure <code>Preserve Log</code> is checked.</li>
             <li>In the <code>Filter</code> box, enter <code>nest-account</code> and select <code>Doc</code> for the filter type.</li>
