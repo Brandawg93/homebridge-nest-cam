@@ -260,7 +260,7 @@ export class AutoLogin {
         if (url.includes('approval?authuser=0')) {
           try {
             const text = unescape(await response.text());
-            const query = text.split('?')[1].split('"')[0];
+            const query = text.split('oauth2callback?')[1].split('"')[0];
             const refreshToken = await getRefreshToken(query, code_verifier, ft);
             if (uix) {
               uix.setCredentials(refreshToken);
@@ -269,9 +269,9 @@ export class AutoLogin {
             }
             this.stop();
           } catch (error) {
-            console.error(`Invalid request url.`);
+            console.error(`Could not get code. Error: ${error}`);
             if (uix) {
-              uix.showError(`Invalid request url.`);
+              uix.showError(`Could not get code. Error: ${error}`);
             }
           }
         }
