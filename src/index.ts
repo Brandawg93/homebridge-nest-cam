@@ -11,7 +11,7 @@ import {
 import { NestCam } from './nest/cam';
 import { CameraInfo, ModelTypes } from './nest/models/camera';
 import { NestConfig } from './nest/models/config';
-import { auth, getCameras } from './nest/connection';
+import { auth, old_auth, getCameras } from './nest/connection';
 import { NestSession } from './nest/session';
 import { NestAccessory } from './accessory';
 
@@ -270,22 +270,40 @@ class NestCamPlatform implements DynamicPlatformPlugin {
     });
   }
 
+  async getAccessToken(): Promise<string> {
+    const refreshToken = this.config.refreshToken;
+    const googleAuth = this.config.googleAuth;
+
+    if (refreshToken) {
+      return await auth(refreshToken, this.config.options?.fieldTest, this.log);
+    } else if (googleAuth) {
+      const issueToken = googleAuth.issueToken;
+      const cookies = googleAuth.cookies;
+      const apiKey = googleAuth.apiKey;
+
+      if (!issueToken || !cookies) {
+        this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
+        return '';
+      }
+
+      return await old_auth(issueToken, cookies, apiKey, this.log);
+    } else {
+      this.log.error(
+        'You must provide a refreshToken or googleAuth object in config.json. Please see README.md for instructions',
+      );
+      return '';
+    }
+  }
+
   async didFinishLaunching(): Promise<void> {
     const self = this;
-    const refreshToken = this.config.refreshToken;
-
-    if (!refreshToken) {
-      this.log.error('You must provide a refreshToken in config.json. Please see README.md for instructions');
-      return;
-    }
-
-    const accessToken = await auth(refreshToken, this.config.options?.fieldTest, this.log);
+    const accessToken = await this.getAccessToken();
     if (accessToken) {
       this.config.access_token = accessToken;
       // Nest needs to be reauthenticated about every hour
       setInterval(async () => {
         self.log.debug('Reauthenticating with config credentials');
-        this.config.access_token = await auth(refreshToken, this.config.options?.fieldTest, this.log);
+        this.config.access_token = await this.getAccessToken();
       }, 3480000); // 58 minutes
 
       const cameras = await getCameras(this.config, this.log);
@@ -297,6 +315,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         return x.camera;
       });
       await session.subscribe(cameraObjects);
+    } else {
+      this.log.error('Unable to retrieve access token.');
     }
   }
 

@@ -112,6 +112,9 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
   return result.refresh_token;
 }
 
+/**
+ * Attempt to authenticate Nest via Google account with refresh token
+ */
 export async function auth(refreshToken: string, ft = false, log?: Logging): Promise<string> {
   let req: AxiosRequestConfig;
   const apiKey = ft ? APIKEY_FT : APIKEY;
@@ -164,6 +167,81 @@ export async function auth(refreshToken: string, ft = false, log?: Logging): Pro
       log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
       await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
       return await auth(refreshToken, ft, log);
+    } else {
+      return '';
+    }
+  }
+}
+
+/**
+ * Attempt to authenticate Nest via Google account with browser cookies
+ */
+export async function old_auth(issueToken: string, cookies: string, apiKey?: string, log?: Logging): Promise<string> {
+  let req: AxiosRequestConfig;
+
+  //Only doing google auth from now on
+  issueToken = issueToken.replace('Request URL: ', '');
+  cookies = cookies.replace('cookie: ', '');
+  const referer = querystring.parse(issueToken).ss_domain;
+  if (!referer) {
+    log?.error('issueToken is invalid');
+    return '';
+  }
+  const fieldTest = referer !== 'https://home.nest.com';
+
+  apiKey =
+    apiKey?.replace('x-goog-api-key: ', '') ||
+    (fieldTest ? 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U' : 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4');
+
+  log?.debug('Authenticating via Google.');
+  let result;
+  try {
+    req = {
+      method: 'GET',
+      timeout: API_TIMEOUT_SECONDS * 1000,
+      url: issueToken,
+      headers: {
+        'Sec-Fetch-Mode': 'cors',
+        'User-Agent': NestEndpoints.USER_AGENT_STRING,
+        'X-Requested-With': 'XmlHttpRequest',
+        Referer: 'https://accounts.google.com/o/oauth2/iframe',
+        cookie: cookies,
+      },
+    };
+    result = (await axios(req)).data;
+    const googleAccessToken = result.access_token;
+    if (result.error) {
+      log?.error(
+        'Google authentication was unsuccessful. Make sure you did not log out of your Google account after getting your googleAuth parameters.',
+      );
+      throw result;
+    }
+    req = {
+      method: 'POST',
+      timeout: API_TIMEOUT_SECONDS * 1000,
+      url: 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt',
+      data: {
+        embed_google_oauth_access_token: true,
+        expire_after: '3600s', //expire the access token in 1 hour
+        google_oauth_access_token: googleAccessToken,
+        policy_id: 'authproxy-oauth-policy',
+      },
+      headers: {
+        Authorization: 'Bearer ' + googleAccessToken,
+        'User-Agent': NestEndpoints.USER_AGENT_STRING,
+        'x-goog-api-key': apiKey,
+        Referer: referer,
+      },
+    };
+    result = (await axios(req)).data;
+    return result.jwt;
+  } catch (error) {
+    error.status = error.response && error.response.status;
+    log?.error('Access token acquisition via googleAuth failed (code ' + (error.status || error.code) + ').');
+    if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
+      log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
+      await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
+      return await old_auth(issueToken, cookies);
     } else {
       return '';
     }

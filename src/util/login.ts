@@ -251,27 +251,34 @@ export class AutoLogin {
           if (uix) {
             uix.showError('Could not generate refresh token');
           } else {
-            console.log('Could not generate refresh token');
+            console.error('Could not generate refresh token');
           }
           this.stop();
         }
 
         // Getting code
-        if (url.includes('approval?authuser=0')) {
+        if (url.includes('oauth/consent/approval')) {
           try {
             const text = unescape(await response.text());
-            const query = text.split('oauth2callback?')[1].split('"')[0];
-            const refreshToken = await getRefreshToken(query, code_verifier, ft);
-            if (uix) {
-              uix.setCredentials(refreshToken);
+            if (!text.includes('oauth2callback?')) {
+              console.error(`Could not find "oauth2callback?".`);
+              if (uix) {
+                uix.showError(`Could not find "oauth2callback?".`);
+              }
             } else {
-              console.log(`"refreshToken": ${refreshToken}`);
+              const query = text.split('oauth2callback?')[1].split('"')[0];
+              const refreshToken = await getRefreshToken(query, code_verifier, ft);
+              if (uix) {
+                uix.setCredentials(refreshToken);
+              } else {
+                console.log(`"refreshToken": ${refreshToken}`);
+              }
+              this.stop();
             }
-            this.stop();
           } catch (error) {
-            console.error(`Could not get code. Error: ${error}`);
+            console.error(`Could not get code. ${error}`);
             if (uix) {
-              uix.showError(`Could not get code. Error: ${error}`);
+              uix.showError(`Could not get code. ${error}`);
             }
           }
         }
