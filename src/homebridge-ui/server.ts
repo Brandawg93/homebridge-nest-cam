@@ -4,7 +4,6 @@ import { NestConfig } from '../nest/models/config';
 import { Member } from '../nest/models/structure';
 import { NestStructure } from '../nest/structure';
 import { CameraInfo } from '../nest/models/camera';
-import { AutoLogin, getChromiumBrowser } from '../util/login';
 
 interface Structure {
   title: string;
@@ -15,17 +14,11 @@ export class UiServer extends HomebridgePluginUiServer {
   private accessToken?: string;
   private cameras?: Array<CameraInfo>;
   private ft = false;
-  private login: AutoLogin;
-  private usernameRequested = false;
-  private passwordRequested = false;
 
   constructor() {
     super();
 
-    this.login = new AutoLogin();
-    this.onRequest('/login', this.handleLoginRequest.bind(this));
     this.onRequest('/logout', this.handleLogoutRequest.bind(this));
-    this.onRequest('/stop', this.handleStopRequest.bind(this));
     this.onRequest('/auth', this.handleAuthRequest.bind(this));
     this.onRequest('/structures', this.handleStructureRequest.bind(this));
     this.onRequest('/cameras', this.handleCamerasRequest.bind(this));
@@ -97,16 +90,8 @@ export class UiServer extends HomebridgePluginUiServer {
     }
   }
 
-  async handleLoginRequest(): Promise<void> {
-    this.doLogin();
-  }
-
   async handleLogoutRequest(): Promise<void> {
     this.cameras = undefined;
-  }
-
-  async handleStopRequest(): Promise<void> {
-    this.stopLogin();
   }
 
   private async sendToParent(request: { action: string; payload?: any }): Promise<any> {
@@ -122,60 +107,6 @@ export class UiServer extends HomebridgePluginUiServer {
     return promise;
   }
 
-  async doLogin(): Promise<void> {
-    try {
-      if (!(await getChromiumBrowser())) {
-        this.sendToParent({
-          action: 'error',
-          payload: {
-            key: 'chromium_not_found',
-            message: 'Cannot find Chromium or Google Chrome installed on your system.',
-          },
-        });
-      }
-      await this.login.login(undefined, undefined, this);
-    } catch (e) {
-      this.sendToParent({ action: 'error', payload: e.message });
-    }
-  }
-
-  stopLogin(): void {
-    this.login.stop();
-    this.usernameRequested = false;
-    this.passwordRequested = false;
-  }
-
-  async getUsername(): Promise<string> {
-    if (this.usernameRequested) {
-      this.sendToParent({ action: 'error', payload: 'Invalid email' });
-      this.stopLogin();
-      return '';
-    }
-    this.usernameRequested = true;
-    const response = await this.sendToParent({ action: 'username' });
-    return response;
-  }
-
-  async getPassword(): Promise<string> {
-    if (this.passwordRequested) {
-      this.sendToParent({ action: 'error', payload: 'Invalid password' });
-      this.stopLogin();
-      return '';
-    }
-    this.passwordRequested = true;
-    const response = await this.sendToParent({ action: 'password' });
-    return response;
-  }
-
-  async getTotp(): Promise<string> {
-    const response = await this.sendToParent({ action: 'totp' });
-    return response;
-  }
-
-  async sendStartupSuccess(): Promise<void> {
-    await this.pushEvent('started', {});
-  }
-
   async setCredentials(credentials: string): Promise<void> {
     await this.sendToParent({ action: 'credentials', payload: credentials });
   }
@@ -183,13 +114,6 @@ export class UiServer extends HomebridgePluginUiServer {
   async showError(msg: string): Promise<void> {
     await this.sendToParent({
       action: 'error',
-      payload: msg,
-    });
-  }
-
-  async showNotice(msg: string): Promise<void> {
-    await this.sendToParent({
-      action: 'notice',
       payload: msg,
     });
   }
@@ -206,7 +130,13 @@ export class UiServer extends HomebridgePluginUiServer {
       const requestUrl = payload.url.replace('Request URL: ', '').split('?')[1];
       return await getRefreshToken(requestUrl, payload.code_verifier, payload.ft);
     } catch (err) {
-      console.error('Invalid request url');
+      let msg = err;
+      if (err.response?.data?.error_description) {
+        msg = err.response?.data?.error_description;
+      } else if (err.message) {
+        msg = err.message;
+      }
+      await this.showError(msg);
     }
     return '';
   }

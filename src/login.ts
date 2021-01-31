@@ -32,10 +32,16 @@ const prompt = (query: string): Promise<string> =>
   let requestUrl = await prompt("7. Copy the entire Request Url (beginning with 'com.googleusercontent.apps') here: ");
   try {
     requestUrl = requestUrl.replace('Request URL: ', '').split('?')[1];
+    const refreshToken = await getRefreshToken(requestUrl, code_verifier, ft);
+    console.log('8. Copy the refresh token below to your config.json.');
+    console.log(`Refresh Token: ${refreshToken}`);
   } catch (err) {
-    console.error('Invalid request url');
+    let msg = err;
+    if (err.response?.data?.error_description) {
+      msg = err.response?.data?.error_description;
+    } else if (err.message) {
+      msg = err.message;
+    }
+    console.error(msg);
   }
-  const refreshToken = await getRefreshToken(requestUrl, code_verifier, ft);
-  console.log('8. Copy the refresh token below to your config.json.');
-  console.log(`Refresh Token: ${refreshToken}`);
 })();

@@ -1,14 +1,3 @@
-<div *ngIf="initialized">
-  <div class="row">
-    <div class="col-md">
-      <span class="mb-0">Instructions for setting up the config can be found on the <a target="_blank" href="https://github.com/Brandawg93/homebridge-nest-cam#setting-up-the-configjson">Github</a>.</span>
-    </div>
-    <div class="col-md-3 text-right">
-      <span *ngIf="ft">Field Test Mode</span>
-    </div>
-  </div>
-  <hr />
-</div>
 <div class="content hb-plugin-settings-modal">
   <div @opacity *ngIf="!authenticated" class="card card-body">
     <app-login (authEvent)="setAuthenticated($event)"></app-login>
@@ -16,15 +5,18 @@
   <div *ngIf="authenticated">
     <div @profileTrigger *ngIf="initialized" class="container-fluid overflow-hidden">
       <div class="profile-container">
-        <div class="row text-right">
-          <div class="col">
+        <div class="row">
+          <div class="col-md">
+            <span *ngIf="ft">Field Test Mode</span>
+          </div>      
+          <div class="col-md text-right">
             <p class="profile-name m-0">{{profile.name}}</p>
             <p class="profile-email m-0">{{profile.email}}</p>
           </div>
-          <div class="col">
+          <div class="col-md-1 text-right">
             <img src="{{profile.img}}" class="profile-img" width="36" height="36"/>  
           </div>
-          <div class="col">
+          <div class="col-md-1 text-right">
             <button class="btn btn-danger m-0" (click)="signout()"><i class="fas fa-sign-out-alt"></i></button>
           </div>
         </div>  

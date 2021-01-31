@@ -1,6 +1,6 @@
 <p class="help-block"><strong>Note: </strong>This plugin only works with Google accounts. Please visit this <a target="_blank" href="https://nest.com/whats-happening/">blog post</a> for more info.</p>
 <div @opacity *ngIf="!waiting">
-    <div [hidden]="!manualLogin">
+    <div>
         <ol>
             <li>Click <a href="{{token.url}}" target="_blank" rel="noopener noreferrer">HERE</a> to open the Nest login page.</li>
             <li>Open Developer Tools (View/Developer/Developer Tools).</li>
@@ -11,52 +11,24 @@
             <li>Click on the call in red beginning with <code>nest-account&authuser=...</code></li>
             <li>Copy and paste the entire Request Url (beginning with <code>com.googleusercontent.apps</code>) below: </li>
         </ol>
-        <div [formGroup]="manualForm">
+        <div [formGroup]="form">
             <div class="schema-form-text form-group">
                 <label class="control-label">Request URL <strong class="text-danger">*</strong></label>
                 <input type="text" class="form-control" formControlName="requestUrl" />
             </div>
             <div class="text-center">
-                <p class="help-block"><small>&nbsp;</small></p>
-                <button type="button" class="btn btn-primary" [disabled]="!manualForm?.valid" (click)="doManualLogin()">Log In</button>
-                <p><a href="#" (click)="toggleLogin()"><small>...or login automatically.</small></a></p>
+                <button type="button" class="btn btn-primary" [disabled]="!form?.valid" (click)="doLogin()">Log In</button>
             </div>
         </div>
-    </div>
-    
-    <div [hidden]="manualLogin">
-        <div [formGroup]="autoForm">
-            <div class="schema-form-text form-group">
-                <label class="control-label">Email <strong class="text-danger">*</strong></label>
-                <input type="text" class="form-control" formControlName="email" required />
-            </div>
-            <div class="schema-form-text form-group">
-                <label class="control-label">Password <strong class="text-danger">*</strong></label>
-                <input type="password" class="form-control" formControlName="password" required />
-            </div>
-            <div class="text-center">
-                <p class="help-block"><small>Your email and password will be sent directly to Google and will not be stored anywhere.</small></p>
-                <button type="submit" class="btn btn-primary" [disabled]="!autoForm?.valid" (click)="doAutoLogin()">Log In</button>
-                <p><a href="#" (click)="toggleLogin()"><small>...or login manually.</small></a></p>
-            </div>
-        </div>
-    </div>
+    </div>    
 </div>
 <div @opacity *ngIf="waiting">
     <div class="text-center">
         <progress-bar [progress]="progress" [color]="color"></progress-bar>
-        <div class="schema-form-text form-group" *ngIf="totpRequired; else loggingIn">
-            <hr />
-            <label class="control-label">Please enter the verification code from the Google Authenticator app or SMS:</label>
-            <input type="text" class="form-control totp-input" [(ngModel)]="totp" />
-            <button type="button" class="btn btn-primary" [disabled]="!totp" (click)="confirmTotp()">Submit</button>
-        </div>
-        <ng-template #loggingIn>
+        <div>
             <p>Loggin in. Please wait...</p>
-        </ng-template>
-        <p class="help-block">{{noticeMsg}}</p>
+        </div>
         <p class="text-danger">{{errMsg}}</p>
         <button class="btn btn-danger" (click)="restart()">Restart <i class="fas fa-undo-alt"></i></button>
-        <p><small>Having issues? Try the <a href="https://github.com/Brandawg93/homebridge-nest-cam/wiki/Manual-Authentication">manual authentication method</a>.</small></p>
     </div>
 </div>
