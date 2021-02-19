@@ -2,6 +2,8 @@ import axios from 'axios';
 import { Logging } from 'homebridge';
 import { AxiosRequestConfig, Method, ResponseType } from 'axios';
 
+const HOMEBRIDGE_TIMEOUT = 3000;
+
 /**
  * Handle an axios error
  * @param {Logging} log     The log object to output error
@@ -89,6 +91,7 @@ export class NestEndpoints {
       data,
       headers,
       responseType: type,
+      timeout: HOMEBRIDGE_TIMEOUT,
     };
 
     return (await axios(req)).data;
