@@ -17,7 +17,7 @@
     },
     {
       "type": "paypal",
-      "url": "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam&currency_code=USD&source=url"
+      "url": "https://www.paypal.com/donate/?business=CEYYGVB7ZZ764&item_name=homebridge-nest-cam"
     }
   ],
   "bin": {
