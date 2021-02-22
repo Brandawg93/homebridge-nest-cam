@@ -28,7 +28,7 @@ const ISSUE_JWT_URL = 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_j
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
 
 // Timeout other API calls after this number of seconds
-const API_TIMEOUT_SECONDS = 40;
+const API_TIMEOUT_SECONDS = 10;
 
 const delay = function (time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, time));
@@ -95,6 +95,7 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
   const code = querystring.parse(requestUrl).code;
   const req: AxiosRequestConfig = {
     method: 'POST',
+    timeout: API_TIMEOUT_SECONDS * 1000,
     url: TOKEN_URL,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Logging } from 'homebridge';
 import { AxiosRequestConfig, Method, ResponseType } from 'axios';
 
-const HOMEBRIDGE_TIMEOUT = 3000;
+const API_TIMEOUT_SECONDS = 10;
 
 /**
  * Handle an axios error
@@ -91,7 +91,7 @@ export class NestEndpoints {
       data,
       headers,
       responseType: type,
-      timeout: HOMEBRIDGE_TIMEOUT,
+      timeout: API_TIMEOUT_SECONDS * 1000,
     };
 
     return (await axios(req)).data;
