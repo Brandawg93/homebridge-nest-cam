@@ -11,7 +11,7 @@ const API_TIMEOUT_SECONDS = 10;
  * @param {string} message  The message to add to the log output
  */
 export function handleError(log: Logging | undefined, error: any, message: string, debug = false): void {
-  const addendum = 'Troubleshoot here: https://github.com/Brandawg93/homebridge-nest-cam/wiki/Error-Codes';
+  const addendum = 'Troubleshoot here: https://git.io/Jtxww';
   if (error.response) {
     const status = parseInt(error.response.status);
     const errMsg = `${message}: ${status}`;
