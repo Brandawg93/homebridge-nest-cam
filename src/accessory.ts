@@ -54,6 +54,10 @@ export class NestAccessory {
       const service = this.accessory.getService(`${this.accessory.displayName} Chime`);
       service && service.updateCharacteristic(this.hap.Characteristic.On, value);
     });
+    camera.on(NestCamEvents.CHIME_ASSIST_STATE_CHANGED, (value: boolean) => {
+      const service = this.accessory.getService(`${this.accessory.displayName} Announcements`);
+      service && service.updateCharacteristic(this.hap.Characteristic.On, value);
+    });
     camera.on(NestCamEvents.AUDIO_STATE_CHANGED, (value: boolean) => {
       const service = this.accessory.getService(`${this.accessory.displayName} Audio`);
       service && service.updateCharacteristic(this.hap.Characteristic.On, value);
@@ -118,15 +122,7 @@ export class NestAccessory {
         callback();
       })
       .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
-        const info = await this.camera.updateData();
-        this.accessory.context.cameraInfo = info;
-        const value = info.properties[_key];
-        if (typeof value !== 'undefined') {
-          this.log.debug(`Updating info for ${this.accessory.displayName} ${name}`);
-          callback(null, value);
-        } else {
-          callback(new Error(), undefined);
-        }
+        callback(undefined, this.camera.info.properties[_key]);
       });
   }
 

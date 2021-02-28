@@ -91,6 +91,7 @@ export class NestSession {
           'POST',
           'json',
           'application/json,text/json,text/javascript',
+          true,
           data,
         );
         return appLaunch;
@@ -121,6 +122,7 @@ export class NestSession {
           'POST',
           'json',
           'application/json,text/json,text/javascript',
+          false,
           data,
         );
 
@@ -135,6 +137,7 @@ export class NestSession {
                 this.log?.debug(`Updating info for ${camera.info.name}`);
                 const curr_streaming = camera.info.properties['streaming.enabled'];
                 const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
+                const curr_assist = camera.info.properties['doorbell.chime_assist.enabled'];
                 const curr_audio = camera.info.properties['audio.enabled'];
 
                 camera
@@ -146,6 +149,9 @@ export class NestSession {
                     }
                     if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
                       camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
+                    }
+                    if (curr_assist !== newProps['doorbell.chime_assist.enabled']) {
+                      camera.emit(NestCamEvents.CHIME_ASSIST_STATE_CHANGED, newProps['doorbell.chime_assist.enabled']);
                     }
                     if (curr_audio !== newProps['audio.enabled']) {
                       camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);

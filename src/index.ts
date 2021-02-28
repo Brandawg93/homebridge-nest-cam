@@ -242,7 +242,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
    */
   private async addCameras(cameras: Array<CameraInfo>): Promise<void> {
     const filteredCameras = await this.filterCameras(cameras);
-    filteredCameras.forEach((cameraInfo: CameraInfo) => {
+    filteredCameras.forEach(async (cameraInfo: CameraInfo) => {
       const uuid = hap.uuid.generate(cameraInfo.uuid);
       // Parenthesis in the name breaks HomeKit for some reason
       const displayName = cameraInfo.name.replace('(', '').replace(')', '');
@@ -262,7 +262,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       }
 
       // Only add new cameras that are not cached
-      if (!this.nestObjects.find((x: NestObject) => x.accessory.UUID === uuid)) {
+      const obj = this.nestObjects.find((x: NestObject) => x.accessory.UUID === uuid);
+      if (obj) {
+        await obj.camera.updateData();
+      } else {
         this.log.debug(`New camera found: ${cameraInfo.name}`);
         this.configureAccessory(accessory); // abusing the configureAccessory here
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);

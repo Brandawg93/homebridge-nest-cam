@@ -60,6 +60,7 @@ export class NestEndpoints {
    * @param {Method} method       Usually 'GET' or 'POST'
    * @param {ResponseType} type   The type of return object (Usually 'json')
    * @param {string} contentType  The content type of the request
+   * @param {boolean} timeout     Whether the request should timeout or not
    * @param {any} data            The body of the request or null if a 'GET'
    */
   async sendRequest(
@@ -69,6 +70,7 @@ export class NestEndpoints {
     method: Method,
     type: ResponseType = 'json',
     contentType = '',
+    timeout = true,
     data?: any,
   ): Promise<any> {
     const headers: any = {
@@ -91,7 +93,7 @@ export class NestEndpoints {
       data,
       headers,
       responseType: type,
-      timeout: API_TIMEOUT_SECONDS * 1000,
+      timeout: timeout ? API_TIMEOUT_SECONDS * 1000 : undefined,
     };
 
     return (await axios(req)).data;

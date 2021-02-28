@@ -18,6 +18,7 @@ type OnlyBooleans<T> = Pick<
 export const enum NestCamEvents {
   CAMERA_STATE_CHANGED = 'camera-change',
   CHIME_STATE_CHANGED = 'chime-change',
+  CHIME_ASSIST_STATE_CHANGED = 'chime-assist-change',
   AUDIO_STATE_CHANGED = 'audio-change',
   DOORBELL_RANG = 'doorbell-rang',
   MOTION_DETECTED = 'motion-detected',
@@ -83,6 +84,7 @@ export class NestCam extends EventEmitter {
       'POST',
       'json',
       'application/x-www-form-urlencoded',
+      true,
       query,
     );
 
