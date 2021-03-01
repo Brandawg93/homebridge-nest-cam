@@ -1,6 +1,6 @@
 import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
-import { NestCam, NestCamEvents } from './cam';
+import { NestCam } from './cam';
 import { Session, AppLaunch } from './models/session';
 import { NestConfig } from './models/config';
 
