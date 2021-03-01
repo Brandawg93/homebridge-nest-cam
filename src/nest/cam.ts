@@ -309,33 +309,53 @@ export class NestCam extends EventEmitter {
     );
   }
 
-  async updateData(): Promise<CameraInfo> {
-    // Only update if more than one second has elapsed
-    const checkTime = new Date(this.lastUpdatedTime);
-    checkTime.setSeconds(checkTime.getSeconds() + 1);
-    if (new Date().getTime() < checkTime.getTime()) {
-      return this.info;
-    }
-
-    const query = querystring.stringify({
-      uuid: this.info.uuid,
-    });
-
-    try {
-      const response: any = await this.endpoints.sendRequest(
-        this.config.access_token,
-        this.endpoints.CAMERA_API_HOSTNAME,
-        `/api/cameras.get_with_properties?${query}`,
-        'GET',
-      );
-
-      const info = response.items[0];
-      if (info) {
-        this.info = info;
-        this.lastUpdatedTime = new Date();
+  async updateData(info?: CameraInfo): Promise<CameraInfo> {
+    if (!info) {
+      // Only update if more than one second has elapsed
+      const checkTime = new Date(this.lastUpdatedTime);
+      checkTime.setSeconds(checkTime.getSeconds() + 1);
+      if (new Date().getTime() < checkTime.getTime()) {
+        return this.info;
       }
-    } catch (error) {
-      handleError(this.log, error, `Error updating ${this.info.name} camera`);
+
+      const query = querystring.stringify({
+        uuid: this.info.uuid,
+      });
+
+      try {
+        const response: any = await this.endpoints.sendRequest(
+          this.config.access_token,
+          this.endpoints.CAMERA_API_HOSTNAME,
+          `/api/cameras.get_with_properties?${query}`,
+          'GET',
+        );
+
+        info = response.items[0];
+      } catch (error) {
+        handleError(this.log, error, `Error updating ${this.info.name} camera`);
+      }
+    }
+    if (info) {
+      const curr_streaming = this.info.properties['streaming.enabled'];
+      const curr_chime = this.info.properties['doorbell.indoor_chime.enabled'];
+      const curr_assist = this.info.properties['doorbell.chime_assist.enabled'];
+      const curr_audio = this.info.properties['audio.enabled'];
+
+      this.info = info;
+      this.lastUpdatedTime = new Date();
+      const newProps = info.properties;
+      if (curr_streaming !== newProps['streaming.enabled']) {
+        this.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
+      }
+      if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
+        this.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
+      }
+      if (curr_assist !== newProps['doorbell.chime_assist.enabled']) {
+        this.emit(NestCamEvents.CHIME_ASSIST_STATE_CHANGED, newProps['doorbell.chime_assist.enabled']);
+      }
+      if (curr_audio !== newProps['audio.enabled']) {
+        this.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
+      }
     }
 
     return this.info;

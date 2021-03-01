@@ -135,31 +135,7 @@ export class NestSession {
               const camera = cameras.find((x) => x.info.uuid === uuid);
               if (camera) {
                 this.log?.debug(`Updating info for ${camera.info.name}`);
-                const curr_streaming = camera.info.properties['streaming.enabled'];
-                const curr_chime = camera.info.properties['doorbell.indoor_chime.enabled'];
-                const curr_assist = camera.info.properties['doorbell.chime_assist.enabled'];
-                const curr_audio = camera.info.properties['audio.enabled'];
-
-                camera
-                  .updateData()
-                  .then((info) => {
-                    const newProps = info.properties;
-                    if (curr_streaming !== newProps['streaming.enabled']) {
-                      camera.emit(NestCamEvents.CAMERA_STATE_CHANGED, newProps['streaming.enabled']);
-                    }
-                    if (curr_chime !== newProps['doorbell.indoor_chime.enabled']) {
-                      camera.emit(NestCamEvents.CHIME_STATE_CHANGED, newProps['doorbell.indoor_chime.enabled']);
-                    }
-                    if (curr_assist !== newProps['doorbell.chime_assist.enabled']) {
-                      camera.emit(NestCamEvents.CHIME_ASSIST_STATE_CHANGED, newProps['doorbell.chime_assist.enabled']);
-                    }
-                    if (curr_audio !== newProps['audio.enabled']) {
-                      camera.emit(NestCamEvents.AUDIO_STATE_CHANGED, newProps['audio.enabled']);
-                    }
-                  })
-                  .catch((error) => {
-                    handleError(this.log, error, 'Error updating camera info', true);
-                  });
+                camera.updateData();
               }
             }
           }

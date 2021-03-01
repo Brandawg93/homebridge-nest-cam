@@ -264,7 +264,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       // Only add new cameras that are not cached
       const obj = this.nestObjects.find((x: NestObject) => x.accessory.UUID === uuid);
       if (obj) {
-        await obj.camera.updateData();
+        await obj.camera.updateData(cameraInfo);
       } else {
         this.log.debug(`New camera found: ${cameraInfo.name}`);
         this.configureAccessory(accessory); // abusing the configureAccessory here
