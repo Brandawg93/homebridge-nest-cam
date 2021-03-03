@@ -1,5 +1,5 @@
 import execa from 'execa';
-import { Logging, StreamRequestCallback } from 'homebridge';
+import { Logging } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
 import { Readable, Writable } from 'stream';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
@@ -47,11 +47,11 @@ export class FfmpegProcess {
     title: string,
     command: Array<string>,
     log: Logging,
-    callback: StreamRequestCallback | undefined,
     delegate: StreamingDelegate,
     sessionId: string,
     ffmpegDebugOutput: boolean,
     customFfmpeg?: string,
+    callback?: (error?: Error | undefined) => void,
   ) {
     let started = false;
     const controller = delegate.controller;

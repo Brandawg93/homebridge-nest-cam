@@ -109,19 +109,19 @@ export class NestAccessory {
     name: string,
     serviceType: ServiceType,
     _key: keyof Properties,
-    cb: (value: CharacteristicValue) => void,
+    cb: (value: CharacteristicValue) => Promise<void>,
   ): void {
     const service = this.createService(serviceType, name);
     this.log.debug(`Creating switch for ${this.accessory.displayName} ${name}.`);
     service
       .setCharacteristic(this.hap.Characteristic.On, this.camera.info.properties[_key])
       .getCharacteristic(this.hap.Characteristic.On)
-      .on(CharacteristicEventTypes.SET, async (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+      .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         cb(value);
         this.log.info(`Setting ${this.accessory.displayName} ${name} to ${value ? 'on' : 'off'}`);
         callback();
       })
-      .on(CharacteristicEventTypes.GET, async (callback: CharacteristicGetCallback) => {
+      .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         callback(undefined, this.camera.info.properties[_key]);
       });
   }

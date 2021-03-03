@@ -367,11 +367,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
           'VIDEO',
           videoffmpegCommand,
           this.log,
-          callback,
           this,
           sessionId,
           false,
           this.customFfmpeg,
+          (error) => {
+            callback(error);
+          },
         );
 
         let ffmpegAudio: FfmpegProcess | undefined;
@@ -384,7 +386,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
                 'AUDIO',
                 audioffmpegCommand,
                 this.log,
-                undefined,
                 this,
                 sessionId,
                 false,
@@ -399,7 +400,6 @@ export class StreamingDelegate implements CameraStreamingDelegate {
                   'RETURN AUDIO',
                   returnAudioffmpegCommand,
                   this.log,
-                  undefined,
                   this,
                   sessionId,
                   false,
