@@ -21,14 +21,14 @@ export interface Zone {
 }
 
 export const ModelTypes = [
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
   'Nest Cam Indoor',
   'Nest Cam Outdoor',
   'Nest Cam IQ Indoor',
