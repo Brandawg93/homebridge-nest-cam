@@ -19,21 +19,12 @@ const prompt = (query: string): Promise<string> =>
 
 (async (): Promise<void> => {
   const ft = process.argv.includes('-ft');
-  const token = generateToken(ft);
-  const url = token.url;
-  const code_verifier = token.code;
+  const url = generateToken(ft);
   console.log(`1. Open the url below in a browser to continue:\n\n${url}\n`);
-  console.log('2. Open Developer Tools (View/Developer/Developer Tools).');
-  console.log("3. Click on 'Network' tab. Make sure 'Preserve Log' is checked.");
-  console.log("4. In the 'Filter' box, enter 'nest-account' and select 'Doc' for the filter type.");
-  console.log('5. Login to your Google account.');
-  console.log('6. After a few seconds you will be redirected back to Google.');
-  console.log("7. Click on the call in red beginning with 'nest-account&authuser=...'");
-  let requestUrl = await prompt("7. Copy the entire Request Url (beginning with 'com.googleusercontent.apps') here: ");
+  const code = await prompt('2. Copy the code here: ');
   try {
-    requestUrl = requestUrl.replace('Request URL: ', '').split('?')[1];
-    const refreshToken = await getRefreshToken(requestUrl, code_verifier, ft);
-    console.log('8. Copy the refresh token below to your config.json.');
+    const refreshToken = await getRefreshToken(code, ft);
+    console.log('3. Copy the refresh token below to your config.json.');
     console.log(`Refresh Token: ${refreshToken}`);
   } catch (err) {
     let msg = err;

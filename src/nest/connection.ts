@@ -5,20 +5,9 @@ import { AxiosRequestConfig } from 'axios';
 import { NestConfig } from './models/config';
 import { CameraInfo } from './models/camera';
 import querystring from 'querystring';
-import crypto from 'crypto';
-import base64url from 'base64url';
 
-export type Token = {
-  url: string;
-  code: string;
-};
-
-const REDIRECT_URI = 'com.googleusercontent.apps.733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla:/oauth2callback';
-const REDIRECT_URI_FT = 'com.googleusercontent.apps.384529615266-57v6vaptkmhm64n9hn5dcmkr4at14p8j:/oauthredirect';
 const CLIENT_ID = '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com';
 const CLIENT_ID_FT = '384529615266-57v6vaptkmhm64n9hn5dcmkr4at14p8j.apps.googleusercontent.com';
-const AUDIENCE = '733249279899-spjd3qvje0svjorc6j5lit5m5u8dn32e.apps.googleusercontent.com';
-const AUDIENCE_FT = '384529615266-fs1uiloq0rbmjtun2njct601pnuhqddo.apps.googleusercontent.com';
 const APIKEY = 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4';
 const APIKEY_FT = 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -32,22 +21,6 @@ const API_TIMEOUT_SECONDS = 10;
 
 const delay = function (time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, time));
-};
-
-const randomStr = (len: number): string => {
-  let result = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  for (let i = 0; i < len; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-};
-
-const codeChallenge = (str: string): string => {
-  const hash = crypto.createHash('sha256');
-  hash.update(str);
-  return base64url(hash.digest());
 };
 
 /**
@@ -75,24 +48,18 @@ export async function getCameras(config: NestConfig, log?: Logging): Promise<Arr
 /**
  * Generate url required to retrieve a refresh token
  */
-export function generateToken(ft = false): Token {
-  const code = randomStr(43); // This is the code verifier
+export function generateToken(ft = false): string {
   const data = {
-    nonce: randomStr(43),
-    audience: ft ? AUDIENCE_FT : AUDIENCE,
+    access_type: 'offline',
     response_type: 'code',
-    code_challenge_method: 'S256',
     scope: 'openid profile email https://www.googleapis.com/auth/nest-account',
-    code_challenge: codeChallenge(code),
-    redirect_uri: ft ? REDIRECT_URI_FT : REDIRECT_URI,
+    redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
     client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
-    state: randomStr(43),
   };
-  return { url: `https://accounts.google.com/o/oauth2/v2/auth?${querystring.stringify(data)}`, code: code };
+  return `https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?${querystring.stringify(data)}`;
 }
 
-export async function getRefreshToken(requestUrl: string, code_verifier: string, ft = false): Promise<string> {
-  const code = querystring.parse(requestUrl).code;
+export async function getRefreshToken(code: string, ft = false): Promise<string> {
   const req: AxiosRequestConfig = {
     method: 'POST',
     timeout: API_TIMEOUT_SECONDS * 1000,
@@ -103,8 +70,7 @@ export async function getRefreshToken(requestUrl: string, code_verifier: string,
     },
     data: querystring.stringify({
       code: code,
-      code_verifier: code_verifier,
-      redirect_uri: ft ? REDIRECT_URI_FT : REDIRECT_URI,
+      redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
       client_id: ft ? CLIENT_ID_FT : CLIENT_ID,
       grant_type: 'authorization_code',
     }),

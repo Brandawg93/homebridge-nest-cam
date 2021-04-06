@@ -2,17 +2,16 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { NestConfig } from '../../../../nest/models/config';
-import { Token } from '../../../../nest/connection';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function startsWithValidator(start: string): ValidatorFn {
+function containsValidator(start: string): ValidatorFn {
   return (control: AbstractControl): { [key: string]: any } | null => {
-    const starts = control.value.startsWith(start);
-    return starts ? null : { startsWith: { value: control.value } };
+    const contains = control.value.includes(start);
+    return contains ? null : { contains: { value: control.value } };
   };
 }
 
@@ -27,11 +26,7 @@ function startsWithValidator(start: string): ValidatorFn {
 export class LoginComponent implements OnInit {
   public form?: FormGroup;
   public waiting = false;
-  public token: Token = {
-    url: '#',
-    code: '',
-  };
-
+  public url = '';
   public progress = 0;
   public color = 'blue';
   private homebridge = window.homebridge;
@@ -61,7 +56,7 @@ export class LoginComponent implements OnInit {
 
   generateForm(): void {
     this.form = new FormGroup({
-      requestUrl: new FormControl('', [Validators.required, startsWithValidator('com.googleusercontent.apps')]),
+      code: new FormControl('', [Validators.required, containsValidator('/')]),
     });
 
     // this.form.valueChanges.subscribe((value) => {
@@ -72,7 +67,7 @@ export class LoginComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     const config = ((await this.homebridge.getPluginConfig())[0] || {}) as NestConfig;
     const ft = config.options?.fieldTest;
-    this.token = await this.homebridge.request('/generateToken', { ft: ft });
+    this.url = await this.homebridge.request('/generateToken', { ft: ft });
   }
 
   private async checkAuthentication(refreshToken: string): Promise<void> {
@@ -101,11 +96,9 @@ export class LoginComponent implements OnInit {
     this.resetLoginUI();
     const config = ((await this.homebridge.getPluginConfig())[0] || {}) as NestConfig;
     const ft = config.options?.fieldTest;
-    const code_verifier = this.token?.code;
-    const requestUrl = this.form?.controls.requestUrl.value;
+    const code = this.form?.controls.code.value;
     const refreshToken = await this.homebridge.request('/getRefreshToken', {
-      url: requestUrl,
-      code_verifier: code_verifier,
+      code: code,
       ft: ft,
     });
     if (refreshToken) {
