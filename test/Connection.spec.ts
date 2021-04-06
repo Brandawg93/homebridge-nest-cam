@@ -18,5 +18,5 @@ test('works as expected', async () => {
 test('can generate token', async () => {
   expect.assertions(1);
   const token = generateToken();
-  expect(token.url.length > 0).toBeTruthy();
+  expect(token.length > 0).toBeTruthy();
 });
