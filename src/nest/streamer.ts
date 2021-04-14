@@ -41,6 +41,7 @@ export class NexusStreamer {
   private accessToken: string | undefined;
   private socket: WebSocket | undefined;
   private pendingMessages: Array<{ type: number; buffer: Uint8Array }> = [];
+  private pendingPlaybackPackets: Array<any> = [];
   private pendingBuffer: Buffer | undefined;
   private videoChannelID = -1;
   private audioChannelID = -1;
@@ -380,11 +381,29 @@ export class NexusStreamer {
    */
   private handlePlaybackPacket(payload: Pbf): void {
     const packet = PlaybackPacket.read(payload);
+
+    if (!this.videoStarted) {
+      this.pendingPlaybackPackets.push(packet);
+    } else if (this.pendingPlaybackPackets.length > 0) {
+      this.pendingPlaybackPackets.forEach((pkt: any) => {
+        this.processPlaybackPacket(pkt);
+      });
+      this.pendingPlaybackPackets = [];
+    } else {
+      this.processPlaybackPacket(packet);
+    }
+  }
+
+  /**
+   * Process the playback packet
+   * @param packet The playback data
+   */
+  private processPlaybackPacket(packet: any): void {
     if (packet.channel_id === this.videoChannelID) {
       // H264 NAL Units require 0001 added to beginning
       const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
       const stdin = this.ffmpegVideo.getStdin();
-      if (this.videoStarted && !stdin?.writableEnded) {
+      if (!stdin?.writableEnded) {
         stdin?.write(Buffer.concat([startCode, Buffer.from(packet.payload)]), () => {
           // Do nothing
         });
@@ -392,7 +411,7 @@ export class NexusStreamer {
     }
     if (packet.channel_id === this.audioChannelID) {
       const stdin = this.ffmpegAudio?.getStdin();
-      if (this.videoStarted && !stdin?.writableEnded) {
+      if (!stdin?.writableEnded) {
         stdin?.write(Buffer.from(packet.payload), () => {
           // Do nothing
         });
