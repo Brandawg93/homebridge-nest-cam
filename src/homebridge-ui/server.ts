@@ -1,9 +1,11 @@
+/* eslint-disable no-await-in-loop */
 import { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils';
 import { auth, getCameras, generateToken, getRefreshToken } from '../nest/connection';
 import { NestConfig } from '../nest/models/config';
-import { Member } from '../nest/models/structure';
+import { Face, Member } from '../nest/models/structure';
 import { NestStructure } from '../nest/structure';
-import { CameraInfo } from '../nest/models/camera';
+import { CameraInfo, Zone } from '../nest/models/camera';
+import { NestCam } from '../nest/cam';
 
 interface Structure {
   title: string;
@@ -22,6 +24,8 @@ export class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/auth', this.handleAuthRequest.bind(this));
     this.onRequest('/structures', this.handleStructureRequest.bind(this));
     this.onRequest('/cameras', this.handleCamerasRequest.bind(this));
+    this.onRequest('/faces', this.handleFacesRequest.bind(this));
+    this.onRequest('/zones', this.handleZonesRequest.bind(this));
     this.onRequest('/owner', this.handleOwnerRequest.bind(this));
     this.onRequest('/generateToken', this.handleGenerateTokenRequest.bind(this));
     this.onRequest('/getRefreshToken', this.handleGetRefreshTokenRequest.bind(this));
@@ -90,18 +94,57 @@ export class UiServer extends HomebridgePluginUiServer {
     }
   }
 
+  async handleFacesRequest(): Promise<Array<Face> | undefined> {
+    const config = this.generateConfig();
+    if (config) {
+      const structures: Array<NestStructure> = [];
+      let faces: Array<Face> = [];
+      const cameras = this.cameras || (await getCameras(config));
+      for (const camera of cameras) {
+        if (
+          !structures.some(
+            (structure: NestStructure) => structure.id === camera.nest_structure_id.replace('structure.', ''),
+          )
+        ) {
+          structures.push(new NestStructure(camera, config));
+        }
+      }
+
+      for (const structure of structures) {
+        const newFaces = await structure.getFaces();
+        if (newFaces) {
+          faces = faces.concat(newFaces);
+        }
+      }
+      return faces;
+    }
+  }
+
+  async handleZonesRequest(): Promise<Array<Zone> | undefined> {
+    const config = this.generateConfig();
+    if (config) {
+      let zones: Array<Zone> = [];
+      const cameras = this.cameras || (await getCameras(config));
+      for (const camera of cameras) {
+        const cam = new NestCam(config, camera);
+        const newZones = await cam.getZones();
+        if (newZones) {
+          zones = zones.concat(newZones);
+        }
+      }
+      return zones;
+    }
+  }
+
   async handleLogoutRequest(): Promise<void> {
     this.cameras = undefined;
   }
 
   private async sendToParent(request: { action: string; payload?: any }): Promise<any> {
     const promise = new Promise((resolve) => {
-      this.onRequest(
-        `/${request.action}`,
-        async (payload: any): Promise<any> => {
-          return resolve(payload);
-        },
-      );
+      this.onRequest(`/${request.action}`, async (payload: any): Promise<any> => {
+        return resolve(payload);
+      });
     });
     this.pushEvent(request.action, request.payload);
     return promise;

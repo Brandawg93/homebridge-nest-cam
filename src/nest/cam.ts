@@ -132,6 +132,7 @@ export class NestCam extends EventEmitter {
               this.log?.debug(`Found face ${face.name} for ${structureId}`);
               this.alertTypes.push(`Face - ${face.name}`);
             }
+            this.alertTypes.push('Face - Unknown');
           });
         }
       }
@@ -190,8 +191,8 @@ export class NestCam extends EventEmitter {
           this.lastCuepoint = trigger.id;
           // Add face to alert if name is not empty
           if (trigger.face_name) {
-            this.log?.debug(`Found face for ${trigger.face_name} in event`);
-            trigger.types?.push(`Face - ${trigger.face_name}`);
+            this.log?.debug(`Found face for ${trigger.face_name || 'Unknown'} in event`);
+            trigger.types?.push(`Face - ${trigger.face_name || 'Unknown'}`);
 
             //If there is a face, there is a person
             if (!trigger.types?.includes('person')) {

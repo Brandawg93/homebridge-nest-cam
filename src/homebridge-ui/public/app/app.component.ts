@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { CameraInfo } from '../../../nest/models/camera';
+import { CameraInfo, Zone } from '../../../nest/models/camera';
 import { IHomebridgeUiFormHelper } from '@homebridge/plugin-ui-utils/dist/ui.interface';
 import { NestConfig } from '../../../nest/models/config';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
+import { Face } from '../../../nest/models/structure';
 
 interface Profile {
   name: string;
@@ -128,43 +129,76 @@ export class AppComponent implements OnInit {
 
   async modifySchema(schema: Record<string, any>): Promise<Record<string, any>> {
     const cameras = (await this.homebridge.request('/cameras')) as Array<CameraInfo>;
-    if (cameras && cameras.length > 0) {
-      const structures = await this.homebridge.request('/structures');
-
+    if (cameras && cameras.length > 0 && schema && schema.options && schema.options.properties) {
       const hasDoorbell = cameras ? cameras.some((c) => c.capabilities.includes('indoor_chime')) : false;
       const hasMotion = cameras ? cameras.some((c) => c.capabilities.includes('detectors.on_camera')) : false;
       const hasStrangerDetection = cameras ? cameras.some((c) => c.capabilities.includes('stranger_detection')) : false;
-
-      if (schema && schema.options && schema.options.properties) {
-        if (!hasDoorbell) {
-          delete schema.options.properties.doorbellAlerts;
-          delete schema.options.properties.doorbellSwitch;
-          delete schema.options.properties.chimeSwitch;
-        }
-        if (!hasMotion) {
-          delete schema.options.properties.alertCheckRate;
-          delete schema.options.properties.alertCooldownRate;
-          delete schema.options.properties.alertTypes;
-          delete schema.options.properties.importantOnly;
-          delete schema.options.properties.motionDetection;
-        }
-        if (
-          !hasStrangerDetection &&
-          schema.options.properties.alertTypes &&
-          schema.options.properties.alertTypes.items
-        ) {
-          const oneOf = schema.options.properties.alertTypes.items.oneOf;
-          schema.options.properties.alertTypes.items.oneOf = oneOf.filter((obj: any) => {
-            const title = obj.title;
-            return title !== 'Package Retrieved' && title !== 'Package Delivered' && title !== 'Face';
+      // Remove options if user does not have a doorbell
+      if (!hasDoorbell) {
+        delete schema.options.properties.doorbellAlerts;
+        delete schema.options.properties.doorbellSwitch;
+        delete schema.options.properties.chimeSwitch;
+      }
+      // Remove options if user does not have a motion camera
+      if (!hasMotion) {
+        delete schema.options.properties.alertCheckRate;
+        delete schema.options.properties.alertCooldownRate;
+        delete schema.options.properties.alertTypes;
+        delete schema.options.properties.importantOnly;
+        delete schema.options.properties.motionDetection;
+      }
+      // Remove options if user does not have camera with face detection
+      if (!hasStrangerDetection && schema.options.properties.alertTypes && schema.options.properties.alertTypes.items) {
+        const oneOf = schema.options.properties.alertTypes.items.oneOf;
+        schema.options.properties.alertTypes.items.oneOf = oneOf.filter((obj: any) => {
+          const title = obj.title;
+          return title !== 'Package Retrieved' && title !== 'Package Delivered' && title !== 'Face';
+        });
+      }
+      // Add faces if user has camera with face detection
+      if (hasStrangerDetection && schema.options.properties.alertTypes && schema.options.properties.alertTypes.items) {
+        const faces = (await this.homebridge.request('/faces')) as Array<Face> | undefined;
+        const oneOf = schema.options.properties.alertTypes.items.oneOf;
+        oneOf.push({ title: 'Face - Unknown', enum: ['Face - Unknown'] });
+        schema.options.properties.alertTypes.items.oneOf = oneOf
+          .concat(
+            faces
+              ?.filter((face: Face) => {
+                return face.name;
+              })
+              .map((face: Face) => {
+                return { title: `Face - ${face.name}`, enum: [`Face - ${face.name}`] };
+              }),
+          )
+          .filter((obj: any) => {
+            return obj.title !== 'Face';
           });
-        }
-        if (schema.options.properties.structures && schema.options.properties.structures.items) {
-          if (structures && structures.length > 1) {
-            schema.options.properties.structures.items.oneOf = structures;
-          } else {
-            delete schema.options.properties.structures;
-          }
+      }
+      // Add zones if user has camera with zones
+      if (schema.options.properties.alertTypes && schema.options.properties.alertTypes.items) {
+        const zones = (await this.homebridge.request('/zones')) as Array<Zone> | undefined;
+        const oneOf = schema.options.properties.alertTypes.items.oneOf;
+        schema.options.properties.alertTypes.items.oneOf = oneOf
+          .concat(
+            zones
+              ?.filter((zone: Zone) => {
+                return zone.label;
+              })
+              .map((zone: Zone) => {
+                return { title: `Zone - ${zone.label}`, enum: [`Zone - ${zone.label}`] };
+              }),
+          )
+          .filter((obj: any) => {
+            return obj.title !== 'Zone';
+          });
+      }
+      // Remove options if user only has one structure
+      if (schema.options.properties.structures && schema.options.properties.structures.items) {
+        const structures = await this.homebridge.request('/structures');
+        if (structures && structures.length > 1) {
+          schema.options.properties.structures.items.oneOf = structures;
+        } else {
+          delete schema.options.properties.structures;
         }
       }
     }
