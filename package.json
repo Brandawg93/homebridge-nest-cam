@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "7.3.0-test.0",
+  "version": "7.3.0",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -31,7 +31,7 @@
     "test": "jest --coverage",
     "watch:tests": "jest --watch",
     "lint": "eslint src/**/*.ts --fix",
-    "prepare": "npm run clean && tsc && ng build --prod",
+    "prepare": "npm run clean && tsc && ng build --configuration production",
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean",
     "ng-start": "ng serve",
