@@ -43,6 +43,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   private options: Options;
   private readonly nestObjects: Array<NestObject> = [];
   private structures: Array<string> = [];
+  private cameras: Array<string> = [];
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
@@ -82,6 +83,14 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       this.structures = structures;
     } else {
       this.log.debug('Defaulting structures to []');
+    }
+
+    const cameras = this.config.options?.cameras;
+    if (typeof cameras !== 'undefined') {
+      this.log.debug(`Using cameras from config: ${cameras}`);
+      this.cameras = cameras;
+    } else {
+      this.log.debug('Defaulting cameras to []');
     }
   }
 
@@ -222,6 +231,17 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         }
       });
     }
+    if (this.cameras.length > 0) {
+      const oldObjects = this.nestObjects.filter((obj: NestObject) => !this.cameras.includes(obj.camera.info.uuid));
+      oldObjects.forEach((obj) => {
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [obj.accessory]);
+        const index = this.nestObjects.indexOf(obj);
+        if (index > -1) {
+          obj.camera.stopAlertChecks();
+          this.nestObjects.splice(index, 1);
+        }
+      });
+    }
   }
 
   /**
@@ -229,10 +249,14 @@ class NestCamPlatform implements DynamicPlatformPlugin {
    */
   private filterCameras(cameras: Array<CameraInfo>): Array<CameraInfo> {
     if (this.structures.length > 0) {
-      this.log.debug('Filtering cameras by structures');
+      this.log.debug('Filtering cameras by structures config');
       cameras = cameras.filter((info: CameraInfo) =>
         this.structures.includes(info.nest_structure_id.replace('structure.', '')),
       );
+    }
+    if (this.cameras.length > 0) {
+      this.log.debug('Filtering cameras by cameras config');
+      cameras = cameras.filter((info: CameraInfo) => this.cameras.includes(info.uuid));
     }
     return cameras;
   }

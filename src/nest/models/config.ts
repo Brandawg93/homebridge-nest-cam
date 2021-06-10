@@ -25,6 +25,7 @@ interface Options {
   audioSwitch?: boolean;
   pathToFfmpeg?: string;
   structures?: Array<string>;
+  cameras?: Array<string>;
 }
 
 export interface NestConfig extends PlatformConfig {

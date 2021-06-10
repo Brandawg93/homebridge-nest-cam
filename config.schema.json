@@ -139,10 +139,19 @@
         },
         "structures": {
           "title": "Structures",
-          "description": "Restart homebridge after logging in to see available structures.",
+          "description": "Restart homebridge after logging in to see available structures. (All structures show if left blank.)",
           "type": "array",
           "items": {
             "title": "Structure Name",
+            "type": "string"
+          }
+        },
+        "cameras": {
+          "title": "Cameras",
+          "description": "Restart homebridge after logging in to see available cameras. (All cameras show if left blank.)",
+          "type": "array",
+          "items": {
+            "title": "Camera Name",
             "type": "string"
           }
         },

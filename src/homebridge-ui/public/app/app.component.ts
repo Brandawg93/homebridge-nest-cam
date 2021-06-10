@@ -130,9 +130,9 @@ export class AppComponent implements OnInit {
   async modifySchema(schema: Record<string, any>): Promise<Record<string, any>> {
     const cameras = (await this.homebridge.request('/cameras')) as Array<CameraInfo>;
     if (cameras && cameras.length > 0 && schema && schema.options && schema.options.properties) {
-      const hasDoorbell = cameras ? cameras.some((c) => c.capabilities.includes('indoor_chime')) : false;
-      const hasMotion = cameras ? cameras.some((c) => c.capabilities.includes('detectors.on_camera')) : false;
-      const hasStrangerDetection = cameras ? cameras.some((c) => c.capabilities.includes('stranger_detection')) : false;
+      const hasDoorbell = cameras.some((c) => c.capabilities.includes('indoor_chime'));
+      const hasMotion = cameras.some((c) => c.capabilities.includes('detectors.on_camera'));
+      const hasStrangerDetection = cameras.some((c) => c.capabilities.includes('stranger_detection'));
       // Remove options if user does not have a doorbell
       if (!hasDoorbell) {
         delete schema.options.properties.doorbellAlerts;
@@ -199,6 +199,16 @@ export class AppComponent implements OnInit {
           schema.options.properties.structures.items.oneOf = structures;
         } else {
           delete schema.options.properties.structures;
+        }
+      }
+      // Remove options if user only has one camera
+      if (schema.options.properties.cameras && schema.options.properties.cameras.items) {
+        if (cameras.length > 1) {
+          schema.options.properties.cameras.items.oneOf = cameras.map((camera) => {
+            return { title: camera.name, enum: [camera.uuid] };
+          });
+        } else {
+          delete schema.options.properties.cameras;
         }
       }
     }
