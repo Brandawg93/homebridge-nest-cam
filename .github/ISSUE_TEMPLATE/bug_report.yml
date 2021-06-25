@@ -1,0 +1,78 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[Bug]: "
+labels: bug
+assignees: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before Submitting an Issue
+
+        https://github.com/Brandawg93/homebridge-nest-cam/wiki/Troubleshooting
+
+        Make sure you have the latest LTS from https://nodejs.org
+        and the latest packages: `npm upgrade -g homebridge homebridge-nest-cam`
+
+        Also include debug log output from startup through seeing the issue:
+        `homebridge -D`
+  - type: textarea
+    id: describe-the-bug
+    attributes:
+      label: Describe the bug
+      description: Also describe what you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: Debug Output
+    validations:
+      required: true
+  - type: textarea
+    id: to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior
+      value: "1. "
+    validations:
+      required: true
+  - type: input
+    id: device-type
+    attributes:
+      label: Device Type
+      description: On what device are you running homebridge?
+      placeholder: ex. raspberry pi
+    validations:
+      required: true
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS Version
+      description: On what iOS version are you having issues?
+    validations:
+      required: true
+  - type: input
+    id: camera-types
+    attributes:
+      label: Camera Types
+      description: What camera types are having issues?
+    validations:
+      required: true
+  - type: dropdown
+    id: bug-persistence
+    attributes:
+      label: Bug Persistence
+      description: Does this issue occur consistently or randomly?
+      options:
+        - Consistently
+        - Randomly
+    validations:
+      required: true
+  - type: input
+    id: last-working-version
+    attributes:
+      label: Last Working Version
+      description: If applicable, what was the last version that worked properly?
+    validations:
+      required: false
