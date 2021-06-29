@@ -13,7 +13,7 @@ const getRefreshToken = (): string => {
 jest.useFakeTimers();
 
 test('checkAlerts works as expected', async () => {
-  expect.assertions(2);
+  expect.assertions(1);
   const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);
   if (accessToken) {
@@ -27,9 +27,9 @@ test('checkAlerts works as expected', async () => {
     const checkAlertsSpy = jest.spyOn(NestCam.prototype as any, 'checkAlerts');
     camera.startAlertChecks();
     jest.runOnlyPendingTimers();
-    expect(checkAlertsSpy).toHaveBeenCalled();
     camera.stopAlertChecks();
-    expect(clearInterval).toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+    expect(checkAlertsSpy).toHaveBeenCalledTimes(1);
   } else {
     throw new Error('Could not connect');
   }
