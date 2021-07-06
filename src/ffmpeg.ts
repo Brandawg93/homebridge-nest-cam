@@ -4,6 +4,12 @@ import { StreamingDelegate } from './streaming-delegate';
 import { Readable, Writable } from 'stream';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
+/**
+ * Test if current Ffmpeg supports a particular codec
+ * @param codec The codec to test
+ * @param ffmpegPath The path to the currently installed ffmepg
+ * @returns A boolean depending on Ffmpeg's codec support
+ */
 export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string): Promise<boolean> {
   if (!codec) {
     return false;
