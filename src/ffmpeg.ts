@@ -21,6 +21,11 @@ export async function doesFfmpegSupportCodec(codec: string, ffmpegPath: string):
   return output.stdout.includes(codec);
 }
 
+/**
+ * Get output from running "ffmpeg --codecs"
+ * @param ffmpegPath The path to the currently installed ffmepg
+ * @returns A string of the output
+ */
 export async function getCodecsOutput(ffmpegPath: string): Promise<string> {
   const output = await execa(ffmpegPath, ['-codecs']);
   return output.stdout;

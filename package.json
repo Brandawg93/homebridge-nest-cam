@@ -24,7 +24,6 @@
     "homebridge-nest-cam": "dist/cli.js"
   },
   "scripts": {
-    "rimraf": "./node_modules/rimraf/bin.js",
     "clean": "rimraf ./dist ./coverage",
     "build": "npm run clean && tsc && ng build",
     "deploy": "./dev/deploy.sh",
