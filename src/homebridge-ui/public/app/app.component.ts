@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { CameraInfo, Zone } from '../../../nest/models/camera';
+import { CameraInfo, Zone } from '../../../nest/types/camera';
 import { IHomebridgeUiFormHelper } from '@homebridge/plugin-ui-utils/dist/ui.interface';
-import { NestConfig } from '../../../nest/models/config';
+import { NestConfig } from '../../../nest/types/config';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
-import { Face } from '../../../nest/models/structure';
+import { Face } from '../../../nest/types/structure';
 
 interface Profile {
   name: string;

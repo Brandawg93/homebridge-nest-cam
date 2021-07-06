@@ -1,10 +1,10 @@
 /* eslint-disable no-await-in-loop */
 import { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils';
 import { auth, getCameras, generateToken, getRefreshToken } from '../nest/connection';
-import { NestConfig } from '../nest/models/config';
-import { Face, Member } from '../nest/models/structure';
+import { NestConfig } from '../nest/types/config';
+import { Face, Member } from '../nest/types/structure';
 import { NestStructure } from '../nest/structure';
-import { CameraInfo, Zone } from '../nest/models/camera';
+import { CameraInfo, Zone } from '../nest/types/camera';
 import { NestCam } from '../nest/cam';
 
 interface Structure {

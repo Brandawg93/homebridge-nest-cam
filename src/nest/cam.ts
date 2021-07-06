@@ -1,10 +1,10 @@
 import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
-import { CameraInfo, Properties, Zone } from './models/camera';
-import { NestConfig } from './models/config';
-import { MotionEvent } from './models/event';
+import { CameraInfo, Properties, Zone } from './types/camera';
+import { NestConfig } from './types/config';
+import { MotionEvent } from './types/event';
 import { NestStructure } from './structure';
-import { Face } from './models/structure';
+import { Face } from './types/structure';
 import querystring from 'querystring';
 import { EventEmitter } from 'events';
 
@@ -188,24 +188,25 @@ export class NestCam extends EventEmitter {
       this.alertFailures = 0;
       if (response.length > 0) {
         response.forEach((trigger) => {
-          this.lastCuepoint = trigger.id;
+          const { id, face_name, types, zone_ids, is_important } = trigger;
+          this.lastCuepoint = id;
           // Add face to alert if name is not empty
-          if (trigger.face_name) {
-            this.log?.debug(`Found face for ${trigger.face_name || 'Unknown'} in event`);
-            trigger.types?.push(`Face - ${trigger.face_name || 'Unknown'}`);
+          if (face_name) {
+            this.log?.debug(`Found face for ${face_name || 'Unknown'} in event`);
+            types?.push(`Face - ${face_name || 'Unknown'}`);
 
             //If there is a face, there is a person
-            if (!trigger.types?.includes('person')) {
-              trigger.types?.push('person');
+            if (!types?.includes('person')) {
+              types?.push('person');
             }
           }
 
-          if (trigger.zone_ids.length > 0) {
-            trigger.zone_ids.forEach((zone_id) => {
+          if (zone_ids.length > 0) {
+            zone_ids.forEach((zone_id) => {
               const zone = this.zones.find((x) => x.id === zone_id);
               if (zone) {
                 this.log?.debug(`Found zone for ${zone.label} in event`);
-                trigger.types.push(`Zone - ${zone.label}`);
+                types.push(`Zone - ${zone.label}`);
               }
             });
           }
@@ -213,20 +214,20 @@ export class NestCam extends EventEmitter {
           // Check importantOnly flag
           let important = true;
           if (this.importantOnly) {
-            important = trigger.is_important;
+            important = is_important;
           }
 
-          if (important && trigger.types.includes('doorbell') && !this.doorbellRang) {
+          if (important && types.includes('doorbell') && !this.doorbellRang) {
             this.triggerDoorbell();
           }
 
           if (important && !this.motionDetected) {
-            if (trigger.types && trigger.types.length > 0) {
-              const lastSubset = this.lastAlertTypes.filter((x) => !trigger.types.includes(x));
+            if (types && types.length > 0) {
+              const lastSubset = this.lastAlertTypes.filter((x) => !types.includes(x));
               this.emit(NestCamEvents.MOTION_DETECTED, false, lastSubset);
-              const currSubset = trigger.types.filter((x) => !this.lastAlertTypes.includes(x));
+              const currSubset = types.filter((x) => !this.lastAlertTypes.includes(x));
               this.triggerMotion(currSubset);
-              this.lastAlertTypes = trigger.types;
+              this.lastAlertTypes = types;
             }
           }
         });

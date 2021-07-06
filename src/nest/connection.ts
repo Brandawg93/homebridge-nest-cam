@@ -2,8 +2,8 @@ import { Logging } from 'homebridge';
 import axios from 'axios';
 import { NestEndpoints, handleError } from './endpoints';
 import { AxiosRequestConfig } from 'axios';
-import { NestConfig } from './models/config';
-import { CameraInfo } from './models/camera';
+import { NestConfig } from './types/config';
+import { CameraInfo } from './types/camera';
 import querystring from 'querystring';
 
 const CLIENT_ID = '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com';

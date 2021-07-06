@@ -1,8 +1,8 @@
 import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
-import { Face, Member } from './models/structure';
-import { CameraInfo } from './models/camera';
-import { NestConfig } from './models/config';
+import { Face, Member } from './types/structure';
+import { CameraInfo } from './types/camera';
+import { NestConfig } from './types/config';
 import axios from 'axios';
 import { AxiosRequestConfig } from 'axios';
 

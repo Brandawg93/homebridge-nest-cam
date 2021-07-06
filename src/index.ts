@@ -9,8 +9,8 @@ import {
   PlatformConfig,
 } from 'homebridge';
 import { NestCam } from './nest/cam';
-import { CameraInfo, ModelTypes } from './nest/models/camera';
-import { NestConfig } from './nest/models/config';
+import { CameraInfo } from './nest/types/camera';
+import { NestConfig } from './nest/types/config';
 import { auth, old_auth, getCameras } from './nest/connection';
 import { NestSession } from './nest/session';
 import { NestAccessory } from './accessory';
@@ -29,6 +29,22 @@ interface NestObject {
   accessory: PlatformAccessory;
   camera: NestCam;
 }
+
+const ModelTypes = [
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Camera',
+  'Nest Cam Indoor',
+  'Nest Cam Outdoor',
+  'Nest Cam IQ Indoor',
+  'Nest Cam IQ Outdoor',
+  'Nest Hello',
+];
 
 let hap: HAP;
 let Accessory: typeof PlatformAccessory;
@@ -298,15 +314,12 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   async getAccessToken(): Promise<string> {
-    const refreshToken = this.config.refreshToken;
-    const googleAuth = this.config.googleAuth;
+    const { refreshToken, googleAuth } = this.config;
 
     if (refreshToken) {
       return await auth(refreshToken, this.config.options?.fieldTest, this.log);
     } else if (googleAuth) {
-      const issueToken = googleAuth.issueToken;
-      const cookies = googleAuth.cookies;
-      const apiKey = googleAuth.apiKey;
+      const { apiKey, issueToken, cookies } = googleAuth;
 
       if (!issueToken || !cookies) {
         this.log.error('You must provide issueToken and cookies in config.json. Please see README.md for instructions');
@@ -338,9 +351,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       await this.setupMotionServices();
       this.cleanupAccessories();
       const session = new NestSession(this.config, this.log);
-      const cameraObjects = this.nestObjects.map((x) => {
-        return x.camera;
-      });
+      const cameraObjects = this.nestObjects.map((x) => x.camera);
       await session.subscribe(cameraObjects);
     } else {
       this.log.error('Unable to retrieve access token.');
@@ -348,9 +359,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   isShuttingDown(): void {
-    const accessoryObjects = this.nestObjects.map((x) => {
-      return x.accessory;
-    });
+    const accessoryObjects = this.nestObjects.map((x) => x.accessory);
     this.api.updatePlatformAccessories(accessoryObjects);
   }
 }

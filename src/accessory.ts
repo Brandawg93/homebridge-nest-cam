@@ -15,7 +15,7 @@ import {
 } from 'homebridge';
 import { StreamingDelegate } from './streaming-delegate';
 import { NestCam, NestCamEvents } from './nest/cam';
-import { Properties } from './nest/models/camera';
+import { Properties } from './nest/types/camera';
 
 type ServiceType = WithUUID<typeof Service>;
 

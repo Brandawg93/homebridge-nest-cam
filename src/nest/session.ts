@@ -1,8 +1,8 @@
 import { Logging } from 'homebridge';
 import { NestEndpoints, handleError } from './endpoints';
 import { NestCam } from './cam';
-import { Session, AppLaunch } from './models/session';
-import { NestConfig } from './models/config';
+import { Session, AppLaunch } from './types/session';
+import { NestConfig } from './types/config';
 
 const KNOWN_BUCKET_TYPES = [
   // 'buckets',

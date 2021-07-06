@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
-import { NestConfig } from '../../../../nest/models/config';
+import { NestConfig } from '../../../../nest/types/config';
 import '@homebridge/plugin-ui-utils/dist/ui.interface';
 
 function delay(ms: number): Promise<void> {

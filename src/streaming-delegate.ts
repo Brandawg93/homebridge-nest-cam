@@ -19,7 +19,7 @@ import {
 import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
 import { handleError } from './nest/endpoints';
-import { NestConfig } from './nest/models/config';
+import { NestConfig } from './nest/types/config';
 import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
 import { readFile } from 'fs';
@@ -200,54 +200,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const videoPayloadType = info.pt;
     const mtu = info.mtu; // maximum transmission unit
 
-    let command = [
-      '-f',
-      'h264',
-      '-use_wallclock_as_timestamps',
-      '1',
-      '-r',
-      '15',
-      '-i',
-      'pipe:',
-      '-c:v',
-      this.ffmpegCodec,
-      '-bf',
-      '0',
-      '-b:v',
-      `${bitrate}k`,
-      '-bufsize',
-      `${bitrate}k`,
-      '-maxrate',
-      `${2 * bitrate}k`,
-      '-pix_fmt',
-      'yuv420p',
-      '-an',
-    ];
-
-    const index = command.indexOf(this.ffmpegCodec) + 1;
-    if (this.ffmpegCodec === 'libx264') {
-      command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'zerolatency']);
-    }
-
-    if (!this.camera.info.properties['streaming.enabled']) {
-      command = [
-        '-loop',
-        '1',
-        '-i',
-        join(__dirname, `../images/offline.jpg`),
-        '-c:v',
-        this.ffmpegCodec,
-        '-pix_fmt',
-        'yuv420p',
-        '-an',
-      ];
-
-      if (this.ffmpegCodec === 'libx264') {
-        command.splice(index, 0, ...['-preset', 'ultrafast', '-tune', 'stillimage']);
-      }
-    }
-
-    command = command.concat([
+    const output = [
       '-payload_type',
       videoPayloadType.toString(),
       '-ssrc',
@@ -259,9 +212,49 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       '-srtp_out_params',
       videoSRTP,
       `srtp://${address}:${videoPort}?rtcpport=${videoPort}&localrtcpport=${returnVideoPort}&pkt_size=${mtu}`,
-    ]);
+    ];
 
-    return command;
+    if (!this.camera.info.properties['streaming.enabled']) {
+      return [
+        '-loop',
+        '1',
+        '-i',
+        join(__dirname, `../images/offline.jpg`),
+        '-c:v',
+        this.ffmpegCodec,
+        ...(this.ffmpegCodec === 'libx264' ? ['-preset', 'ultrafast', '-tune', 'zerolatency'] : []),
+        '-pix_fmt',
+        'yuv420p',
+        '-an',
+        ...output,
+      ];
+    }
+
+    return [
+      '-f',
+      'h264',
+      '-use_wallclock_as_timestamps',
+      '1',
+      '-r',
+      '15',
+      '-i',
+      'pipe:',
+      '-c:v',
+      this.ffmpegCodec,
+      ...(this.ffmpegCodec === 'libx264' ? ['-preset', 'ultrafast', '-tune', 'zerolatency'] : []),
+      '-bf',
+      '0',
+      '-b:v',
+      `${bitrate}k`,
+      '-bufsize',
+      `${bitrate}k`,
+      '-maxrate',
+      `${2 * bitrate}k`,
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      ...output,
+    ];
   }
 
   private getAudioCommand(info: AudioInfo, sessionId: string): Array<string> | undefined {

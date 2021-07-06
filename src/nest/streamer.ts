@@ -2,7 +2,7 @@ import { Logging } from 'homebridge';
 import WebSocket from 'ws';
 import { FfmpegProcess } from '../ffmpeg';
 import { NestEndpoints } from './endpoints';
-import { CameraInfo } from './models/camera';
+import { CameraInfo } from './types/camera';
 import Pbf from 'pbf';
 import { PlaybackPacket, PacketType } from './protos/PlaybackPacket';
 import { Redirect } from './protos/Redirect';

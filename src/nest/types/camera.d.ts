@@ -20,22 +20,6 @@ export interface Zone {
   weight: string;
 }
 
-export const ModelTypes = [
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Camera',
-  'Nest Cam Indoor',
-  'Nest Cam Outdoor',
-  'Nest Cam IQ Indoor',
-  'Nest Cam IQ Outdoor',
-  'Nest Hello',
-];
-
 export interface Properties {
   'adaptive_bandwidth.enabled': boolean;
   'alarms.streaming.enabled': boolean;
