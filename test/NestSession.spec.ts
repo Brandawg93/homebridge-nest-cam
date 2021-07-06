@@ -1,5 +1,5 @@
 import { NestSession } from '../src/nest/session';
-import { NestConfig } from '../src/nest/models/config';
+import { NestConfig } from '../src/nest/types/config';
 import { auth } from '../src/nest/connection';
 
 const getRefreshToken = (): string => {

@@ -1,5 +1,5 @@
 import { NestStructure } from '../src/nest/structure';
-import { NestConfig } from '../src/nest/models/config';
+import { NestConfig } from '../src/nest/types/config';
 import { auth, getCameras } from '../src/nest/connection';
 
 const getRefreshToken = (): string => {
