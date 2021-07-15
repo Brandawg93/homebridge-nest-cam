@@ -1,16 +1,9 @@
 import { NestStructure } from '../src/nest/structure';
 import { NestConfig } from '../src/nest/types/config';
 import { auth, getCameras } from '../src/nest/connection';
+import { getRefreshToken, itif } from './TestBase';
 
-const getRefreshToken = (): string => {
-  const refreshToken = process.env.REFRESH_TOKEN;
-  if (!refreshToken) {
-    throw new Error('Refresh token not found.');
-  }
-  return refreshToken;
-};
-
-test('getFaces and getMembers works as expected', async () => {
+itif(process.env.REFRESH_TOKEN)('getFaces and getMembers works as expected', async () => {
   expect.assertions(2);
   const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);

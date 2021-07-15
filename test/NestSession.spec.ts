@@ -1,16 +1,9 @@
 import { NestSession } from '../src/nest/session';
 import { NestConfig } from '../src/nest/types/config';
 import { auth } from '../src/nest/connection';
+import { getRefreshToken, itif } from './TestBase';
 
-const getRefreshToken = (): string => {
-  const refreshToken = process.env.REFRESH_TOKEN;
-  if (!refreshToken) {
-    throw new Error('Refresh token not found.');
-  }
-  return refreshToken;
-};
-
-test('getAppLaunch works as expected', async () => {
+itif(process.env.REFRESH_TOKEN)('getAppLaunch works as expected', async () => {
   expect.assertions(1);
   const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);

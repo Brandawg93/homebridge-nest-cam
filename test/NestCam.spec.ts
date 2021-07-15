@@ -1,18 +1,11 @@
 import { NestCam } from '../src/nest/cam';
 import { NestConfig } from '../src/nest/types/config';
 import { auth, getCameras } from '../src/nest/connection';
-
-const getRefreshToken = (): string => {
-  const refreshToken = process.env.REFRESH_TOKEN;
-  if (!refreshToken) {
-    throw new Error('Refresh token not found.');
-  }
-  return refreshToken;
-};
+import { getRefreshToken, itif } from './TestBase';
 
 jest.useFakeTimers();
 
-test('checkAlerts works as expected', async () => {
+itif(process.env.REFRESH_TOKEN)('checkAlerts works as expected', async () => {
   expect.assertions(1);
   const refreshToken = getRefreshToken();
   const accessToken = await auth(refreshToken);

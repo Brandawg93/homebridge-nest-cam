@@ -1,14 +1,7 @@
 import { auth, generateToken } from '../src/nest/connection';
+import { getRefreshToken, itif } from './TestBase';
 
-const getRefreshToken = (): string => {
-  const refreshToken = process.env.REFRESH_TOKEN;
-  if (!refreshToken) {
-    throw new Error('Refresh token not found.');
-  }
-  return refreshToken;
-};
-
-test('works as expected', async () => {
+itif(process.env.REFRESH_TOKEN)('works as expected', async () => {
   const refreshToken = getRefreshToken();
   expect.assertions(1);
   const accessToken = await auth(refreshToken);
