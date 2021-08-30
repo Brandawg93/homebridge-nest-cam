@@ -26,6 +26,7 @@ View your Nest cams in HomeKit using [Homebridge](https://github.com/homebridge/
 |---|---|---|
 
 ## Notes
+- This plugin *does not* work with the latest Nest cameras. If you do not see it in the Nest app, then it will not show in this plugin. More info can be found at [#440](https://github.com/Brandawg93/homebridge-nest-cam/issues/440).
 - This plugin *does not* use the old access token authentication method as Google is urging users to [switch to Google accounts](https://www.macrumors.com/2020/05/05/nest-two-factor-authentication-from-may/).
 
 ## Installation
