@@ -133,8 +133,11 @@ export class NexusStreamer {
     this.socket = new WebSocket(`wss://${host}/nexustalk`);
     this.socket.on('open', () => {
       self.log?.info('[NexusStreamer] Connected');
-      if (this.nestAuth) self.requestHello_nestAuth();
-      else self.requestHello();
+      if (this.nestAuth) {
+        self.requestHello_nestAuth();
+      } else {
+        self.requestHello();
+      }
       pingInterval = setInterval(() => {
         self.sendMessage(1, Buffer.alloc(0));
       }, 15000);
@@ -253,8 +256,7 @@ export class NexusStreamer {
   /**
    * Authenticate the socket session using old Nest Authentication syntax
    */
-   private requestHello_nestAuth(): void {
-
+  private requestHello_nestAuth(): void {
     const request = {
       protocol_version: Hello.ProtocolVersion.VERSION_3,
       uuid: this.cameraInfo.uuid,

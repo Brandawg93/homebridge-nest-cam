@@ -128,7 +128,7 @@ export async function auth(refreshToken: string, ft = false, log?: Logging): Pro
     };
     result = (await axios(req)).data;
     return result.jwt;
-  } catch (error) {
+  } catch (error: any) {
     error.status = error.response && error.response.status;
     log?.error('Access token acquisition via refresh token failed (code ' + (error.status || error.code) + ').');
     if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
@@ -203,7 +203,7 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
     };
     result = (await axios(req)).data;
     return result.jwt;
-  } catch (error) {
+  } catch (error: any) {
     error.status = error.response && error.response.status;
     log?.error('Access token acquisition via googleAuth failed (code ' + (error.status || error.code) + ').');
     if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
@@ -222,7 +222,7 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
 export async function nest_auth(nest_token: string, log?: Logging): Promise<string> {
   let req: AxiosRequestConfig;
 
-  log?.debug("Authenticating via pre-defined nest_token")
+  log?.debug('Authenticating via pre-defined nest_token');
   let result;
   try {
     req = {
@@ -230,13 +230,13 @@ export async function nest_auth(nest_token: string, log?: Logging): Promise<stri
       timeout: API_TIMEOUT_SECONDS * 1000,
       url: NEST_AUTH_URL,
       data: querystring.stringify({
-        'access_token': nest_token,
+        access_token: nest_token,
       }),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + nest_token,
+        Authorization: 'Basic ' + nest_token,
         'User-Agent': NestEndpoints.USER_AGENT_STRING,
-        'Referer': 'https://home.nest.com',
+        Referer: 'https://home.nest.com',
       },
     };
     result = (await axios(req)).data;
@@ -244,8 +244,8 @@ export async function nest_auth(nest_token: string, log?: Logging): Promise<stri
       log?.error('Nest authentication was unsuccessful.');
       throw result;
     }
-    return result.items[0].session_token;   //return website2's session
-  } catch (error) {
+    return result.items[0].session_token; //return website2's session
+  } catch (error: any) {
     error.status = error.response && error.response.status;
     log?.error('Nest authentication failed (code ' + (error.status || error.code) + ').');
     if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
