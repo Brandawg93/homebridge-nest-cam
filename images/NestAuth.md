@@ -25,7 +25,7 @@ sudo npm install -g --unsafe-perm homebridge-nest-cam
 
 ***Note***: *all configuration must be done manually in your `config.json` - plugin-based config is not yet supported*
 
-1. Cancel out of the initial authentication screen:
+1. Cancel out of the initial authentication screen:<br>
    <img src="loginUI.png" width=450 />
 1. Manually copy and paste this object template into your `config.json`, inside the `platforms` array:
     ```json
