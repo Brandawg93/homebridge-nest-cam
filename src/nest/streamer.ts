@@ -68,7 +68,7 @@ export class NexusStreamer {
     this.ffmpegAudio = ffmpegAudio;
     this.ffmpegReturnAudio = ffmpegReturnAudio;
     this.cameraInfo = cameraInfo;
-    this.nestToken = accessToken;
+    this.nestToken = nestToken;
     this.accessToken = accessToken;
     this.setupConnection(cameraInfo.websocket_nexustalk_host);
   }
