@@ -52,7 +52,7 @@ sudo npm install -g --unsafe-perm homebridge-nest-cam
     ```
 1. Log into <a href="https://home.nest.com" target="_blank">https://home.nest.com</a> and get to the main home screen
 1. Once authenticated, change the URL and navigate to <a href="https://home.nest.com/session" target="_blank">https://home.nest.com/session</a>
-1. Grab the value associated with the `access_token` key:
+1. Grab the value associated with the `access_token` key:<br>
    <img src=home.Session.png width=600>
    * *Note: this is the same access_token that [homebridge-nest](https://github.com/chrisjshull/homebridge-nest) uses if you want to grab from existing config*
 1. Update your `config.json` and the `nest_token` key with the access token you copied, replacing `TOKEN_GOES_HERE`
