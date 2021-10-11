@@ -429,13 +429,13 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         if (this.camera.info.properties['streaming.enabled'] && this.pendingSessions[sessionId]) {
           const streamer = new NexusStreamer(
             this.camera.info,
-            this.config.nest_token,
             this.config.access_token,
             this.config.options?.streamQuality || 3,
             ffmpegVideo,
             ffmpegAudio,
             ffmpegReturnAudio,
             this.log,
+            (this.config.nest_token != undefined),
           );
           streamer.startPlayback();
           this.ongoingStreams[sessionId] = streamer;
@@ -517,7 +517,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       delete this.pendingSessions[sessionId];
       delete this.ongoingSessions[sessionId];
       this.log.debug('Stopped streaming session!');
-    } catch (e: any) {
+    } catch (e) {
       this.log.error('Error occurred terminating the video process!');
       this.log.error(e);
     }
