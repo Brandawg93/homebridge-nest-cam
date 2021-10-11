@@ -42,6 +42,7 @@ export class NexusStreamer {
   private streamQuality: StreamQuality;
   private sessionID: number = Math.floor(Math.random() * 100);
   private cameraInfo: CameraInfo;
+  private nestToken: string | undefined;
   private accessToken: string | undefined;
   private socket: WebSocket | undefined;
   private pendingMessages: Array<{ type: number; buffer: Uint8Array }> = [];
@@ -50,17 +51,16 @@ export class NexusStreamer {
   private videoChannelID = -1;
   private audioChannelID = -1;
   private returnAudioTimeout: NodeJS.Timeout | undefined;
-  private nestAuth = false;
 
   constructor(
     cameraInfo: CameraInfo,
+    nestToken: string | undefined,
     accessToken: string | undefined,
     streamQuality: StreamQuality,
     ffmpegVideo: FfmpegProcess,
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,
     log?: Logging,
-    nestAuth?: boolean,
   ) {
     this.log = log;
     this.streamQuality = streamQuality;
@@ -68,8 +68,8 @@ export class NexusStreamer {
     this.ffmpegAudio = ffmpegAudio;
     this.ffmpegReturnAudio = ffmpegReturnAudio;
     this.cameraInfo = cameraInfo;
+    this.nestToken = accessToken;
     this.accessToken = accessToken;
-    this.nestAuth = nestAuth || false;
     this.setupConnection(cameraInfo.websocket_nexustalk_host);
   }
 
@@ -133,7 +133,7 @@ export class NexusStreamer {
     this.socket = new WebSocket(`wss://${host}/nexustalk`);
     this.socket.on('open', () => {
       self.log?.info('[NexusStreamer] Connected');
-      if (this.nestAuth) {
+      if (this.nestToken) {
         self.requestHello_nestAuth();
       } else {
         self.requestHello();
@@ -264,7 +264,7 @@ export class NexusStreamer {
       require_connected_camera: false,
       user_agent: NestEndpoints.USER_AGENT_STRING,
       client_type: Hello.ClientType.WEB,
-      session_token: this.accessToken,
+      session_token: this.nestToken,
     };
     const pbfContainer = new Pbf();
     Hello.write(request, pbfContainer);
@@ -560,7 +560,7 @@ export class NexusStreamer {
         headerLength = 3;
         length = this.pendingBuffer.readUInt16BE(1);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log?.debug(`Buffer only had ${this.pendingBuffer.length} bytes. Skipping...`);
       this.log?.debug(error);
       this.pendingBuffer = undefined;

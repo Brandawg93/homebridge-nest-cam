@@ -33,4 +33,5 @@ export interface NestConfig extends PlatformConfig {
   refreshToken?: string;
   options?: Options;
   access_token?: string;
+  nest_token?: string;
 }
