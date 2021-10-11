@@ -12,6 +12,7 @@ const APIKEY = 'AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4';
 const APIKEY_FT = 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const ISSUE_JWT_URL = 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt';
+const NEST_AUTH_URL = 'https://webapi.camera.home.nest.com/api/v1/login.login_nest';
 
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
@@ -209,6 +210,48 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
       log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
       await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
       return await old_auth(issueToken, cookies);
+    } else {
+      return '';
+    }
+  }
+}
+
+/**
+ * Attempt to authenticate using unmigrated Nest account
+ */
+export async function nest_auth(nest_token: string, log?: Logging): Promise<string> {
+  let req: AxiosRequestConfig;
+
+  log?.debug("Authenticating via pre-defined nest_token")
+  let result;
+  try {
+    req = {
+      method: 'POST',
+      timeout: API_TIMEOUT_SECONDS * 1000,
+      url: NEST_AUTH_URL,
+      data: querystring.stringify({
+        'access_token': nest_token,
+      }),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + nest_token,
+        'User-Agent': NestEndpoints.USER_AGENT_STRING,
+        'Referer': 'https://home.nest.com',
+      },
+    };
+    result = (await axios(req)).data;
+    if (result.error) {
+      log?.error('Nest authentication was unsuccessful.');
+      throw result;
+    }
+    return result.items[0].session_token;   //return website2's session
+  } catch (error) {
+    error.status = error.response && error.response.status;
+    log?.error('Nest authentication failed (code ' + (error.status || error.code) + ').');
+    if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
+      log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
+      await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
+      return await nest_auth(nest_token, log);
     } else {
       return '';
     }

@@ -11,7 +11,7 @@ import {
 import { NestCam } from './nest/cam';
 import { CameraInfo } from './nest/types/camera';
 import { NestConfig } from './nest/types/config';
-import { auth, old_auth, getCameras } from './nest/connection';
+import { auth, old_auth, nest_auth, getCameras } from './nest/connection';
 import { NestSession } from './nest/session';
 import { NestAccessory } from './accessory';
 
@@ -314,7 +314,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   async getAccessToken(): Promise<string> {
-    const { refreshToken, googleAuth } = this.config;
+    const { refreshToken, googleAuth, nest_token } = this.config;
 
     if (refreshToken) {
       return await auth(refreshToken, this.config.options?.fieldTest, this.log);
@@ -327,6 +327,8 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       }
 
       return await old_auth(issueToken, cookies, apiKey, this.log);
+    } else if (nest_token) {
+      return await nest_auth(nest_token, this.log)
     } else {
       this.log.error(
         'You must provide a refreshToken or googleAuth object in config.json. Please see README.md for instructions',

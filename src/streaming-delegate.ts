@@ -435,6 +435,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             ffmpegAudio,
             ffmpegReturnAudio,
             this.log,
+            (this.config.nest_token != undefined),
           );
           streamer.startPlayback();
           this.ongoingStreams[sessionId] = streamer;
