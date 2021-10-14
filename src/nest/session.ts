@@ -85,7 +85,7 @@ export class NestSession {
 
       try {
         const appLaunch: AppLaunch = await this.endpoints.sendRequest(
-          this.config.access_token,
+          this.config.nest_token || this.config.access_token,
           this.endpoints.NEST_API_HOSTNAME,
           `/api/0.1/user/${userId}/app_launch`,
           'POST',
@@ -116,7 +116,7 @@ export class NestSession {
 
       try {
         const response: any = await this.endpoints.sendRequest(
-          this.config.access_token,
+          this.config.nest_token || this.config.access_token,
           appLaunch.service_urls.urls.transport_url,
           '/v6/subscribe',
           'POST',

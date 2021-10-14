@@ -50,6 +50,7 @@ export class NexusStreamer {
   private videoChannelID = -1;
   private audioChannelID = -1;
   private returnAudioTimeout: NodeJS.Timeout | undefined;
+  private nestAuth = false;
 
   constructor(
     cameraInfo: CameraInfo,
@@ -59,6 +60,7 @@ export class NexusStreamer {
     ffmpegAudio?: FfmpegProcess,
     ffmpegReturnAudio?: FfmpegProcess,
     log?: Logging,
+    nestAuth?: boolean,
   ) {
     this.log = log;
     this.streamQuality = streamQuality;
@@ -67,6 +69,7 @@ export class NexusStreamer {
     this.ffmpegReturnAudio = ffmpegReturnAudio;
     this.cameraInfo = cameraInfo;
     this.accessToken = accessToken;
+    this.nestAuth = nestAuth || false;
     this.setupConnection(cameraInfo.websocket_nexustalk_host);
   }
 
@@ -130,7 +133,11 @@ export class NexusStreamer {
     this.socket = new WebSocket(`wss://${host}/nexustalk`);
     this.socket.on('open', () => {
       self.log?.info('[NexusStreamer] Connected');
-      self.requestHello();
+      if (this.nestAuth) {
+        self.requestHello_nestAuth();
+      } else {
+        self.requestHello();
+      }
       pingInterval = setInterval(() => {
         self.sendMessage(1, Buffer.alloc(0));
       }, 15000);
@@ -239,6 +246,25 @@ export class NexusStreamer {
       user_agent: NestEndpoints.USER_AGENT_STRING,
       client_type: Hello.ClientType.WEB,
       authorize_request: tokenBuffer,
+    };
+    const pbfContainer = new Pbf();
+    Hello.write(request, pbfContainer);
+    const buffer = pbfContainer.finish();
+    this.sendMessage(PacketType.HELLO, buffer);
+  }
+
+  /**
+   * Authenticate the socket session using old Nest Authentication syntax
+   */
+  private requestHello_nestAuth(): void {
+    const request = {
+      protocol_version: Hello.ProtocolVersion.VERSION_3,
+      uuid: this.cameraInfo.uuid,
+      device_id: generateDeviceId(),
+      require_connected_camera: false,
+      user_agent: NestEndpoints.USER_AGENT_STRING,
+      client_type: Hello.ClientType.WEB,
+      session_token: this.accessToken,
     };
     const pbfContainer = new Pbf();
     Hello.write(request, pbfContainer);
@@ -534,7 +560,7 @@ export class NexusStreamer {
         headerLength = 3;
         length = this.pendingBuffer.readUInt16BE(1);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log?.debug(`Buffer only had ${this.pendingBuffer.length} bytes. Skipping...`);
       this.log?.debug(error);
       this.pendingBuffer = undefined;

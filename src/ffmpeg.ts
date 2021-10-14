@@ -106,7 +106,7 @@ export class FfmpegProcess {
           controller?.forceStopStreamingSession(sessionId);
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       log.error(`[${title}] Failed to start stream: ` + error.message);
       if (callback) {
         callback(new Error('ffmpeg process creation failed!'));

@@ -435,6 +435,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
             ffmpegAudio,
             ffmpegReturnAudio,
             this.log,
+            this.config.nest_token !== undefined,
           );
           streamer.startPlayback();
           this.ongoingStreams[sessionId] = streamer;
@@ -516,7 +517,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       delete this.pendingSessions[sessionId];
       delete this.ongoingSessions[sessionId];
       this.log.debug('Stopped streaming session!');
-    } catch (e) {
+    } catch (e: any) {
       this.log.error('Error occurred terminating the video process!');
       this.log.error(e);
     }
