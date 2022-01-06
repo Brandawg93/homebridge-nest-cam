@@ -147,7 +147,6 @@ export async function auth(refreshToken: string, ft = false, log?: Logging): Pro
 export async function old_auth(issueToken: string, cookies: string, apiKey?: string, log?: Logging): Promise<string> {
   let req: AxiosRequestConfig;
 
-  //Only doing google auth from now on
   issueToken = issueToken.replace('Request URL: ', '');
   cookies = cookies.replace('cookie: ', '');
   const referer: string = querystring.parse(issueToken).ss_domain?.toString() || '';
