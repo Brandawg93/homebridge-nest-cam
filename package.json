@@ -32,7 +32,8 @@
     "prepublishOnly": "npm run lint",
     "postpublish": "npm run clean",
     "ng-start": "ng serve",
-    "ng-build": "ng build"
+    "ng-build": "ng build",
+    "rimraf": "./node_modules/rimraf/bin.js"
   },
   "keywords": [
     "homebridge",

@@ -1,6 +1,7 @@
 import { generateToken, getRefreshToken } from './nest/connection';
 import * as readline from 'readline';
 
+// Prompt for user input
 const prompt = (query: string): Promise<string> =>
   new Promise(async (resolve, reject) => {
     const rl = readline.createInterface({
