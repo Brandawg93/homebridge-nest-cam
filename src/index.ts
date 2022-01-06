@@ -233,7 +233,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 
   private cleanupAccessories(): void {
-    //Remove cached cameras filtered by structure
+    // Remove cached cameras filtered by structure
     if (this.structures.length > 0) {
       const oldObjects = this.nestObjects.filter(
         (obj: NestObject) => !this.structures.includes(obj.camera.info.nest_structure_id.replace('structure.', '')),
