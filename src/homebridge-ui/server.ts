@@ -171,7 +171,7 @@ export class UiServer extends HomebridgePluginUiServer {
     }
     try {
       return await getRefreshToken(payload.code, payload.ft);
-    } catch (err) {
+    } catch (err: any) {
       let msg = err;
       if (err.response?.data?.error_description) {
         msg = err.response?.data?.error_description;

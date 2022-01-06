@@ -26,7 +26,7 @@ const prompt = (query: string): Promise<string> =>
     const refreshToken = await getRefreshToken(code, ft);
     console.log('3. Copy the refresh token below to your config.json.');
     console.log(`Refresh Token: ${refreshToken}`);
-  } catch (err) {
+  } catch (err: any) {
     let msg = err;
     if (err.response?.data?.error_description) {
       msg = err.response?.data?.error_description;
