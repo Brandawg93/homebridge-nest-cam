@@ -23,7 +23,7 @@ enum StreamQuality {
 
 /**
  * Generate an ID for the device requesting a stream
- * @returns {string} The device id
+ * @returns {string} The random device id
  */
 const generateDeviceId = (): string => {
   return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace('x', () => {
