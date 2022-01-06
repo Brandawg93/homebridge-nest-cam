@@ -247,6 +247,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
         }
       });
     }
+    // Remove cached cameras filtered by uuid
     if (this.cameras.length > 0) {
       const oldObjects = this.nestObjects.filter((obj: NestObject) => !this.cameras.includes(obj.camera.info.uuid));
       oldObjects.forEach((obj) => {
