@@ -150,7 +150,7 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
   //Only doing google auth from now on
   issueToken = issueToken.replace('Request URL: ', '');
   cookies = cookies.replace('cookie: ', '');
-  const referer = querystring.parse(issueToken).ss_domain;
+  const referer: string = querystring.parse(issueToken).ss_domain?.toString() || '';
   if (!referer) {
     log?.error('issueToken is invalid');
     return '';

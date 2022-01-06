@@ -366,7 +366,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
   }
 }
 
-export = (api: API): void => {
+export default (api: API): void => {
   hap = api.hap;
   Accessory = api.platformAccessory;
 
