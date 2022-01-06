@@ -243,7 +243,7 @@ export async function nest_auth(nest_token: string, log?: Logging): Promise<stri
       log?.error('Nest authentication was unsuccessful.');
       throw result;
     }
-    return result.items[0].session_token; //return website2's session
+    return result.items[0].session_token;
   } catch (error: any) {
     error.status = error.response && error.response.status;
     log?.error('Nest authentication failed (code ' + (error.status || error.code) + ').');
