@@ -40,7 +40,8 @@ export class AppComponent implements OnInit {
     this.initialized = false;
     this.authenticated = authenticated;
     if (authenticated) {
-      await this.showForm();
+      // await is not needed
+      this.showForm();
       const owner = await this.homebridge.request('/owner');
       if (owner) {
         this.profile = {
@@ -108,7 +109,8 @@ export class AppComponent implements OnInit {
         ft: this.ft,
       });
       if (this.authenticated) {
-        await this.showForm(config);
+        // await is not needed
+        this.showForm();
         const owner = await this.homebridge.request('/owner');
         if (owner) {
           this.profile = {

@@ -3,23 +3,25 @@
     <app-login (authEvent)="setAuthenticated($event)"></app-login>
   </div>
   <div *ngIf="authenticated">
-    <div @profileTrigger *ngIf="initialized" class="container-fluid overflow-hidden">
-      <div class="profile-container">
-        <div class="row">
-          <div class="col-md">
-            <span *ngIf="ft">Field Test Mode</span>
-          </div>      
-          <div class="col-md text-right">
-            <p class="profile-name m-0">{{profile.name}}</p>
-            <p class="profile-email m-0">{{profile.email}}</p>
-          </div>
-          <div class="col-md-1 text-right">
-            <img src="{{profile.img}}" class="profile-img" width="36" height="36"/>  
-          </div>
-          <div class="col-md-1 text-right">
-            <button class="btn btn-danger m-0" (click)="signout()"><i class="fas fa-sign-out-alt"></i></button>
-          </div>
-        </div>  
+    <div style="height: 44px;">
+      <div @opacity *ngIf="initialized" class="container-fluid overflow-hidden">
+        <div class="profile-container">
+          <div class="row">
+            <div class="col-md">
+              <span *ngIf="ft">Field Test Mode</span>
+            </div>      
+            <div class="col-md text-right">
+              <p class="profile-name m-0">{{profile.name}}</p>
+              <p class="profile-email m-0">{{profile.email}}</p>
+            </div>
+            <div class="col-md-1 text-right">
+              <img src="{{profile.img}}" class="profile-img" width="36" height="36"/>  
+            </div>
+            <div class="col-md-1 text-right">
+              <button class="btn btn-danger m-0" (click)="signout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+          </div>  
+        </div>
       </div>
     </div>
   </div>
