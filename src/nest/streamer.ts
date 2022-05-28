@@ -73,6 +73,12 @@ export class NexusStreamer {
     this.setupConnection(cameraInfo.websocket_nexustalk_host);
   }
 
+  async *generator(): AsyncGenerator<Buffer> {
+    this.ffmpegVideo?.getStdout()?.on('data', (data: Buffer) => {
+      yield new Promise(data);
+    });
+  }
+
   /**
    * Close the socket and stop playback
    */

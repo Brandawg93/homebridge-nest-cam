@@ -1,11 +1,15 @@
 import {
   CameraController,
+  CameraRecordingConfiguration,
+  CameraRecordingDelegate,
   CameraStreamingDelegate,
   HAP,
+  HDSProtocolSpecificErrorReason,
   Logging,
   PrepareStreamCallback,
   PrepareStreamRequest,
   PrepareStreamResponse,
+  RecordingPacket,
   SnapshotRequest,
   SnapshotRequestCallback,
   SRTPCryptoSuites,
@@ -15,6 +19,9 @@ import {
   StreamSessionIdentifier,
   VideoInfo,
   AudioInfo,
+  H264Profile,
+  AudioRecordingCodecType,
+  AudioRecordingSamplerate,
 } from 'homebridge';
 import { NexusStreamer } from './nest/streamer';
 import { NestCam } from './nest/cam';
@@ -22,9 +29,14 @@ import { handleError } from './nest/endpoints';
 import { NestConfig } from './nest/types/config';
 import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
+import { AddressInfo, createServer, Server, Socket } from 'net';
 import { readFile } from 'fs';
 import { join } from 'path';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
+import { Characteristic, H264Level, VideoCodecType } from 'hap-nodejs';
+import { NestAccessory } from './accessory';
+import { ChildProcess, spawn } from 'child_process';
+import { once } from 'events';
 
 type SessionInfo = {
   address: string; // address of the HAP controller
@@ -44,7 +56,7 @@ type SessionInfo = {
   audioSSRC: number;
 };
 
-export class StreamingDelegate implements CameraStreamingDelegate {
+export class StreamingDelegate implements CameraStreamingDelegate, CameraRecordingDelegate {
   private readonly hap: HAP;
   private readonly log: Logging;
   private readonly config: NestConfig;
@@ -55,25 +67,30 @@ export class StreamingDelegate implements CameraStreamingDelegate {
   private ffmpegSupportsLibfdk_acc = true;
   private ffmpegSupportsLibspeex = true;
   private camera: NestCam;
+  private accessory: NestAccessory;
   controller?: CameraController;
 
   // keep track of sessions
   private pendingSessions: Record<string, SessionInfo> = {};
   private ongoingSessions: Record<string, Array<FfmpegProcess | undefined>> = {};
   private ongoingStreams: Record<string, NexusStreamer> = {};
+  private ongoingRecords: Record<number, NexusStreamer> = {};
+  private configuration?: CameraRecordingConfiguration;
+  private handlingStreamingRequest = false;
 
-  constructor(hap: HAP, camera: NestCam, config: NestConfig, log: Logging) {
-    this.hap = hap;
-    this.log = log;
-    this.config = config;
-    this.camera = camera;
-    this.customFfmpeg = config.options?.pathToFfmpeg;
+  constructor(nestAccessory: NestAccessory) {
+    this.hap = nestAccessory.hap;
+    this.log = nestAccessory.log;
+    this.config = nestAccessory.config;
+    this.camera = nestAccessory.camera;
+    this.accessory = nestAccessory;
+    this.customFfmpeg = nestAccessory.config.options?.pathToFfmpeg;
     this.videoProcessor = this.customFfmpeg || pathToFfmpeg || 'ffmpeg';
 
     // Get the correct video codec
     getCodecsOutput(this.videoProcessor)
       .then((output) => {
-        const codec = config.options?.ffmpegCodec;
+        const codec = this.config.options?.ffmpegCodec;
         if (codec === 'copy' || (codec && output.includes(codec))) {
           this.ffmpegCodec = codec;
         } else {
@@ -521,5 +538,206 @@ export class StreamingDelegate implements CameraStreamingDelegate {
       this.log.error('Error occurred terminating the video process!');
       this.log.error(e);
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async *handleRecordingStreamRequest(streamId: number): AsyncGenerator<RecordingPacket> {
+    if (this.configuration && this.configuration.videoCodec.type === VideoCodecType.H264) {
+      const STOP_AFTER_MOTION_STOP = false;
+
+      this.handlingStreamingRequest = true;
+
+      const profile =
+        this.configuration.videoCodec.parameters.profile === H264Profile.HIGH
+          ? 'high'
+          : this.configuration.videoCodec.parameters.profile === H264Profile.MAIN
+          ? 'main'
+          : 'baseline';
+
+      const level =
+        this.configuration.videoCodec.parameters.level === H264Level.LEVEL4_0
+          ? '4.0'
+          : this.configuration.videoCodec.parameters.level === H264Level.LEVEL3_2
+          ? '3.2'
+          : '3.1';
+
+      const videoArgs = [
+        '-f',
+        'h264',
+        '-use_wallclock_as_timestamps',
+        '1',
+        '-i',
+        'pipe:',
+        '-c:v',
+        this.ffmpegCodec,
+        ...(this.ffmpegCodec === 'libx264' ? ['-preset', 'ultrafast', '-tune', 'zerolatency'] : []),
+        '-bf',
+        '0',
+        '-b:v',
+        `${this.configuration.videoCodec.parameters.bitRate}k`,
+        '-profile:v',
+        profile,
+        '-level:v',
+        level,
+        '-an',
+        '-force_key_frames',
+        `expr:eq(t,n_forced*${this.configuration.videoCodec.parameters.iFrameInterval / 1000})`,
+        '-r',
+        this.configuration.videoCodec.resolution[2].toString(),
+        '-f',
+        'mp4',
+        '-fflags',
+        '+genpts',
+        '-reset_timestamps',
+        '1',
+      ];
+
+      const ffmpegVideo = new FfmpegProcess(
+        'VIDEO',
+        videoArgs,
+        this.log,
+        this,
+        streamId.toString(),
+        false,
+        this.customFfmpeg,
+      );
+
+      const streamer = new NexusStreamer(
+        this.camera.info,
+        this.config.access_token,
+        this.config.options?.streamQuality || 3,
+        ffmpegVideo,
+        undefined,
+        undefined,
+        this.log,
+        this.config.nest_token !== undefined,
+      );
+      streamer.startPlayback();
+
+      this.ongoingRecords[streamId] = streamer;
+
+      // let samplerate: string;
+      // switch (this.configuration.audioCodec.samplerate) {
+      //   case AudioRecordingSamplerate.KHZ_8:
+      //     samplerate = '8';
+      //     break;
+      //   case AudioRecordingSamplerate.KHZ_16:
+      //     samplerate = '16';
+      //     break;
+      //   case AudioRecordingSamplerate.KHZ_24:
+      //     samplerate = '24';
+      //     break;
+      //   case AudioRecordingSamplerate.KHZ_32:
+      //     samplerate = '32';
+      //     break;
+      //   case AudioRecordingSamplerate.KHZ_44_1:
+      //     samplerate = '44.1';
+      //     break;
+      //   case AudioRecordingSamplerate.KHZ_48:
+      //     samplerate = '48';
+      //     break;
+      //   default:
+      //     throw new Error('Unsupported audio samplerate: ' + this.configuration.audioCodec.samplerate);
+      // }
+
+      // const audioArgs: Array<string> =
+      //   this.controller?.recordingManagement?.recordingManagementService.getCharacteristic(
+      //     Characteristic.RecordingAudioActive,
+      //   )
+      //     ? [
+      //         '-acodec',
+      //         'libfdk_aac',
+      //         ...(this.configuration.audioCodec.type === AudioRecordingCodecType.AAC_LC
+      //           ? ['-profile:a', 'aac_low']
+      //           : ['-profile:a', 'aac_eld']),
+      //         '-ar',
+      //         `${samplerate}k`,
+      //         '-b:a',
+      //         `${this.configuration.audioCodec.bitrate}k`,
+      //         '-ac',
+      //         `${this.configuration.audioCodec.audioChannels}`,
+      //       ]
+      //     : [];
+
+      // this.server = new MP4StreamingServer(
+      //   'ffmpeg',
+      //   `-f lavfi -i \
+      //   testsrc=s=${this.configuration.videoCodec.resolution[0]}x${this.configuration.videoCodec.resolution[1]}:r=${this.configuration.videoCodec.resolution[2]}`.split(
+      //     / /g,
+      //   ),
+      //   // audioArgs,
+      //   videoArgs,
+      // );
+
+      // await this.server.start();
+      // if (!this.server || this.server.destroyed) {
+      //   return; // early exit
+      // }
+
+      // const pending: Array<Buffer> = [];
+
+      // try {
+      //   for await (const box of this.server.generator()) {
+      //     pending.push(box.header, box.data);
+
+      //     const services = this.accessory.getServicesByType(this.hap.Service.MotionSensor);
+      //     let motionDetected = false;
+      //     const motionSensors: Array<boolean> = [];
+      //     services.forEach((service) => {
+      //       motionSensors.push((service.getCharacteristic(Characteristic.MotionDetected).value as boolean) || false);
+      //     });
+
+      //     if (motionSensors.find((motionSensor) => motionSensor === true)) {
+      //       motionDetected = true;
+      //     }
+
+      //     console.log('mp4 box type ' + box.type + ' and length ' + box.length);
+      //     if (box.type === 'moov' || box.type === 'mdat') {
+      //       const fragment = Buffer.concat(pending);
+      //       pending.splice(0, pending.length);
+
+      //       const isLast = STOP_AFTER_MOTION_STOP && !motionDetected;
+
+      //       yield {
+      //         data: fragment,
+      //         isLast: isLast,
+      //       };
+
+      //       if (isLast) {
+      //         console.log('Ending session due to motion stopped!');
+      //         break;
+      //       }
+      //     }
+      //   }
+      // } catch (error: any) {
+      //   if (!error.message.startsWith('FFMPEG')) {
+      //     // cheap way of identifying our own emitted errors
+      //     this.log.error('Encountered unexpected error on generator ' + error.stack);
+      //   }
+      // }
+    }
+  }
+
+  public updateRecordingActive(active: boolean): void {
+    // we haven't implemented a prebuffer
+    this.log.debug('Recording active set to ' + active);
+  }
+
+  public updateRecordingConfiguration(configuration: CameraRecordingConfiguration | undefined): void {
+    this.configuration = configuration;
+    configuration && this.log.debug(configuration.toString());
+  }
+
+  closeRecordingStream(streamId: number, reason?: HDSProtocolSpecificErrorReason): void {
+    if (this.ongoingRecords[streamId]) {
+      const streamer = this.ongoingRecords[streamId];
+      streamer.stopPlayback();
+    }
+    reason && this.log.debug(reason?.toString());
+    this.handlingStreamingRequest = false;
+  }
+
+  acknowledgeStream(streamId: number): void {
+    this.closeRecordingStream(streamId);
   }
 }

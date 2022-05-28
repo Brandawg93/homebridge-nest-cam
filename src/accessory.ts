@@ -1,4 +1,7 @@
 import {
+  AudioBitrate,
+  AudioRecordingCodecType,
+  AudioRecordingSamplerate,
   AudioStreamingCodecType,
   AudioStreamingSamplerate,
   CameraControllerOptions,
@@ -6,8 +9,11 @@ import {
   CharacteristicGetCallback,
   CharacteristicSetCallback,
   CharacteristicValue,
+  H264Level,
+  H264Profile,
   HAP,
   Logging,
+  MediaContainerType,
   PlatformAccessory,
   PlatformConfig,
   Service,
@@ -16,6 +22,7 @@ import {
 import { StreamingDelegate } from './streaming-delegate';
 import { NestCam, NestCamEvents } from './nest/cam';
 import { Properties } from './nest/types/camera';
+import { VideoCodecType } from 'hap-nodejs';
 
 type ServiceType = WithUUID<typeof Service>;
 
@@ -32,11 +39,11 @@ const sanitizeString = (str: string): string => {
 };
 
 export class NestAccessory {
-  private readonly log: Logging;
-  private readonly hap: HAP;
-  private accessory: PlatformAccessory;
-  private camera: NestCam;
-  private config: PlatformConfig;
+  readonly log: Logging;
+  readonly hap: HAP;
+  accessory: PlatformAccessory;
+  camera: NestCam;
+  config: PlatformConfig;
 
   constructor(accessory: PlatformAccessory, camera: NestCam, config: PlatformConfig, log: Logging, hap: HAP) {
     this.accessory = accessory;
@@ -127,7 +134,7 @@ export class NestAccessory {
   }
 
   configureController(): void {
-    const streamingDelegate = new StreamingDelegate(this.hap, this.camera, this.config, this.log);
+    const streamingDelegate = new StreamingDelegate(this);
     const options: CameraControllerOptions = {
       cameraStreamCount: 2, // HomeKit requires at least 2 streams, but 1 is also just fine
       delegate: streamingDelegate,
@@ -161,6 +168,48 @@ export class NestAccessory {
             },
           ],
         },
+      },
+      recording: {
+        options: {
+          prebufferLength: 4000,
+          mediaContainerConfiguration: {
+            type: MediaContainerType.FRAGMENTED_MP4,
+            fragmentLength: 4000,
+          },
+          video: {
+            type: VideoCodecType.H264,
+            parameters: {
+              profiles: [H264Profile.HIGH],
+              levels: [H264Level.LEVEL4_0],
+            },
+            resolutions: [
+              [320, 180, 30],
+              [320, 240, 15],
+              [320, 240, 30],
+              [480, 270, 30],
+              [480, 360, 30],
+              [640, 360, 30],
+              [640, 480, 30],
+              [1280, 720, 30],
+              [1280, 960, 30],
+              [1920, 1080, 30],
+              [1600, 1200, 30],
+            ],
+          },
+          audio: {
+            codecs: {
+              type: AudioRecordingCodecType.AAC_ELD,
+              audioChannels: 1,
+              samplerate: AudioRecordingSamplerate.KHZ_48,
+              bitrateMode: AudioBitrate.VARIABLE,
+            },
+          },
+        },
+        delegate: streamingDelegate,
+      },
+      sensors: {
+        motion: true,
+        occupancy: true,
       },
     };
 
