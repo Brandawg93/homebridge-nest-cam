@@ -399,18 +399,19 @@ export class StreamingDelegate implements CameraStreamingDelegate {
                   this.customFfmpeg,
                 );
                 const sdpReturnAudio = [
-                  'v=0',
-                  'o=- 0 0 IN IP4 127.0.0.1',
-                  's=Talk',
-                  `c=IN IP4 ${address}`,
-                  't=0 0',
-                  'a=tool:libavformat 58.38.100',
-                  `m=audio ${twoWayAudioPort} RTP/AVP 110`,
-                  'b=AS:24',
-                  'a=rtpmap:110 MPEG4-GENERIC/16000/1',
-                  'a=fmtp:110 profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=F8F0212C00BC00',
-                  `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
-                ].join('\n');
+                    'v=0',
+                    'o=- 0 0 IN IP4 127.0.0.1',
+                    's=Talk',
+                    `c=IN IP4 ${address}`,
+                    't=0 0',
+                    'a=tool:libavformat 58.38.100',
+                    `m=audio ${twoWayAudioPort} RTP/AVP ${audio.pt}`,
+                    `b=AS:${audio.max_bit_rate}`,
+                    `a=ptime:${audio.packet_time}`,
+                    `a=rtpmap:${audio.pt} MPEG4-GENERIC/${(audio.sample_rate * 1000)}/1`,
+                    `a=fmtp:${audio.pt} profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3;config=F8F0212C00BC00`,
+                    `a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:${audioSRTP}`,
+                  ].join('\n');
                 ffmpegReturnAudio.getStdin()?.write(sdpReturnAudio);
                 ffmpegReturnAudio.getStdin()?.end();
               }
