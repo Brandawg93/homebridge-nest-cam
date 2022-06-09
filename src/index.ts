@@ -316,9 +316,9 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
   async getAccessToken(): Promise<string> {
     const { refreshToken, googleAuth, nest_token } = this.config;
-
+    const ft = this.config.options?.fieldTest || false;
     if (refreshToken) {
-      return await auth(refreshToken, this.config.options?.fieldTest, this.log);
+      return await auth(refreshToken, ft, this.log);
     } else if (googleAuth) {
       const { apiKey, issueToken, cookies } = googleAuth;
 

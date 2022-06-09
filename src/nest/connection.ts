@@ -13,6 +13,7 @@ const APIKEY_FT = 'AIzaSyB0WNyJX2EQQujlknzTDD9jz7iVHK5Jn-U';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const ISSUE_JWT_URL = 'https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt';
 const NEST_AUTH_URL = 'https://webapi.camera.home.nest.com/api/v1/login.login_nest';
+const NEST_FT_AUTH_URL = 'https://webapi.camera.home.ft.nest.com/api/v1/login.login_nest';
 
 // Delay after authentication fail before retrying
 const API_AUTH_FAIL_RETRY_DELAY_SECONDS = 15;
@@ -218,7 +219,8 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
 /**
  * Attempt to authenticate using unmigrated Nest account
  */
-export async function nest_auth(nest_token: string, log?: Logging): Promise<string> {
+export async function nest_auth(nest_token: string, log?: Logging, ft = false): Promise<string> {
+  const referer = ft ? 'https://home.nest.ft.com' : 'https://home.nest.com';
   let req: AxiosRequestConfig;
 
   log?.debug('Authenticating via pre-defined nest_token');
@@ -227,7 +229,7 @@ export async function nest_auth(nest_token: string, log?: Logging): Promise<stri
     req = {
       method: 'POST',
       timeout: API_TIMEOUT_SECONDS * 1000,
-      url: NEST_AUTH_URL,
+      url: ft ? NEST_FT_AUTH_URL : NEST_AUTH_URL,
       data: querystring.stringify({
         access_token: nest_token,
       }),
@@ -235,7 +237,7 @@ export async function nest_auth(nest_token: string, log?: Logging): Promise<stri
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: 'Basic ' + nest_token,
         'User-Agent': NestEndpoints.USER_AGENT_STRING,
-        Referer: 'https://home.nest.com',
+        Referer: referer,
       },
     };
     result = (await axios(req)).data;
