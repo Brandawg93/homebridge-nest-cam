@@ -60,10 +60,10 @@
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
-    "axios": "^0.24.0",
+    "axios": "^0.27.2",
     "base64url": "^3.0.1",
     "execa": "^5.1.1",
-    "ffmpeg-for-homebridge": "^0.0.9",
+    "ffmpeg-for-homebridge": "^0.1.4",
     "get-port": "^5.1.1",
     "pbf": "^3.2.1",
     "ws": "^7.5.6"
