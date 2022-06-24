@@ -26,7 +26,7 @@ enum StreamQuality {
  * @returns {string} The random device id
  */
 const generateDeviceId = (): string => {
-  return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace('x', () => {
+  return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace(/x/g, () => {
     return Math.floor(Math.random() * 16).toString(16);
   });
 };
