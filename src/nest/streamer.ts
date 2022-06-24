@@ -278,12 +278,12 @@ export class NexusStreamer {
   private updateAuthentication(): void {
     if (this.nestAuth) {
       // Re-authorisation using "Nest" token
-      const token = {
+      var token = {
         session_token: this.accessToken,
       };
     } else {
       // Re-authorisation using "Google" token
-      const token = {
+      var token = {
         olive_token: this.accessToken,
       };
     }
