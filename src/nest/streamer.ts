@@ -276,9 +276,14 @@ export class NexusStreamer {
    * Update the socket authentication with the new access token
    */
   private updateAuthentication(): void {
-    const token = {
-      olive_token: this.accessToken,
-    };
+    var token = {};
+    if (nestAuth) {
+      // Re-authorisation using "Nest" token
+      token = {session_token: accessToken};
+    } else {
+      // Re-authorisation using "Google" token
+      token = {olive_token: accessToken};
+    }
     const tokenContainer = new Pbf();
     AuthorizeRequest.write(token, tokenContainer);
     const tokenBuffer = tokenContainer.finish();
