@@ -15,7 +15,7 @@ jobs:
     name: Node ${{ matrix.node }} sample
     steps:
       - uses: actions/checkout@v3.0.2
-      - uses: actions/setup-node@v3.3.0
+      - uses: actions/setup-node@v3.4.0
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
