@@ -26,7 +26,7 @@ enum StreamQuality {
  * @returns {string} The random device id
  */
 const generateDeviceId = (): string => {
-  return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace('x', () => {
+  return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace(/x/g, () => {
     return Math.floor(Math.random() * 16).toString(16);
   });
 };
@@ -276,9 +276,14 @@ export class NexusStreamer {
    * Update the socket authentication with the new access token
    */
   private updateAuthentication(): void {
-    const token = {
-      olive_token: this.accessToken,
-    };
+    var token = {};
+    if (this.nestAuth) {
+      // Re-authorisation using "Nest" token
+      token = {session_token: this.accessToken};
+    } else {
+      // Re-authorisation using "Google" token
+      token = {olive_token: this.accessToken};
+    }
     const tokenContainer = new Pbf();
     AuthorizeRequest.write(token, tokenContainer);
     const tokenBuffer = tokenContainer.finish();
