@@ -290,7 +290,10 @@ class NestCamPlatform implements DynamicPlatformPlugin {
       const accessory = new Accessory(displayName, uuid);
       accessory.context.cameraInfo = cameraInfo;
 
-      const model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : 'Nest Camera';
+      let model = cameraInfo.type < ModelTypes.length ? ModelTypes[cameraInfo.type] : '';
+      if (!model) {
+        model = 'Nest Camera';
+      }
       const accessoryInformation = accessory.getService(hap.Service.AccessoryInformation);
       if (accessoryInformation) {
         accessoryInformation.setCharacteristic(hap.Characteristic.Manufacturer, 'Nest');
