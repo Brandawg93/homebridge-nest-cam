@@ -219,7 +219,7 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
 /**
  * Attempt to authenticate using unmigrated Nest account
  */
-export async function nest_auth(nest_token: string, log?: Logging, ft): Promise<string> {
+export async function nest_auth(nest_token: string, log?: Logging, ft = false): Promise<string> {
   const referer = ft ? 'https://home.ft.nest.com' : 'https://home.nest.com';
   let req: AxiosRequestConfig;
 
