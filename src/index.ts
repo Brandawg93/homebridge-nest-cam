@@ -332,7 +332,7 @@ class NestCamPlatform implements DynamicPlatformPlugin {
 
       return await old_auth(issueToken, cookies, apiKey, this.log);
     } else if (nest_token) {
-      return await nest_auth(nest_token, this.log);
+      return await nest_auth(nest_token, this.log, ft);
     } else {
       this.log.error(
         'You must provide a refreshToken or googleAuth object in config.json. Please see README.md for instructions',

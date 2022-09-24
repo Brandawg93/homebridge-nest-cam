@@ -219,8 +219,8 @@ export async function old_auth(issueToken: string, cookies: string, apiKey?: str
 /**
  * Attempt to authenticate using unmigrated Nest account
  */
-export async function nest_auth(nest_token: string, log?: Logging, ft = false): Promise<string> {
-  const referer = ft ? 'https://home.nest.ft.com' : 'https://home.nest.com';
+export async function nest_auth(nest_token: string, log?: Logging, ft): Promise<string> {
+  const referer = ft ? 'https://home.ft.nest.com' : 'https://home.nest.com';
   let req: AxiosRequestConfig;
 
   log?.debug('Authenticating via pre-defined nest_token');
@@ -252,7 +252,7 @@ export async function nest_auth(nest_token: string, log?: Logging, ft = false): 
     if (['ECONNREFUSED', 'ESOCKETTIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'ENETUNREACH'].includes(error.code)) {
       log?.error('Retrying in ' + API_AUTH_FAIL_RETRY_DELAY_SECONDS + ' second(s).');
       await delay(API_AUTH_FAIL_RETRY_DELAY_SECONDS * 1000);
-      return await nest_auth(nest_token, log);
+      return await nest_auth(nest_token, log, ft);
     } else {
       return '';
     }
