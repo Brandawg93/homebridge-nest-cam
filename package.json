@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Nest Cam",
   "name": "homebridge-nest-cam",
-  "version": "7.5.3",
+  "version": "7.5.4",
   "description": "Nest cam plugin for homebridge: https://homebridge.io/",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -60,7 +60,7 @@
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
-    "axios": ">=1.2.1",
+    "axios": "^1.2.1",
     "base64url": "^3.0.1",
     "execa": "^5.1.1",
     "ffmpeg-for-homebridge": "^0.1.4",
