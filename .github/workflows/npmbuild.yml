@@ -14,7 +14,7 @@ jobs:
         node: [ '12', '16' ]
     name: Node ${{ matrix.node }} sample
     steps:
-      - uses: actions/checkout@v3.0.2
+      - uses: actions/checkout@v3.5.2
       - uses: actions/setup-node@v3.3.0
         with:
           node-version: ${{ matrix.node }}
