@@ -4,6 +4,8 @@
 
 # homebridge-nest-cam
 
+⚠️ This project is no longer being maintained. It should still work for older cameras. For newer cameras, see [homebridge-google-nest-sdm](https://github.com/potmat/homebridge-google-nest-sdm).
+
 View your Nest cams in HomeKit using [Homebridge](https://github.com/homebridge/homebridge) with this plugin.
 
 [![NPM](https://nodei.co/npm/homebridge-nest-cam.png?compact=true)](https://nodei.co/npm/homebridge-nest-cam/)
